@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useState } from "react";
-import { Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
 
 type OnboardingSlide = {
   eyebrow: string;
@@ -44,7 +45,7 @@ export function OnboardingScreen({ onComplete }: Props) {
   const isLast = index === slides.length - 1;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <LinearGradient colors={["#F6F7FF", "#F7F9FF", "#ECF9F6"]} style={styles.safeArea}>
       <View style={styles.backgroundAccentTop} />
       <View style={styles.backgroundAccentBottom} />
       <View style={styles.content}>
@@ -56,7 +57,8 @@ export function OnboardingScreen({ onComplete }: Props) {
         </View>
 
         <View style={styles.hero}>
-          <View style={[styles.iconCircle, { backgroundColor: `${slide.color}18` }]}>
+          <View style={[styles.iconCircle, { backgroundColor: `${slide.color}18` }]}> 
+            <Image source={require("../../../assets/finsight-mascot-logo.png")} style={styles.mascot} resizeMode="contain" />
             <Ionicons name={slide.icon} size={58} color={slide.color} />
           </View>
           <Text style={[styles.eyebrow, { color: slide.color }]}>{slide.eyebrow}</Text>
@@ -89,12 +91,12 @@ export function OnboardingScreen({ onComplete }: Props) {
           )}
         </View>
       </View>
-    </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#F7F8FC" },
+  safeArea: { flex: 1 },
   content: { flex: 1, paddingHorizontal: 28, paddingTop: 18, paddingBottom: 18, justifyContent: "space-between" },
   backgroundAccentTop: {
     position: "absolute", top: -130, right: -110, width: 300, height: 300,
@@ -108,7 +110,8 @@ const styles = StyleSheet.create({
   brandMark: { width: 32, height: 32, borderRadius: 10, backgroundColor: "#315BEA", alignItems: "center", justifyContent: "center" },
   brand: { color: "#14284B", fontSize: 20, fontWeight: "800", letterSpacing: -0.3 },
   hero: { alignItems: "center", paddingBottom: 20 },
-  iconCircle: { width: 142, height: 142, borderRadius: 71, alignItems: "center", justifyContent: "center", marginBottom: 28 },
+  iconCircle: { width: 178, height: 178, borderRadius: 54, alignItems: "center", justifyContent: "center", marginBottom: 28, borderWidth: 1, borderColor: "#FFFFFF", shadowColor: "#1E2C66", shadowOpacity: 0.14, shadowRadius: 20, shadowOffset: { width: 0, height: 10 }, elevation: 4 },
+  mascot: { position: "absolute", width: 118, height: 118, opacity: 0.9, top: 17 },
   eyebrow: { fontSize: 15, fontWeight: "800", marginBottom: 12 },
   title: { color: "#16213A", fontSize: 34, lineHeight: 42, fontWeight: "800", textAlign: "center", letterSpacing: -1.2 },
   body: { color: "#667085", fontSize: 16, lineHeight: 25, textAlign: "center", marginTop: 18 },
