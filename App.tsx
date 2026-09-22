@@ -1,6 +1,5 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
@@ -11,26 +10,19 @@ import { clearAuthSession, loadAuthSession, type AuthSession } from "./src/lib/a
 import { saveOnboardingProfile } from "./src/lib/onboarding";
 
 const queryClient = new QueryClient();
-// Bump this when the onboarding flow changes so an existing development
-// install can preview the new flow without manually clearing app storage.
-const ONBOARDING_COMPLETION_KEY = "finsight.onboarding.completed.v2";
-
 export default function App() {
   const [showIntro, setShowIntro] = useState(true);
-  const [hasSeenOnboarding, setHasSeenOnboarding] = useState<boolean | null>(null);
+  const [onboardingDoneThisRun, setOnboardingDoneThisRun] = useState(false);
   const [session, setSession] = useState<AuthSession | null>(null);
   const [sessionLoaded, setSessionLoaded] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setShowIntro(false), 900);
-    AsyncStorage.getItem(ONBOARDING_COMPLETION_KEY)
-      .then((value) => setHasSeenOnboarding(value === "true"))
-      .catch(() => setHasSeenOnboarding(false));
     loadAuthSession().then(setSession).catch(() => setSession(null)).finally(() => setSessionLoaded(true));
     return () => clearTimeout(timer);
   }, []);
 
-  if (showIntro || hasSeenOnboarding === null || !sessionLoaded) {
+  if (showIntro || !sessionLoaded) {
     return (
       <View style={styles.intro}>
         <Text style={styles.introLogo}>FinSight</Text>
@@ -38,12 +30,15 @@ export default function App() {
     );
   }
 
-  if (!hasSeenOnboarding) {
+  // An authenticated user has already completed the account entry flow and
+  // should go straight to the app. A guest sees onboarding on each fresh app
+  // launch until they sign in, so dismissing onboarding is never treated as
+  // permanent account completion.
+  if (!session && !onboardingDoneThisRun) {
     return (
       <OnboardingScreen
         onComplete={(answers) => {
-          setHasSeenOnboarding(true);
-          void AsyncStorage.setItem(ONBOARDING_COMPLETION_KEY, "true");
+          setOnboardingDoneThisRun(true);
           void saveOnboardingProfile(answers);
         }}
       />
