@@ -43,7 +43,7 @@ export function AttendanceCard() {
 
   return (
     <LinearGradient colors={["#111C3D", "#1E2C66", "#183A67"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.card}>
-      <View style={styles.glow} />
+      <View style={styles.accentBar} />
       <View style={styles.header}>
         <View>
           <Text style={styles.kicker}>오늘의 투자 루틴</Text>
@@ -57,7 +57,7 @@ export function AttendanceCard() {
           const done = attended.includes(day.key);
           return (
             <View key={day.key} style={styles.dayItem}>
-              <View style={[styles.dayCircle, done && styles.dayDone, day.isToday && styles.dayToday]}>
+              <View style={[styles.daySquare, done && styles.dayDone, day.isToday && styles.dayToday]}>
                 <Text style={[styles.dayMark, done && styles.dayMarkDone]}>{done ? "✓" : "·"}</Text>
               </View>
               <Text style={[styles.dayLabel, day.isToday && styles.dayLabelToday]}>{day.label}</Text>
@@ -74,7 +74,7 @@ export function AttendanceCard() {
 
 const styles = StyleSheet.create({
   card: { borderRadius: 26, padding: 20, overflow: "hidden", shadowColor: "#12204A", shadowOpacity: 0.22, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 5 },
-  glow: { position: "absolute", width: 180, height: 180, borderRadius: 90, right: -75, top: -85, backgroundColor: "#7C5CFF", opacity: 0.22 },
+  accentBar: { position: "absolute", top: 0, left: 20, width: 64, height: 4, backgroundColor: "#61F2C2" },
   header: { minHeight: 104, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   kicker: { color: "#AAB8E8", fontSize: 12, fontWeight: "800", letterSpacing: 0.7, marginBottom: 7 },
   title: { color: "#FFFFFF", fontSize: 25, fontWeight: "900", letterSpacing: -0.8 },
@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
   mascot: { width: 84, height: 92, marginRight: -2 },
   days: { flexDirection: "row", justifyContent: "space-between", marginTop: 12, marginBottom: 18 },
   dayItem: { alignItems: "center", gap: 6 },
-  dayCircle: { width: 32, height: 32, borderRadius: 16, borderWidth: 1, borderColor: "#526392", alignItems: "center", justifyContent: "center", backgroundColor: "#26366A" },
+  daySquare: { width: 34, height: 34, borderRadius: 10, borderWidth: 1, borderColor: "#526392", alignItems: "center", justifyContent: "center", backgroundColor: "#26366A" },
   dayDone: { backgroundColor: "#31D9A3", borderColor: "#31D9A3" },
   dayToday: { borderColor: "#FFFFFF", borderWidth: 2 },
   dayMark: { color: "#90A0D0", fontSize: 20, lineHeight: 22 },
