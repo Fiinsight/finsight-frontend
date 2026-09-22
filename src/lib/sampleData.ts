@@ -259,6 +259,11 @@ export function getSampleChartData(symbolOrName: string): ChartData {
         low: Math.min(prevClose, p.value) * 0.996
       };
     }),
+    minuteCandles: [],
+    period: "D",
+    intervalMinutes: null,
+    fallback: true,
+    moveInsights: [],
     docent: null,
     relatedNews: [
       {

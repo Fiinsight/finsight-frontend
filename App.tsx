@@ -11,6 +11,9 @@ import { loadAuthSession } from "./src/lib/auth";
 import { saveOnboardingProfile } from "./src/lib/onboarding";
 
 const queryClient = new QueryClient();
+// Bump this when the onboarding flow changes so an existing development
+// install can preview the new flow without manually clearing app storage.
+const ONBOARDING_COMPLETION_KEY = "finsight.onboarding.completed.v2";
 
 export default function App() {
   const [showIntro, setShowIntro] = useState(true);
@@ -19,7 +22,7 @@ export default function App() {
 
   useEffect(() => {
     const timer = setTimeout(() => setShowIntro(false), 900);
-    AsyncStorage.getItem("finsight.onboarding.completed")
+    AsyncStorage.getItem(ONBOARDING_COMPLETION_KEY)
       .then((value) => setHasSeenOnboarding(value === "true"))
       .catch(() => setHasSeenOnboarding(false));
     loadAuthSession().then((session) => setIsAuthenticated(Boolean(session))).catch(() => setIsAuthenticated(false));
@@ -39,7 +42,7 @@ export default function App() {
       <OnboardingScreen
         onComplete={(answers) => {
           setHasSeenOnboarding(true);
-          void AsyncStorage.setItem("finsight.onboarding.completed", "true");
+          void AsyncStorage.setItem(ONBOARDING_COMPLETION_KEY, "true");
           void saveOnboardingProfile(answers);
         }}
       />
