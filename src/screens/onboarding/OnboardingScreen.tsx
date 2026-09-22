@@ -46,8 +46,6 @@ export function OnboardingScreen({ onComplete }: Props) {
 
   return (
     <LinearGradient colors={["#F6F7FF", "#F7F9FF", "#ECF9F6"]} style={styles.safeArea}>
-      <View style={styles.backgroundAccentTop} />
-      <View style={styles.backgroundAccentBottom} />
       <View style={styles.content}>
         <View style={styles.brandRow}>
           <View style={styles.brandMark}>
@@ -57,10 +55,13 @@ export function OnboardingScreen({ onComplete }: Props) {
         </View>
 
         <View style={styles.hero}>
-          <View style={[styles.iconCircle, { backgroundColor: `${slide.color}18` }]}> 
-            <Image source={require("../../../assets/finsight-mascot-logo.png")} style={styles.mascot} resizeMode="contain" />
-            <Ionicons name={slide.icon} size={58} color={slide.color} />
-          </View>
+          <LinearGradient colors={["#17244E", "#253B70"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.heroPanel}>
+            <View style={styles.heroMeta}>
+              <Text style={styles.heroNumber}>{String(index + 1).padStart(2, "0")}</Text>
+              <Ionicons name={slide.icon} size={22} color="#67E8C3" />
+            </View>
+            <Image source={require("../../../assets/finsight-mascot-premium.png")} style={styles.mascot} resizeMode="contain" />
+          </LinearGradient>
           <Text style={[styles.eyebrow, { color: slide.color }]}>{slide.eyebrow}</Text>
           <Text style={styles.title}>{slide.title}</Text>
           <Text style={styles.body}>{slide.body}</Text>
@@ -71,7 +72,7 @@ export function OnboardingScreen({ onComplete }: Props) {
             {slides.map((item, itemIndex) => (
               <View
                 key={item.eyebrow}
-                style={[styles.dot, itemIndex === index && { width: 26, backgroundColor: slide.color }]}
+                style={[styles.progressSegment, itemIndex <= index && { backgroundColor: slide.color }]}
               />
             ))}
           </View>
@@ -98,26 +99,20 @@ export function OnboardingScreen({ onComplete }: Props) {
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   content: { flex: 1, paddingHorizontal: 28, paddingTop: 18, paddingBottom: 18, justifyContent: "space-between" },
-  backgroundAccentTop: {
-    position: "absolute", top: -130, right: -110, width: 300, height: 300,
-    borderRadius: 150, backgroundColor: "#E0E8FF", opacity: 0.8
-  },
-  backgroundAccentBottom: {
-    position: "absolute", bottom: -160, left: -120, width: 340, height: 340,
-    borderRadius: 170, backgroundColor: "#E3F6EE", opacity: 0.9
-  },
   brandRow: { flexDirection: "row", alignItems: "center", gap: 9 },
   brandMark: { width: 32, height: 32, borderRadius: 10, backgroundColor: "#315BEA", alignItems: "center", justifyContent: "center" },
   brand: { color: "#14284B", fontSize: 20, fontWeight: "800", letterSpacing: -0.3 },
-  hero: { alignItems: "center", paddingBottom: 20 },
-  iconCircle: { width: 178, height: 178, borderRadius: 54, alignItems: "center", justifyContent: "center", marginBottom: 28, borderWidth: 1, borderColor: "#FFFFFF", shadowColor: "#1E2C66", shadowOpacity: 0.14, shadowRadius: 20, shadowOffset: { width: 0, height: 10 }, elevation: 4 },
-  mascot: { position: "absolute", width: 118, height: 118, opacity: 0.9, top: 17 },
+  hero: { paddingBottom: 20 },
+  heroPanel: { height: 278, borderRadius: 24, padding: 20, overflow: "hidden", shadowColor: "#15234D", shadowOpacity: 0.18, shadowRadius: 20, shadowOffset: { width: 0, height: 12 }, elevation: 5 },
+  heroMeta: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  heroNumber: { color: "#9BAAD7", fontSize: 13, fontWeight: "900", letterSpacing: 1.5 },
+  mascot: { position: "absolute", width: 250, height: 250, right: -18, bottom: -10 },
   eyebrow: { fontSize: 15, fontWeight: "800", marginBottom: 12 },
-  title: { color: "#16213A", fontSize: 34, lineHeight: 42, fontWeight: "800", textAlign: "center", letterSpacing: -1.2 },
-  body: { color: "#667085", fontSize: 16, lineHeight: 25, textAlign: "center", marginTop: 18 },
+  title: { color: "#16213A", fontSize: 34, lineHeight: 42, fontWeight: "900", textAlign: "left", letterSpacing: -1.2 },
+  body: { color: "#667085", fontSize: 16, lineHeight: 25, textAlign: "left", marginTop: 18 },
   footer: { gap: 14 },
-  pagination: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 6, marginBottom: 2 },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#D0D5DD" },
+  pagination: { flexDirection: "row", alignItems: "center", gap: 5, marginBottom: 2 },
+  progressSegment: { flex: 1, height: 4, borderRadius: 2, backgroundColor: "#D9DEEA" },
   primaryButton: { height: 56, borderRadius: 17, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 10 },
   primaryButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "800" },
   skipButton: { alignItems: "center", paddingVertical: 3 },
