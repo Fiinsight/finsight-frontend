@@ -50,7 +50,7 @@ export function AttendanceCard() {
           <Text style={styles.title}>출석체크 <Text style={styles.titleAccent}>{completed}/7</Text></Text>
           <Text style={styles.subtitle}>{checkedIn ? "오늘의 뉴스 학습을 완료했어요." : "뉴스 하나 읽고 오늘의 루틴을 시작해요."}</Text>
         </View>
-        <Image source={require("../../assets/finsight-mascot-logo.png")} style={styles.mascot} resizeMode="contain" />
+        <Image source={require("../../assets/finsight-mascot-premium.png")} style={styles.mascot} resizeMode="contain" />
       </View>
       <View style={styles.days}>
         {week.map((day) => {
