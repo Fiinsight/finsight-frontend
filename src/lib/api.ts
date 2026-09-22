@@ -85,8 +85,8 @@ export async function login(email: string, password: string): Promise<AuthRespon
   return data;
 }
 
-export async function getKakaoLoginUrl(): Promise<string> {
-  const { data } = await api.get<{ authorizationUrl: string }>("/auth/kakao/url");
+export async function getKakaoLoginUrl(state?: string): Promise<string> {
+  const { data } = await api.get<{ authorizationUrl: string }>("/auth/kakao/url", { params: state ? { state } : undefined });
   return data.authorizationUrl;
 }
 
