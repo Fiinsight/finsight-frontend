@@ -8,6 +8,7 @@ import { RootNavigator } from "./src/navigation/RootNavigator";
 import { OnboardingScreen } from "./src/screens/onboarding/OnboardingScreen";
 import { AuthScreen } from "./src/screens/auth/AuthScreen";
 import { loadAuthSession } from "./src/lib/auth";
+import { saveOnboardingProfile } from "./src/lib/onboarding";
 
 const queryClient = new QueryClient();
 
@@ -28,8 +29,6 @@ export default function App() {
   if (showIntro || hasSeenOnboarding === null || isAuthenticated === null) {
     return (
       <View style={styles.intro}>
-        <View style={styles.glowTop} />
-        <View style={styles.glowBottom} />
         <Text style={styles.introLogo}>FinSight</Text>
       </View>
     );
@@ -38,9 +37,10 @@ export default function App() {
   if (!hasSeenOnboarding) {
     return (
       <OnboardingScreen
-        onComplete={() => {
+        onComplete={(answers) => {
           setHasSeenOnboarding(true);
           void AsyncStorage.setItem("finsight.onboarding.completed", "true");
+          void saveOnboardingProfile(answers);
         }}
       />
     );
@@ -66,32 +66,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
-    backgroundColor: "#F7F5EF"
+    backgroundColor: "#168DF2"
   },
   introLogo: {
-    color: "#14284B",
+    color: "#FFFFFF",
+    fontFamily: "Avenir Next",
     fontSize: 30,
     fontWeight: "700",
     letterSpacing: -0.4
-  },
-  glowTop: {
-    position: "absolute",
-    top: -120,
-    right: -90,
-    width: 280,
-    height: 280,
-    borderRadius: 140,
-    backgroundColor: "#DDF3E8",
-    opacity: 0.8
-  },
-  glowBottom: {
-    position: "absolute",
-    bottom: -160,
-    left: -120,
-    width: 340,
-    height: 340,
-    borderRadius: 170,
-    backgroundColor: "#E3ECFA",
-    opacity: 0.9
   }
 });
