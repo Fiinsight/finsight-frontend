@@ -4,6 +4,7 @@ import type { HomeStackParamList } from "../../../navigation/types";
 import { HomeHeader } from "./HomeHeader";
 import { MarketPanel } from "./MarketPanel";
 import { NewsSection } from "./NewsSection";
+import { AttendanceCard } from "../../../components/AttendanceCard";
 
 type Props = NativeStackScreenProps<HomeStackParamList, "Home">;
 
@@ -12,6 +13,7 @@ export function HomeScreen({ navigation }: Props) {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
         <HomeHeader />
+        <AttendanceCard />
         <MarketPanel />
         <NewsSection onSelectNews={(newsId) => navigation.navigate("NewsDetail", { newsId })} />
       </ScrollView>
