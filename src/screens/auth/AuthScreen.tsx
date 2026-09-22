@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Alert, Linking, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import Constants from "expo-constants";
 import { LinearGradient } from "expo-linear-gradient";
-import { getKakaoLoginUrl, login, loginWithKakao, signup } from "../../lib/api";
+import { getApiErrorMessage, getKakaoLoginUrl, login, loginWithKakao, signup } from "../../lib/api";
 import { saveAuthSession } from "../../lib/auth";
 
 interface Props { onAuthenticated: () => void; }
@@ -13,6 +13,7 @@ export function AuthScreen({ onAuthenticated }: Props) {
   const [password, setPassword] = useState("");
   const [nickname, setNickname] = useState("");
   const [busy, setBusy] = useState(false);
+  const handledCode = useRef<string | null>(null);
 
   useEffect(() => {
     const handleUrl = async ({ url }: { url: string }) => {
@@ -20,9 +21,11 @@ export function AuthScreen({ onAuthenticated }: Props) {
       const error = new URL(url).searchParams.get("error");
       if (error) { setBusy(false); Alert.alert("카카오 로그인 취소", "카카오 로그인 화면에서 인증을 완료해 주세요."); return; }
       if (!code) return;
+      if (handledCode.current === code) return;
+      handledCode.current = code;
       setBusy(true);
       try { await saveAuthSession(await loginWithKakao(code)); onAuthenticated(); }
-      catch { Alert.alert("카카오 로그인 실패", "카카오 인증 결과를 처리하지 못했습니다."); }
+      catch (loginError) { handledCode.current = null; Alert.alert("카카오 로그인 실패", getApiErrorMessage(loginError, "카카오 인증 결과를 처리하지 못했습니다.")); }
       finally { setBusy(false); }
     };
     const subscription = Linking.addEventListener("url", handleUrl);
@@ -40,7 +43,7 @@ export function AuthScreen({ onAuthenticated }: Props) {
       const session = isSignup ? await signup(email.trim(), password, nickname.trim()) : await login(email.trim(), password);
       await saveAuthSession(session); onAuthenticated();
     } catch (error: any) {
-      const message = error?.response?.data?.detail ?? error?.response?.data?.message ?? "로그인 서버에 연결하지 못했습니다.";
+      const message = getApiErrorMessage(error, "로그인 서버에 연결하지 못했습니다.");
       Alert.alert(isSignup ? "회원가입 실패" : "로그인 실패", message);
     } finally { setBusy(false); }
   }
@@ -53,7 +56,7 @@ export function AuthScreen({ onAuthenticated }: Props) {
       await Linking.openURL(await getKakaoLoginUrl(redirectUri));
     }
     catch (error: any) {
-      const message = error?.response?.data?.message ?? error?.response?.data?.detail ?? "백엔드에 KAKAO_CLIENT_ID와 KAKAO_REDIRECT_URI를 설정해 주세요.";
+      const message = getApiErrorMessage(error, "백엔드와 카카오 로그인 설정을 확인해 주세요.");
       Alert.alert("카카오 로그인 준비 필요", message);
     }
     finally { setBusy(false); }

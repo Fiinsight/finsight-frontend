@@ -7,7 +7,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { RootNavigator } from "./src/navigation/RootNavigator";
 import { OnboardingScreen } from "./src/screens/onboarding/OnboardingScreen";
 import { AuthScreen } from "./src/screens/auth/AuthScreen";
-import { loadAuthSession } from "./src/lib/auth";
+import { clearAuthSession, loadAuthSession, type AuthSession } from "./src/lib/auth";
 import { saveOnboardingProfile } from "./src/lib/onboarding";
 
 const queryClient = new QueryClient();
@@ -18,18 +18,19 @@ const ONBOARDING_COMPLETION_KEY = "finsight.onboarding.completed.v2";
 export default function App() {
   const [showIntro, setShowIntro] = useState(true);
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState<boolean | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [session, setSession] = useState<AuthSession | null>(null);
+  const [sessionLoaded, setSessionLoaded] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setShowIntro(false), 900);
     AsyncStorage.getItem(ONBOARDING_COMPLETION_KEY)
       .then((value) => setHasSeenOnboarding(value === "true"))
       .catch(() => setHasSeenOnboarding(false));
-    loadAuthSession().then((session) => setIsAuthenticated(Boolean(session))).catch(() => setIsAuthenticated(false));
+    loadAuthSession().then(setSession).catch(() => setSession(null)).finally(() => setSessionLoaded(true));
     return () => clearTimeout(timer);
   }, []);
 
-  if (showIntro || hasSeenOnboarding === null || isAuthenticated === null) {
+  if (showIntro || hasSeenOnboarding === null || !sessionLoaded) {
     return (
       <View style={styles.intro}>
         <Text style={styles.introLogo}>FinSight</Text>
@@ -49,15 +50,15 @@ export default function App() {
     );
   }
 
-  if (!isAuthenticated) {
-    return <AuthScreen onAuthenticated={() => setIsAuthenticated(true)} />;
+  if (!session) {
+    return <AuthScreen onAuthenticated={() => void loadAuthSession().then(setSession)} />;
   }
 
   return (
     <QueryClientProvider client={queryClient}>
       <NavigationContainer>
         <StatusBar style="dark" />
-        <RootNavigator />
+        <RootNavigator session={session} onLogout={() => void clearAuthSession().then(() => setSession(null))} />
       </NavigationContainer>
     </QueryClientProvider>
   );
