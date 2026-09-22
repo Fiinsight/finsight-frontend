@@ -6,22 +6,26 @@ import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { RootNavigator } from "./src/navigation/RootNavigator";
 import { OnboardingScreen } from "./src/screens/onboarding/OnboardingScreen";
+import { AuthScreen } from "./src/screens/auth/AuthScreen";
+import { loadAuthSession } from "./src/lib/auth";
 
 const queryClient = new QueryClient();
 
 export default function App() {
   const [showIntro, setShowIntro] = useState(true);
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState<boolean | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setShowIntro(false), 900);
     AsyncStorage.getItem("finsight.onboarding.completed")
       .then((value) => setHasSeenOnboarding(value === "true"))
       .catch(() => setHasSeenOnboarding(false));
+    loadAuthSession().then((session) => setIsAuthenticated(Boolean(session))).catch(() => setIsAuthenticated(false));
     return () => clearTimeout(timer);
   }, []);
 
-  if (showIntro || hasSeenOnboarding === null) {
+  if (showIntro || hasSeenOnboarding === null || isAuthenticated === null) {
     return (
       <View style={styles.intro}>
         <View style={styles.glowTop} />
@@ -40,6 +44,10 @@ export default function App() {
         }}
       />
     );
+  }
+
+  if (!isAuthenticated) {
+    return <AuthScreen onAuthenticated={() => setIsAuthenticated(true)} />;
   }
 
   return (

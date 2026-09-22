@@ -1,4 +1,5 @@
 import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 import type {
   ChartCandle,
@@ -30,24 +31,69 @@ import type {
   Tone
 } from "../types/api";
 import { formatPercent } from "./format";
+import { AUTH_STORAGE_KEY } from "./auth";
 import { KEY_TERM_DICTIONARY, generateSampleChartPoints, getSamplePopularStock, sampleMarketSummary } from "./sampleData";
 
 // Wi-Fi가 바뀌면 맥의 LAN IP도 바뀌어서 .env에 IP를 박아두는 방식은 매번 깨진다.
 // Expo 개발 서버는 자신이 지금 물려 있는 실제 호스트를 hostUri로 넘겨주므로,
 // 그 호스트를 그대로 재사용하면(포트만 8080으로 바꿔서) IP가 바뀌어도 항상 맞다.
 function resolveApiBaseUrl(): string {
+  const configuredApiUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
+  if (configuredApiUrl) {
+    return configuredApiUrl;
+  }
   const hostUri = Constants.expoConfig?.hostUri;
   const host = hostUri?.split(":")[0];
   if (host) {
     return `http://${host}:8080/api`;
   }
-  return process.env.EXPO_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api";
+  return "http://localhost:8080/api";
 }
 
 export const api = axios.create({
   baseURL: resolveApiBaseUrl(),
   timeout: 8000
 });
+
+api.interceptors.request.use(async (config) => {
+  const raw = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
+  if (raw) {
+    try {
+      const session = JSON.parse(raw) as { accessToken?: string };
+      if (session.accessToken) config.headers.set("Authorization", `Bearer ${session.accessToken}`);
+    } catch {
+      // A malformed local session should not prevent public API requests.
+    }
+  }
+  return config;
+});
+
+export interface AuthResponse {
+  accessToken: string;
+  userId: number;
+  email: string;
+  nickname: string;
+}
+
+export async function signup(email: string, password: string, nickname: string): Promise<AuthResponse> {
+  const { data } = await api.post<AuthResponse>("/auth/signup", { email, password, nickname });
+  return data;
+}
+
+export async function login(email: string, password: string): Promise<AuthResponse> {
+  const { data } = await api.post<AuthResponse>("/auth/login", { email, password });
+  return data;
+}
+
+export async function getKakaoLoginUrl(): Promise<string> {
+  const { data } = await api.get<{ authorizationUrl: string }>("/auth/kakao/url");
+  return data.authorizationUrl;
+}
+
+export async function loginWithKakao(code: string): Promise<AuthResponse> {
+  const { data } = await api.post<AuthResponse>("/auth/kakao", { code });
+  return data;
+}
 
 // ---------------------------------------------------------------------------
 // Briefings
@@ -288,6 +334,17 @@ function normalizeChartData(raw: ChartDataRaw, symbol: string): ChartData {
     changePercent: raw.changePercent ?? 0,
     points,
     candles,
+    minuteCandles: (raw.minuteCandles ?? []).map((c) => ({
+      date: c.timestamp ?? c.date ?? "",
+      open: c.open ?? c.close ?? 0,
+      high: c.high ?? c.close ?? 0,
+      low: c.low ?? c.close ?? 0,
+      close: c.close ?? 0
+    })),
+    period: raw.period ?? "D",
+    intervalMinutes: raw.intervalMinutes ?? null,
+    fallback: raw.fallback ?? false,
+    moveInsights: raw.moveInsights ?? [],
     relatedNews: relatedNewsRaw.map((item) => ({
       id: item.id ?? item.newsId ?? null,
       title: item.title ?? "",
@@ -298,8 +355,8 @@ function normalizeChartData(raw: ChartDataRaw, symbol: string): ChartData {
   };
 }
 
-export async function getChartData(symbol: string, period: "D" | "W" = "D"): Promise<ChartData> {
-  const { data } = await api.get<ChartDataRaw>(`/charts/${symbol}`, { params: { period } });
+export async function getChartData(symbol: string, period: "D" | "W" | "MINUTE" = "D", interval = 5): Promise<ChartData> {
+  const { data } = await api.get<ChartDataRaw>(`/charts/${symbol}`, { params: { period, interval } });
   return normalizeChartData(data, symbol);
 }
 
