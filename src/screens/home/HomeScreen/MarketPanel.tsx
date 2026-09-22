@@ -31,9 +31,9 @@ export function MarketPanel() {
 
 const styles = StyleSheet.create({
   panel: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#EAECF0",
-    borderRadius: 8,
+    backgroundColor: "rgba(255,255,255,0.96)",
+    borderColor: "rgba(255,255,255,0.7)",
+    borderRadius: 22,
     borderWidth: 1,
     padding: 16,
     gap: 12

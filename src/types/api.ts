@@ -242,6 +242,7 @@ export interface ChartRelatedNews {
 
 export interface ChartCandleRaw {
   date?: string;
+  timestamp?: string;
   open?: number;
   high?: number;
   low?: number;
@@ -277,6 +278,20 @@ export interface ChartDataRaw {
   // Actual finsight-backend ChartResponse field name (items only carry date/newsId/title).
   newsMarkers?: ChartRelatedNewsRaw[];
   docent?: ChartDocentRaw | null;
+  period?: string;
+  intervalMinutes?: number | null;
+  minuteCandles?: Array<ChartCandleRaw>;
+  fallback?: boolean;
+  moveInsights?: MoveInsight[];
+}
+
+export interface MoveInsight {
+  timestamp: string;
+  changePercent: number;
+  newsId: number | null;
+  newsTitle: string;
+  newsSource: string;
+  explanation: string;
 }
 
 export interface ChartDocent {
@@ -294,6 +309,11 @@ export interface ChartData {
   changePercent: number;
   points: ChartPoint[];
   candles: ChartCandle[];
+  minuteCandles: ChartCandle[];
+  period: string;
+  intervalMinutes: number | null;
+  fallback: boolean;
+  moveInsights: MoveInsight[];
   relatedNews: ChartRelatedNews[];
   docent: ChartDocent | null;
 }

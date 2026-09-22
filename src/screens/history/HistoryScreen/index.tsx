@@ -4,6 +4,7 @@ import { SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 import { getJudgementHistory } from "../../../lib/api";
 import { sampleJudgementHistory } from "../../../lib/sampleData";
 import type { HistoryStackParamList } from "../../../navigation/types";
+import { AttendanceCard } from "../../../components/AttendanceCard";
 import { HistoryItem } from "./HistoryItem";
 
 type Props = NativeStackScreenProps<HistoryStackParamList, "History">;
@@ -21,9 +22,13 @@ export function HistoryScreen({ navigation }: Props) {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>판단 기록</Text>
-          <Text style={styles.subtitle}>지금까지의 예측과 실제 결과를 확인해보세요</Text>
+          <Text style={styles.title}>기록</Text>
+          <Text style={styles.subtitle}>출석과 투자 판단을 함께 돌아보세요</Text>
         </View>
+
+        <AttendanceCard />
+
+        <Text style={styles.sectionTitle}>판단 기록</Text>
 
         {history.map((item) => (
           <HistoryItem key={item.id} item={item} onPress={() => navigation.navigate("NewsDetail", { newsId: item.newsId })} />
@@ -55,5 +60,11 @@ const styles = StyleSheet.create({
   subtitle: {
     color: "#667085",
     fontSize: 14
+  },
+  sectionTitle: {
+    color: "#101828",
+    fontSize: 18,
+    fontWeight: "800",
+    marginTop: 6
   }
 });

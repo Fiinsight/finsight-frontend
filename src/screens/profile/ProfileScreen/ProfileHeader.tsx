@@ -1,15 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Text, View } from "react-native";
+import type { AuthSession } from "../../../lib/auth";
 
-export function ProfileHeader() {
+export function ProfileHeader({ session }: { session: AuthSession }) {
   return (
     <View style={styles.row}>
       <View style={styles.avatar}>
         <Ionicons name="person" size={28} color="#98A2B3" />
       </View>
       <View>
-        <Text style={styles.name}>게스트</Text>
-        <Text style={styles.hint}>로그인 기능은 준비 중입니다</Text>
+        <Text style={styles.name}>{session.nickname || "핀사이트 사용자"}</Text>
+        <Text style={styles.hint}>{session.email}</Text>
       </View>
     </View>
   );

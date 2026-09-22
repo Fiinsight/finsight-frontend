@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
+import type { LearningLevel, LearningPace } from "../../../lib/onboarding";
 
 const tips = [
   "주가는 실적뿐 아니라 기대감으로도 움직입니다. 뉴스의 '기대'와 '확정된 사실'을 구분해보세요.",
@@ -13,15 +14,17 @@ const tips = [
 
 const accentColors = ["#175CD3", "#12B76A"];
 
-export function DailyTips() {
+export function DailyTips({ level, pace }: { level: LearningLevel; pace: LearningPace }) {
   const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
   const firstIndex = dayOfYear % tips.length;
   const secondIndex = (dayOfYear + 1) % tips.length;
-  const todaysTips = [tips[firstIndex], tips[secondIndex]];
+  const offset = level === "analyst" ? 2 : level === "normal" ? 1 : 0;
+  const count = pace === "deep" ? 2 : 1;
+  const todaysTips = Array.from({ length: count }, (_, index) => tips[(firstIndex + offset + index) % tips.length]);
 
   return (
     <View style={styles.group}>
-      <Text style={styles.sectionTitle}>오늘의 한 줄 팁</Text>
+      <Text style={styles.sectionTitle}>{pace === "deep" ? "오늘의 깊이 읽기" : "오늘의 한 줄 팁"}</Text>
       {todaysTips.map((tip, index) => (
         <View key={index} style={[styles.card, { borderLeftColor: accentColors[index % accentColors.length] }]}>
           <Text style={styles.tipText}>{tip}</Text>

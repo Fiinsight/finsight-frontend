@@ -24,17 +24,17 @@ const styles = StyleSheet.create({
     justifyContent: "space-between"
   },
   logo: {
-    color: "#101828",
-    fontSize: 32,
+    color: "#FFFFFF",
+    fontSize: 26,
     fontWeight: "800"
   },
   date: {
-    color: "#98A2B3",
+    color: "rgba(255,255,255,0.68)",
     fontSize: 13,
     fontWeight: "600"
   },
   subtitle: {
-    color: "#667085",
+    color: "rgba(255,255,255,0.82)",
     fontSize: 15,
     lineHeight: 22
   }

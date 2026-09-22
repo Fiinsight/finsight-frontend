@@ -4,8 +4,9 @@ import { LinearGradient } from "expo-linear-gradient";
 
 type Option = { label: string; description?: string };
 
-const steps: Array<{ title: string; options: Option[] }> = [
+const steps: Array<{ id: string; title: string; options: Option[] }> = [
   {
+    id: "experience",
     title: "지금 투자 여정을\n어디쯤 걷고 있나요?",
     options: [
       { label: "이제 막 시작했어요" },
@@ -15,6 +16,7 @@ const steps: Array<{ title: string; options: Option[] }> = [
     ],
   },
   {
+    id: "interest",
     title: "투자할 때 가장\n알고 싶은 것은 무엇인가요?",
     options: [
       { label: "뉴스 내용을 쉽게 이해하고 싶어요" },
@@ -24,6 +26,7 @@ const steps: Array<{ title: string; options: Option[] }> = [
     ],
   },
   {
+    id: "pace",
     title: "나에게 맞는 투자 공부 방식은\n어떤 모습인가요?",
     options: [
       { label: "짧게, 매일 조금씩", description: "부담 없이 이어가는 루틴" },
@@ -33,6 +36,7 @@ const steps: Array<{ title: string; options: Option[] }> = [
     ],
   },
   {
+    id: "difficulty",
     title: "투자 소식을 접할 때\n가장 어려운 점은 무엇인가요?",
     options: [
       { label: "용어가 어려워요" },
@@ -42,6 +46,7 @@ const steps: Array<{ title: string; options: Option[] }> = [
     ],
   },
   {
+    id: "goal",
     title: "오늘 핀사이트에서\n어떤 습관을 시작해볼까요?",
     options: [
       { label: "뉴스 하나 읽기" },
@@ -52,7 +57,7 @@ const steps: Array<{ title: string; options: Option[] }> = [
   },
 ];
 
-type OnboardingAnswer = { question: string; answer: string };
+type OnboardingAnswer = { questionId: string; question: string; answer: string };
 type Props = { onComplete: (answers: OnboardingAnswer[]) => void };
 
 export function OnboardingScreen({ onComplete }: Props) {
@@ -90,7 +95,7 @@ export function OnboardingScreen({ onComplete }: Props) {
     steps.flatMap((item, index) => {
       const answerIndex = answers[index];
       const answer = answerIndex === undefined ? undefined : item.options[answerIndex]?.label;
-      return answer ? [{ question: item.title, answer }] : [];
+      return answer ? [{ questionId: item.id, question: item.title, answer }] : [];
     });
 
   return (
