@@ -35,25 +35,8 @@ export function DailyTips({ level, pace }: { level: LearningLevel; pace: Learnin
 }
 
 const styles = StyleSheet.create({
-  group: {
-    gap: 10
-  },
-  sectionTitle: {
-    color: "#101828",
-    fontSize: 16,
-    fontWeight: "800"
-  },
-  card: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#EAECF0",
-    borderWidth: 1,
-    borderLeftWidth: 4,
-    borderRadius: 8,
-    padding: 14
-  },
-  tipText: {
-    color: "#344054",
-    fontSize: 14,
-    lineHeight: 21
-  }
+  group: { gap: 10 },
+  sectionTitle: { color: "#101828", fontSize: 16, fontWeight: "800" },
+  card: { backgroundColor: "#FFFFFF", borderColor: "#EAECF0", borderWidth: 1, borderLeftWidth: 4, borderRadius: 8, padding: 14 },
+  tipText: { color: "#344054", fontSize: 14, lineHeight: 21 }
 });

@@ -8,6 +8,7 @@ import { OnboardingScreen } from "./src/screens/onboarding/OnboardingScreen";
 import { AuthScreen } from "./src/screens/auth/AuthScreen";
 import { clearAuthSession, loadAuthSession, type AuthSession } from "./src/lib/auth";
 import { saveOnboardingProfile } from "./src/lib/onboarding";
+import { syncOnboardingProfile } from "./src/lib/api";
 
 const queryClient = new QueryClient();
 export default function App() {
@@ -21,6 +22,13 @@ export default function App() {
     loadAuthSession().then(setSession).catch(() => setSession(null)).finally(() => setSessionLoaded(true));
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (!session) return;
+    void syncOnboardingProfile().catch(() => {
+      // The local profile remains available and can be retried on the next launch.
+    });
+  }, [session]);
 
   if (showIntro || !sessionLoaded) {
     return (

@@ -38,12 +38,48 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     gap: 20
   },
+  headerCard: {
+    minHeight: 126,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#EEF7F2",
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    overflow: "hidden"
+  },
+  mascot: {
+    width: 88,
+    height: 104,
+    marginRight: 8
+  },
+  speechBubble: {
+    flex: 1,
+    position: "relative",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: "#D9EEE2"
+  },
+  tipLabel: {
+    color: "#12B76A",
+    fontSize: 12,
+    fontWeight: "800",
+    marginBottom: 5
+  },
+  tipText: {
+    color: "#344054",
+    fontSize: 13,
+    lineHeight: 19
+  },
   header: {
-    gap: 4
+    gap: 6
   },
   title: {
     color: "#101828",
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: "800"
   },
   subtitle: {

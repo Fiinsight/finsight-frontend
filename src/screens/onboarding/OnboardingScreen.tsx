@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Animated, Pressable, SafeAreaView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import type { OnboardingAnswer } from "../../lib/onboarding";
 
 type Option = { label: string; description?: string };
 
@@ -57,7 +58,6 @@ const steps: Array<{ id: string; title: string; options: Option[] }> = [
   },
 ];
 
-type OnboardingAnswer = { questionId: string; question: string; answer: string };
 type Props = { onComplete: (answers: OnboardingAnswer[]) => void };
 
 export function OnboardingScreen({ onComplete }: Props) {

@@ -13,12 +13,13 @@ import { StockHeader } from "./StockHeader";
 import { StockSearchBar } from "./StockSearchBar";
 
 type Props = NativeStackScreenProps<ChartStackParamList, "Chart">;
-type Period = "D" | "W";
+type Period = "D" | "W" | "MINUTE";
 
 export function ChartScreen({ route, navigation }: Props) {
   const [selectedSymbol, setSelectedSymbol] = useState(route.params?.symbol ?? popularStocks[0].symbol);
   const [query, setQuery] = useState("");
   const [period, setPeriod] = useState<Period>("W");
+  const [minuteInterval, setMinuteInterval] = useState<1 | 5 | 15>(5);
 
   const { data: popularStocksData } = useQuery({
     queryKey: ["popular-stocks"],
@@ -37,12 +38,13 @@ export function ChartScreen({ route, navigation }: Props) {
   }, [query, stocks]);
 
   const { data } = useQuery({
-    queryKey: ["chart-data", selectedSymbol, period],
-    queryFn: () => getChartData(selectedSymbol, period),
+    queryKey: ["chart-data", selectedSymbol, period, minuteInterval],
+    queryFn: () => getChartData(selectedSymbol, period, minuteInterval),
     retry: 0
   });
 
   const chart = data ?? getSampleChartData(selectedSymbol);
+  const displayCandles = period === "MINUTE" && chart.minuteCandles.length > 0 ? chart.minuteCandles : chart.candles;
 
   // Only build a docent banner when there's a real, symbol-tagged news
   // article backing it — no more falling back to fixed sample copy that
@@ -75,8 +77,43 @@ export function ChartScreen({ route, navigation }: Props) {
           <TouchableOpacity style={[styles.periodTab, period === "W" && styles.periodTabActive]} onPress={() => setPeriod("W")}>
             <Text style={[styles.periodText, period === "W" && styles.periodTextActive]}>주봉</Text>
           </TouchableOpacity>
+          <TouchableOpacity style={[styles.periodTab, period === "MINUTE" && styles.periodTabActive]} onPress={() => setPeriod("MINUTE")}>
+            <Text style={[styles.periodText, period === "MINUTE" && styles.periodTextActive]}>분봉</Text>
+          </TouchableOpacity>
         </View>
-        <ChartCard candles={chart.candles} relatedNews={chart.relatedNews} />
+        {period === "MINUTE" ? (
+          <View style={styles.intervalRow}>
+            {([1, 5, 15] as const).map((value) => (
+              <TouchableOpacity key={value} style={[styles.intervalTab, minuteInterval === value && styles.intervalTabActive]} onPress={() => setMinuteInterval(value)}>
+                <Text style={[styles.intervalText, minuteInterval === value && styles.intervalTextActive]}>{value}분</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        ) : null}
+        {period === "MINUTE" && chart.fallback ? (
+          <View style={styles.warningCard}>
+            <Text style={styles.warningTitle}>샘플 분봉 데이터</Text>
+            <Text style={styles.warningText}>실시간 시세를 불러오지 못해 예시 데이터가 표시되고 있습니다.</Text>
+          </View>
+        ) : null}
+        <ChartCard candles={displayCandles} relatedNews={chart.relatedNews} />
+        {period === "MINUTE" && chart.moveInsights.length > 0 ? (
+          <View style={styles.insightCard}>
+            <Text style={styles.insightTitle}>급등락과 관련 뉴스</Text>
+            {chart.moveInsights.map((insight, index) => (
+              <View key={`${insight.timestamp ?? "move"}-${index}`} style={styles.insightRow}>
+                <Text style={[styles.insightMove, insight.changePercent && insight.changePercent > 0 ? styles.up : styles.down]}>
+                  {insight.changePercent && insight.changePercent > 0 ? "+" : ""}{insight.changePercent?.toFixed(2)}%
+                </Text>
+                <View style={styles.insightCopy}>
+                  <Text style={styles.insightTime}>{insight.timestamp?.replace("T", " ").slice(0, 16)}</Text>
+                  <Text style={styles.insightNews}>{insight.newsTitle ?? "해당 시각에 연결된 뉴스가 없습니다."}</Text>
+                  {insight.explanation ? <Text style={styles.insightExplanation}>{insight.explanation}</Text> : null}
+                </View>
+              </View>
+            ))}
+          </View>
+        ) : null}
         {docentContent ? (
           <InsightBanner content={docentContent} relatedNews={chart.relatedNews} onNewsPress={handleRelatedNewsPress} />
         ) : null}
@@ -118,5 +155,95 @@ const styles = StyleSheet.create({
   },
   periodTextActive: {
     color: "#101828"
+  },
+  intervalRow: {
+    flexDirection: "row",
+    gap: 8
+  },
+  intervalTab: {
+    borderColor: "#D0D5DD",
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6
+  },
+  intervalTabActive: {
+    backgroundColor: "#101828"
+  },
+  intervalText: {
+    color: "#667085",
+    fontSize: 12,
+    fontWeight: "700"
+  },
+  intervalTextActive: {
+    color: "#FFFFFF"
+  },
+  warningCard: {
+    backgroundColor: "#FFFAEB",
+    borderColor: "#FEDF89",
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 12,
+    gap: 4
+  },
+  warningTitle: {
+    color: "#B54708",
+    fontSize: 13,
+    fontWeight: "800"
+  },
+  warningText: {
+    color: "#93370D",
+    fontSize: 12,
+    lineHeight: 18
+  },
+  insightCard: {
+    backgroundColor: "#FFFFFF",
+    borderColor: "#EAECF0",
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 16,
+    gap: 14
+  },
+  insightTitle: {
+    color: "#101828",
+    fontSize: 16,
+    fontWeight: "800"
+  },
+  insightRow: {
+    flexDirection: "row",
+    gap: 12,
+    borderTopColor: "#F2F4F7",
+    borderTopWidth: 1,
+    paddingTop: 12
+  },
+  insightMove: {
+    width: 60,
+    fontSize: 14,
+    fontWeight: "800"
+  },
+  up: {
+    color: "#D92D20"
+  },
+  down: {
+    color: "#175CD3"
+  },
+  insightCopy: {
+    flex: 1,
+    gap: 3
+  },
+  insightTime: {
+    color: "#98A2B3",
+    fontSize: 11
+  },
+  insightNews: {
+    color: "#344054",
+    fontSize: 13,
+    fontWeight: "700",
+    lineHeight: 18
+  },
+  insightExplanation: {
+    color: "#667085",
+    fontSize: 12,
+    lineHeight: 17
   }
 });

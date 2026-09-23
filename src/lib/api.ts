@@ -32,6 +32,7 @@ import type {
 } from "../types/api";
 import { formatPercent } from "./format";
 import { AUTH_STORAGE_KEY } from "./auth";
+import { loadOnboardingProfile } from "./onboarding";
 import { KEY_TERM_DICTIONARY, generateSampleChartPoints, getSamplePopularStock, sampleMarketSummary } from "./sampleData";
 
 export function getApiErrorMessage(error: any, fallback: string): string {
@@ -103,6 +104,12 @@ export async function getKakaoLoginUrl(state?: string): Promise<string> {
 export async function loginWithKakao(code: string): Promise<AuthResponse> {
   const { data } = await api.post<AuthResponse>("/auth/kakao", { code });
   return data;
+}
+
+export async function syncOnboardingProfile(): Promise<void> {
+  const profile = await loadOnboardingProfile();
+  if (!profile || profile.answers.length === 0) return;
+  await api.put("/profile/onboarding", { answers: profile.answers });
 }
 
 // ---------------------------------------------------------------------------
@@ -354,7 +361,14 @@ function normalizeChartData(raw: ChartDataRaw, symbol: string): ChartData {
     period: raw.period ?? "D",
     intervalMinutes: raw.intervalMinutes ?? null,
     fallback: raw.fallback ?? false,
-    moveInsights: raw.moveInsights ?? [],
+    moveInsights: (raw.moveInsights ?? []).map((insight) => ({
+      timestamp: insight.timestamp ?? "",
+      changePercent: insight.changePercent ?? 0,
+      newsId: insight.newsId ?? null,
+      newsTitle: insight.newsTitle ?? "",
+      newsSource: insight.newsSource ?? "",
+      explanation: insight.explanation ?? ""
+    })),
     relatedNews: relatedNewsRaw.map((item) => ({
       id: item.id ?? item.newsId ?? null,
       title: item.title ?? "",
