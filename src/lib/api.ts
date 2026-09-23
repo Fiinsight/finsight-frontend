@@ -32,6 +32,7 @@ import type {
 } from "../types/api";
 import { formatPercent } from "./format";
 import { AUTH_STORAGE_KEY } from "./auth";
+import { loadOnboardingProfile } from "./onboarding";
 import { KEY_TERM_DICTIONARY, generateSampleChartPoints, getSamplePopularStock, sampleMarketSummary } from "./sampleData";
 
 // Wi-Fi가 바뀌면 맥의 LAN IP도 바뀌어서 .env에 IP를 박아두는 방식은 매번 깨진다.
@@ -93,6 +94,12 @@ export async function getKakaoLoginUrl(): Promise<string> {
 export async function loginWithKakao(code: string): Promise<AuthResponse> {
   const { data } = await api.post<AuthResponse>("/auth/kakao", { code });
   return data;
+}
+
+export async function syncOnboardingProfile(): Promise<void> {
+  const profile = await loadOnboardingProfile();
+  if (!profile || profile.answers.length === 0) return;
+  await api.put("/profile/onboarding", { answers: profile.answers });
 }
 
 // ---------------------------------------------------------------------------

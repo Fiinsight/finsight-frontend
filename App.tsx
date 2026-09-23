@@ -8,6 +8,8 @@ import { RootNavigator } from "./src/navigation/RootNavigator";
 import { OnboardingScreen } from "./src/screens/onboarding/OnboardingScreen";
 import { AuthScreen } from "./src/screens/auth/AuthScreen";
 import { loadAuthSession } from "./src/lib/auth";
+import { saveOnboardingProfile } from "./src/lib/onboarding";
+import { syncOnboardingProfile } from "./src/lib/api";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +27,13 @@ export default function App() {
     return () => clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    void syncOnboardingProfile().catch(() => {
+      // The local profile remains available and can be retried on the next launch.
+    });
+  }, [isAuthenticated]);
+
   if (showIntro || hasSeenOnboarding === null || isAuthenticated === null) {
     return (
       <View style={styles.intro}>
@@ -38,9 +47,10 @@ export default function App() {
   if (!hasSeenOnboarding) {
     return (
       <OnboardingScreen
-        onComplete={() => {
+        onComplete={(answers) => {
           setHasSeenOnboarding(true);
           void AsyncStorage.setItem("finsight.onboarding.completed", "true");
+          void saveOnboardingProfile(answers);
         }}
       />
     );

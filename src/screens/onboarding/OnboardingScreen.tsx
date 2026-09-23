@@ -1,6 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { useState } from "react";
 import { Image, Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
+import type { OnboardingAnswer } from "../../lib/onboarding";
 
 type Option = { label: string; description?: string };
 
@@ -25,7 +26,7 @@ const steps: Array<{ title: string; options: Option[] }> = [
   ] }
 ];
 
-type Props = { onComplete: () => void };
+type Props = { onComplete: (answers: OnboardingAnswer[]) => void };
 
 export function OnboardingScreen({ onComplete }: Props) {
   const [step, setStep] = useState(0);
@@ -40,9 +41,16 @@ export function OnboardingScreen({ onComplete }: Props) {
   const next = () => {
     if (isWelcome) return setStep(1);
     if (selected === undefined) return;
-    if (isLast) return onComplete();
+    if (isLast) return onComplete(buildAnswers());
     setStep((current) => current + 1);
   };
+
+  const buildAnswers = (): OnboardingAnswer[] =>
+    steps.flatMap((item, index) => {
+      const answerIndex = answers[index];
+      const answer = answerIndex === undefined ? undefined : item.options[answerIndex]?.label;
+      return answer ? [{ question: item.title, answer }] : [];
+    });
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -62,7 +70,7 @@ export function OnboardingScreen({ onComplete }: Props) {
             <View style={styles.options}>{question.options.map((option, index) => { const active = selected === index; return <Pressable key={option.label} accessibilityRole="button" onPress={() => choose(index)} style={[styles.option, active && styles.optionActive]}><View style={styles.optionCopy}><Text style={[styles.optionLabel, active && styles.optionLabelActive]}>{option.label}</Text>{option.description && <Text style={styles.optionDescription}>{option.description}</Text>}</View></Pressable>; })}</View>
           </View>}
 
-          <View style={styles.footer}><Pressable accessibilityRole="button" onPress={next} style={[styles.primaryButton, !isWelcome && selected === undefined && styles.primaryButtonDisabled]}><Text style={styles.primaryButtonText}>{isWelcome ? "처음 시작하기" : isLast ? "FinSight 시작하기" : "다음"}</Text></Pressable><Pressable accessibilityRole="button" onPress={onComplete} style={styles.skipButton}><Text style={styles.skipText}>{isWelcome ? "이미 계정이 있어요" : "건너뛰기"}</Text></Pressable></View>
+          <View style={styles.footer}><Pressable accessibilityRole="button" onPress={next} style={[styles.primaryButton, !isWelcome && selected === undefined && styles.primaryButtonDisabled]}><Text style={styles.primaryButtonText}>{isWelcome ? "처음 시작하기" : isLast ? "FinSight 시작하기" : "다음"}</Text></Pressable><Pressable accessibilityRole="button" onPress={() => onComplete(buildAnswers())} style={styles.skipButton}><Text style={styles.skipText}>{isWelcome ? "이미 계정이 있어요" : "건너뛰기"}</Text></Pressable></View>
         </View>
       </LinearGradient>
     </SafeAreaView>

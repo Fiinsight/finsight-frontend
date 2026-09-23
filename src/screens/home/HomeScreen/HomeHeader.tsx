@@ -25,8 +25,9 @@ const styles = StyleSheet.create({
   },
   logo: {
     color: "#101828",
-    fontSize: 32,
-    fontWeight: "800"
+    fontSize: 23,
+    fontWeight: "700",
+    letterSpacing: -0.3
   },
   date: {
     color: "#98A2B3",
