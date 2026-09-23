@@ -72,8 +72,8 @@ export function AuthScreen({ onAuthenticated }: Props) {
         <TextInput secureTextEntry placeholder="비밀번호 입력" placeholderTextColor="rgba(255,255,255,0.7)" value={password} onChangeText={setPassword} style={styles.input} />
         <Pressable disabled={busy} onPress={submit} style={({ pressed }) => [styles.primary, pressed && styles.pressed]}><Text style={styles.primaryText}>{busy ? "처리 중..." : isSignup ? "회원가입" : "로그인"}</Text></Pressable>
         <View style={styles.links}>
-          {!isSignup && <Pressable><Text style={styles.link}>비밀번호 찾기</Text></Pressable>}
-          <Pressable onPress={() => setIsSignup((value) => !value)}><Text style={styles.link}>{isSignup ? "로그인" : "회원가입"}</Text></Pressable>
+          {!isSignup && <Pressable style={styles.linkButton}><Text style={styles.link}>비밀번호 찾기</Text></Pressable>}
+          <Pressable style={styles.linkButton} onPress={() => setIsSignup((value) => !value)}><Text style={styles.link}>{isSignup ? "로그인" : "회원가입"}</Text></Pressable>
         </View>
         <Text style={styles.socialLabel}>간편하게 로그인하세요.</Text>
         <Pressable disabled={busy} onPress={startKakao} style={styles.kakao}>
@@ -94,7 +94,8 @@ const styles = StyleSheet.create({
   primary: { backgroundColor: "#FFFFFF", borderRadius: 30, paddingVertical: 14, alignItems: "center", marginTop: 4 },
   pressed: { opacity: 0.82 },
   primaryText: { color: "#0B3D91", fontFamily: "Pretendard", fontSize: 15, fontWeight: "800" },
-  links: { flexDirection: "row", justifyContent: "center", gap: 24, marginTop: 18 },
+  links: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 24, marginTop: 18, minHeight: 24 },
+  linkButton: { minHeight: 24, justifyContent: "center", alignItems: "center" },
   link: { color: "rgba(255,255,255,0.82)", fontFamily: "Pretendard", fontSize: 12, fontWeight: "700" },
   socialLabel: { color: "rgba(255,255,255,0.82)", fontFamily: "Pretendard", fontSize: 12, textAlign: "center", marginTop: 44, marginBottom: 14 },
   kakao: { backgroundColor: "#FEE500", borderRadius: 30, minHeight: 48, paddingVertical: 10, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10 },
