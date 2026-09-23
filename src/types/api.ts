@@ -242,6 +242,7 @@ export interface ChartRelatedNews {
 
 export interface ChartCandleRaw {
   date?: string;
+  timestamp?: string;
   open?: number;
   high?: number;
   low?: number;
@@ -297,6 +298,15 @@ export interface ChartDataRaw {
   docent?: ChartDocentRaw | null;
 }
 
+export interface MoveInsight {
+  timestamp: string;
+  changePercent: number;
+  newsId: number | null;
+  newsTitle: string;
+  newsSource: string;
+  explanation: string;
+}
+
 export interface ChartDocent {
   newsId: number | null;
   newsTitle: string;
@@ -316,7 +326,7 @@ export interface ChartData {
   period: string;
   intervalMinutes: number | null;
   fallback: boolean;
-  moveInsights: ChartMoveInsightRaw[];
+  moveInsights: MoveInsight[];
   relatedNews: ChartRelatedNews[];
   docent: ChartDocent | null;
 }

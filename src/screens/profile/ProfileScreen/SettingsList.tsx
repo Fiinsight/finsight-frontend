@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import packageJson from "../../../../package.json";
+import type { LearningLevel } from "../../../lib/onboarding";
 
 interface SettingsRow {
   icon: keyof typeof Ionicons.glyphMap;
@@ -15,15 +16,17 @@ const rows: SettingsRow[] = [
   { icon: "log-out-outline", label: "로그아웃" }
 ];
 
-export function SettingsList() {
+export function SettingsList({ level, onLogout }: { level: LearningLevel; onLogout: () => void }) {
+  const levelLabel = level === "analyst" ? "분석형" : level === "normal" ? "일반형" : "초보자용";
+  const rowsWithLevel = rows.map((row) => row.label === "읽기 수준 기본값" ? { ...row, value: levelLabel } : row);
   return (
     <View style={styles.card}>
-      {rows.map((row, index) => (
+      {rowsWithLevel.map((row, index) => (
         <View key={row.label} style={[styles.row, index === rows.length - 1 && styles.rowLast]}>
           <Ionicons name={row.icon} size={18} color="#667085" />
           <Text style={styles.label}>{row.label}</Text>
           {row.value ? <Text style={styles.value}>{row.value}</Text> : null}
-          <TouchableOpacity disabled hitSlop={8}>
+          <TouchableOpacity disabled={row.label !== "로그아웃"} onPress={row.label === "로그아웃" ? onLogout : undefined} hitSlop={8}>
             <Ionicons name="chevron-forward" size={16} color="#D0D5DD" />
           </TouchableOpacity>
         </View>

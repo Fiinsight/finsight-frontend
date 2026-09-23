@@ -1,22 +1,23 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { SafeAreaView, ScrollView, StyleSheet } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import type { HomeStackParamList } from "../../../navigation/types";
 import { HomeHeader } from "./HomeHeader";
 import { MarketPanel } from "./MarketPanel";
 import { NewsSection } from "./NewsSection";
-import { AttendanceCard } from "../../../components/AttendanceCard";
 
 type Props = NativeStackScreenProps<HomeStackParamList, "Home">;
 
 export function HomeScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <HomeHeader />
-        <AttendanceCard />
-        <MarketPanel />
-        <NewsSection onSelectNews={(newsId) => navigation.navigate("NewsDetail", { newsId })} />
-      </ScrollView>
+      <LinearGradient colors={["#071B4A", "#0B3D91", "#1769D1"]} locations={[0, 0.52, 1]} style={styles.background}>
+        <ScrollView contentContainerStyle={styles.container}>
+          <HomeHeader />
+          <MarketPanel />
+          <NewsSection onSelectNews={(newsId) => navigation.navigate("NewsDetail", { newsId })} />
+        </ScrollView>
+      </LinearGradient>
     </SafeAreaView>
   );
 }
@@ -24,10 +25,12 @@ export function HomeScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#F8FAFC"
+    backgroundColor: "#071B4A"
   },
+  background: { flex: 1 },
   container: {
     padding: 20,
-    gap: 16
+    gap: 18,
+    paddingBottom: 28
   }
 });

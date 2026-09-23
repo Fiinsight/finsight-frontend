@@ -3,7 +3,6 @@ import { useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { NewsCard } from "../../../components/NewsCard";
 import { getMoreBriefing, getTodayBriefing } from "../../../lib/api";
-import { sampleNews } from "../../../lib/sampleData";
 import type { NewsBrief } from "../../../types/api";
 
 interface NewsSectionProps {
@@ -11,7 +10,7 @@ interface NewsSectionProps {
 }
 
 export function NewsSection({ onSelectNews }: NewsSectionProps) {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["today-briefing"],
     queryFn: getTodayBriefing,
     retry: 0
@@ -22,9 +21,9 @@ export function NewsSection({ onSelectNews }: NewsSectionProps) {
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  const news = data ?? sampleNews;
-  // "더보기"는 백엔드에 실제로 연결됐을 때만 의미가 있음 — 샘플 폴백은
-  // 항상 똑같은 3건 고정이라 더 불러올 게 없음.
+  const news = data ?? [];
+  // Never present demo copy as if it were live market news. An empty state is
+  // more honest and makes a failed collection/API connection visible.
   const isRealData = !!data;
 
   const handleLoadMore = async () => {
@@ -51,12 +50,17 @@ export function NewsSection({ onSelectNews }: NewsSectionProps) {
     <View style={styles.group}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>오늘의 핵심 뉴스</Text>
-        <Text style={styles.muted}>{isLoading ? "불러오는 중" : `${news.length}개 선별`}</Text>
+        <Text style={styles.muted}>{isLoading ? "불러오는 중" : isError ? "연결 확인 필요" : `${news.length}개 선별`}</Text>
       </View>
 
-      {news.map((item) => (
+      {news.length > 0 ? news.map((item) => (
         <NewsCard key={item.id} news={item} onPress={() => onSelectNews(item.id)} />
-      ))}
+      )) : (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyTitle}>{isError ? "뉴스를 불러오지 못했어요" : "오늘의 뉴스를 준비하고 있어요"}</Text>
+          <Text style={styles.emptyBody}>{isError ? "백엔드와 뉴스 수집 상태를 확인한 뒤 다시 시도해 주세요." : "잠시 후 실제 수집된 뉴스가 이곳에 표시됩니다."}</Text>
+        </View>
+      )}
 
       {olderNews.map((item) => (
         <NewsCard key={item.id} news={item} onPress={() => onSelectNews(item.id)} />
@@ -81,12 +85,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between"
   },
   sectionTitle: {
-    color: "#101828",
+    color: "#FFFFFF",
     fontSize: 18,
     fontWeight: "700"
   },
   muted: {
-    color: "#98A2B3",
+    color: "rgba(255,255,255,0.7)",
     fontSize: 13
   },
   moreButton: {
@@ -101,5 +105,24 @@ const styles = StyleSheet.create({
     color: "#175CD3",
     fontSize: 14,
     fontWeight: "700"
+  },
+  emptyState: {
+    backgroundColor: "rgba(255,255,255,0.94)",
+    borderRadius: 22,
+    paddingHorizontal: 20,
+    paddingVertical: 28,
+    alignItems: "center"
+  },
+  emptyTitle: {
+    color: "#182B59",
+    fontSize: 16,
+    fontWeight: "800"
+  },
+  emptyBody: {
+    color: "#667085",
+    fontSize: 13,
+    lineHeight: 20,
+    marginTop: 8,
+    textAlign: "center"
   }
 });

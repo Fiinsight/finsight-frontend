@@ -260,9 +260,9 @@ export function getSampleChartData(symbolOrName: string): ChartData {
       };
     }),
     minuteCandles: [],
-    period: "W",
+    period: "D",
     intervalMinutes: null,
-    fallback: false,
+    fallback: true,
     moveInsights: [],
     docent: null,
     relatedNews: [

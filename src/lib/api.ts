@@ -35,6 +35,16 @@ import { AUTH_STORAGE_KEY } from "./auth";
 import { loadOnboardingProfile } from "./onboarding";
 import { KEY_TERM_DICTIONARY, generateSampleChartPoints, getSamplePopularStock, sampleMarketSummary } from "./sampleData";
 
+export function getApiErrorMessage(error: any, fallback: string): string {
+  const data = error?.response?.data;
+  if (typeof data?.message === "string" && data.message.trim()) return data.message;
+  if (typeof data?.detail === "string" && data.detail.trim()) return data.detail;
+  if (Array.isArray(data?.errors) && data.errors.length > 0) {
+    return data.errors.map((item: any) => item.defaultMessage ?? item.message).filter(Boolean).join("\n");
+  }
+  return fallback;
+}
+
 // Wi-Fi가 바뀌면 맥의 LAN IP도 바뀌어서 .env에 IP를 박아두는 방식은 매번 깨진다.
 // Expo 개발 서버는 자신이 지금 물려 있는 실제 호스트를 hostUri로 넘겨주므로,
 // 그 호스트를 그대로 재사용하면(포트만 8080으로 바꿔서) IP가 바뀌어도 항상 맞다.
@@ -86,8 +96,8 @@ export async function login(email: string, password: string): Promise<AuthRespon
   return data;
 }
 
-export async function getKakaoLoginUrl(): Promise<string> {
-  const { data } = await api.get<{ authorizationUrl: string }>("/auth/kakao/url");
+export async function getKakaoLoginUrl(state?: string): Promise<string> {
+  const { data } = await api.get<{ authorizationUrl: string }>("/auth/kakao/url", { params: state ? { state } : undefined });
   return data.authorizationUrl;
 }
 
@@ -351,7 +361,14 @@ function normalizeChartData(raw: ChartDataRaw, symbol: string): ChartData {
     period: raw.period ?? "D",
     intervalMinutes: raw.intervalMinutes ?? null,
     fallback: raw.fallback ?? false,
-    moveInsights: raw.moveInsights ?? [],
+    moveInsights: (raw.moveInsights ?? []).map((insight) => ({
+      timestamp: insight.timestamp ?? "",
+      changePercent: insight.changePercent ?? 0,
+      newsId: insight.newsId ?? null,
+      newsTitle: insight.newsTitle ?? "",
+      newsSource: insight.newsSource ?? "",
+      explanation: insight.explanation ?? ""
+    })),
     relatedNews: relatedNewsRaw.map((item) => ({
       id: item.id ?? item.newsId ?? null,
       title: item.title ?? "",

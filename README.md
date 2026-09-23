@@ -1,93 +1,59 @@
-# FinSight Frontend | FinSight 졸업작품 모바일 앱
+# FinSight 모바일 앱
 
-> **2026 졸업작품 FinSight의 React Native + Expo 앱** — 경제 뉴스를 읽고, 투자 판단을 연습하고, 차트와 뉴스의 연결을 학습하는 모바일 인터페이스
+> 2026 졸업작품 FinSight의 React Native·Expo 모바일 클라이언트
 
-FinSight는 뉴스만 요약해주는 앱이 아닙니다. 사용자가 뉴스를 자기 수준에 맞게 읽고, 어려운 금융 용어를 이해하고, 주가 방향을 직접 예측한 뒤 실제 결과와 비교하며 투자 사고를 학습하도록 설계했습니다.
+FinSight는 초보 투자자가 경제 뉴스를 쉽게 읽고, 자신의 판단 기준을 만들고, 결과를 기록하며 학습하도록 돕는 앱입니다. 이 저장소는 온보딩부터 뉴스 학습, 판단 기록, AI 피드백까지 사용자가 직접 경험하는 화면을 담당합니다.
 
-### 앱의 핵심 경험
+## 사용자 흐름
 
-`오늘의 뉴스 읽기 → 용어 이해하기 → 투자 판단하기 → 결과 피드백 받기 → 차트와 뉴스 연결해서 보기`
+1. 로그인하지 않은 사용자는 앱 시작 시 온보딩에서 투자 목적·관심·학습 수준을 선택합니다.
+2. 선택값은 로컬 상태와 백엔드 프로필에 저장되어 이후 뉴스 난이도와 학습 콘텐츠의 기준이 됩니다.
+3. 로그인한 사용자는 저장된 세션을 확인한 뒤 온보딩을 반복하지 않고 홈으로 이동합니다.
+4. 홈에서 시장 요약과 오늘의 핵심 뉴스를 확인하고, 뉴스 상세에서 읽기 수준을 선택합니다.
+5. 뉴스를 읽은 뒤 상승·중립·하락 판단과 근거를 기록하고, 기록 화면에서 결과와 피드백을 돌아봅니다.
 
-FinSight는 경제 뉴스를 이해하고 스스로 투자 판단을 내리도록 돕는 초보 투자자용 AI 기반 투자 인사이트 플랫폼입니다. React Native 앱 + Spring Boot 백엔드 + FastAPI AI 서비스로 구성되어 있으며, 이 저장소는 그중 프론트엔드(React Native + Expo 모바일 앱)입니다. 앱은 오직 `finsight-backend`(Spring Boot)하고만 통신하고, AI 관련 로직(뉴스 재작성, 용어 설명, 판단 피드백)은 백엔드가 내부적으로 처리한 결과만 내려받습니다.
+## 화면과 기술
 
-## 이 앱이 하는 일
-
-PPT 기획안의 5가지 핵심 흐름을 화면으로 그대로 구현했습니다.
-
-1. **홈** — 코스피/코스닥/원달러 시장 현황 + 오늘의 핵심 뉴스 3건
-2. **뉴스 상세** — 원문/쉽게읽기 탭, 초보자용·일반용·분석용 3단계 읽기 수준 선택, 본문 속 어려운 용어를 탭하면 뜻/이 뉴스에서는/시장 영향을 보여주는 팝업
-3. **판단하기** — 뉴스를 읽고 상승/중립/하락을 예측하고 판단 근거를 남기는 화면
-4. **AI 피드백(차트 분석)** — 예측과 실제 결과를 비교해 정확도와 근거를 보여주고, 관련 종목 미니 차트로 시각화
-5. **AI 차트 도슨트** — 관심 종목 차트에서 급등락 구간을 탭하면 관련 뉴스와 "왜 올랐는지" 설명을 보여주는 화면
-6. **기록** — 과거 판단 이력과 실제 결과 비교
-7. **학습** — 투자 용어/뉴스 읽는 법 등 정적 학습 가이드 + 오늘의 한 줄 팁
-8. **프로필** — 최소 구현 (로그인/개인화는 이후 작업)
+- TypeScript / React Native / Expo
+- React Navigation 기반 스택·탭 네비게이션
+- TanStack Query로 서버 상태 조회·캐시·재시도 관리
+- Zustand로 읽기 수준, 판단 초안, 온보딩 상태 관리
+- Axios API 클라이언트와 응답 정규화 계층
+- Pretendard 중심의 한국어 타이포그래피와 FinSight 블루 그라데이션 디자인 시스템
+- 출석은 기록 화면에서 마스코트 얼굴 스탬프로 표현하고, 홈은 핵심 뉴스에 집중
 
 ## 구조
 
-화면 하나가 여러 책임을 갖지 않도록, 화면마다 폴더를 만들고 그 안에서 섹션별 작은 컴포넌트로 쪼갰습니다.
-
-```
+```text
 src/
-├── navigation/
-│   ├── RootNavigator.tsx     하단 탭: 홈 / AI차트 / 기록 / 학습 / 프로필
-│   ├── HomeStack.tsx         Home → NewsDetail → Judgement → Feedback
-│   ├── ChartStack.tsx / HistoryStack.tsx
-│   └── types.ts
-│
-├── screens/
-│   ├── home/
-│   │   ├── HomeScreen/            index + HomeHeader / MarketPanel / NewsSection
-│   │   ├── NewsDetailScreen/      index + DetailTopBar / SentimentBadge / BodyTabs / ArticleBody / ImportanceReasonCard
-│   │   ├── JudgementScreen/       index + NewsSummaryCard / DirectionChoices / ReasonInput
-│   │   └── FeedbackScreen/        index + ResultBanner / ReasonsCard / FeedbackChart
-│   ├── chart/ChartScreen/         index + StockSearchBar / PopularStockChips / StockHeader / ChartCard / InsightBanner / ChartDocentPanel / RelatedNewsList
-│   ├── history/HistoryScreen/     index + HistoryItem
-│   ├── learn/LearnScreen/         index + GuideList / DailyTips
-│   └── profile/ProfileScreen/     index + ProfileHeader / SettingsList
-│
-├── components/           화면 간에 공유되는 조각: NewsCard, MarketStatCard, TermPopup, ChoiceCard, LevelTabs, MiniLineChart(react-native-svg 커스텀 차트), ScreenTopBar, BottomActionBar
-├── store/useAppStore.ts  zustand: 읽기 수준 선택, 판단 draft 등 화면 간 공유 상태
-├── lib/api.ts            axios 엔드포인트 함수 + 백엔드 응답을 앱 타입으로 정규화
-├── lib/sampleData.ts     백엔드가 꺼져 있거나 특정 필드가 없을 때 쓰는 폴백 샘플 데이터
-├── lib/{format,text}.ts  포맷팅/텍스트 유틸리티
-└── types/api.ts          백엔드 응답(Raw) 타입 + 화면에서 쓰는 정규화된 타입
+├── navigation/          탭·스택 네비게이터
+├── screens/             home / news / judgement / feedback / history / learn / profile
+├── components/          뉴스 카드, 용어 팝업, 선택 카드, 공통 액션
+├── lib/api.ts           백엔드 API 호출과 응답 정규화
+├── lib/sampleData.ts    개발 중 서버가 없을 때의 제한적 폴백
+├── store/               Zustand 앱 상태
+└── types/               API·화면 타입
 ```
 
-`App.tsx`는 `QueryClientProvider` → `NavigationContainer` → `RootNavigator`만 조립하고, 화면 로직은 전부 `src/screens`에 있습니다.
-
-## 백엔드 연결이 없어도 항상 동작합니다
-
-모든 화면은 react-query로 백엔드를 호출하고, 실패하거나 응답 형식이 다르면 `src/lib/sampleData.ts`의 현실적인 한국어 샘플 데이터로 자동 대체됩니다. 그래서 백엔드/DB를 켜지 않은 상태에서도 `npm run start`만으로 7개 화면을 전부 눌러볼 수 있습니다 — 평가 시연 시 인프라 없이도 바로 확인 가능합니다.
-
-## 실행 방법
+## 실행
 
 ```bash
 npm install
 npm run start
 ```
 
-Expo Go 앱으로 QR코드를 스캔하거나, 웹으로 미리보려면:
-
-```bash
-npx expo install react-dom react-native-web   # 웹 지원 최초 1회만
-npm run web
-```
-
-### 백엔드 연결 (선택)
-
-실제 데이터를 받으려면 `finsight-backend`를 8080 포트로 띄운 뒤, 로컬 `.env`에
-`EXPO_PUBLIC_API_BASE_URL`을 설정하세요. `.env`에는 실제 환경별 값을 넣고 저장소에는 커밋하지 않습니다.
-
-실기기(Expo Go)에서 테스트할 때는 `localhost`가 폰 자신을 가리키므로, Mac의 로컬 네트워크 IP를 사용해야 합니다:
+Expo Go에서 QR을 스캔합니다. 실기기에서 백엔드에 연결할 때는 `localhost` 대신 같은 Wi-Fi의 Mac IP를 사용하세요.
 
 ```text
 EXPO_PUBLIC_API_BASE_URL=http://192.168.0.10:8080/api
 ```
 
-값을 바꾼 뒤에도 반영이 안 되면 `npm run start:clear`로 캐시를 지우고 다시 시작하세요.
+캐시를 지우고 시작하려면 `npm run start:clear`를 사용합니다. 화면 확인을 위해 제한된 개발용 폴백이 남아 있지만, 실제 뉴스·로그인·프로필 데이터는 백엔드 응답을 우선합니다.
 
-## 참고
+## 앞으로의 계획
 
-- 실제 비밀 값(API 키 등)은 프론트엔드에서 다루지 않습니다 — 모든 외부 API 키는 백엔드(`finsight-backend`)에서만 사용됩니다.
-- 백엔드 응답 필드명이 정확히 무엇인지 확신하기 어려운 엔드포인트(`/news/{id}`, `/market/summary`, `/charts/{symbol}` 등)는 `src/types/api.ts`에서 여러 후보 필드명을 함께 받아들이도록(loose typing) 만들어 두었습니다.
+1. 카카오 로그인과 자체 회원가입의 실기기 QA 및 딥링크 검증
+2. 온보딩 응답을 백엔드 프로필과 연결해 학습 페이지 개인화
+3. 실제 뉴스가 없는 경우를 명확한 빈 상태로 표시하고 목업 표시를 줄이기
+4. 뉴스·판단·피드백 화면의 접근성, 로딩, 오류 상태 보강
+5. Expo 빌드와 학교 시연 환경에 맞춘 배포 설정 정리

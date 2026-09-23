@@ -1,70 +1,67 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { RootNavigator } from "./src/navigation/RootNavigator";
 import { OnboardingScreen } from "./src/screens/onboarding/OnboardingScreen";
 import { AuthScreen } from "./src/screens/auth/AuthScreen";
-import { loadAuthSession } from "./src/lib/auth";
+import { clearAuthSession, loadAuthSession, type AuthSession } from "./src/lib/auth";
 import { saveOnboardingProfile } from "./src/lib/onboarding";
 import { syncOnboardingProfile } from "./src/lib/api";
 
 const queryClient = new QueryClient();
-
 export default function App() {
   const [showIntro, setShowIntro] = useState(true);
-  const [hasSeenOnboarding, setHasSeenOnboarding] = useState<boolean | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [onboardingDoneThisRun, setOnboardingDoneThisRun] = useState(false);
+  const [session, setSession] = useState<AuthSession | null>(null);
+  const [sessionLoaded, setSessionLoaded] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setShowIntro(false), 900);
-    AsyncStorage.getItem("finsight.onboarding.completed")
-      .then((value) => setHasSeenOnboarding(value === "true"))
-      .catch(() => setHasSeenOnboarding(false));
-    loadAuthSession().then((session) => setIsAuthenticated(Boolean(session))).catch(() => setIsAuthenticated(false));
+    loadAuthSession().then(setSession).catch(() => setSession(null)).finally(() => setSessionLoaded(true));
     return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!session) return;
     void syncOnboardingProfile().catch(() => {
       // The local profile remains available and can be retried on the next launch.
     });
-  }, [isAuthenticated]);
+  }, [session]);
 
-  if (showIntro || hasSeenOnboarding === null || isAuthenticated === null) {
+  if (showIntro || !sessionLoaded) {
     return (
       <View style={styles.intro}>
-        <View style={styles.glowTop} />
-        <View style={styles.glowBottom} />
         <Text style={styles.introLogo}>FinSight</Text>
       </View>
     );
   }
 
-  if (!hasSeenOnboarding) {
+  // An authenticated user has already completed the account entry flow and
+  // should go straight to the app. A guest sees onboarding on each fresh app
+  // launch until they sign in, so dismissing onboarding is never treated as
+  // permanent account completion.
+  if (!session && !onboardingDoneThisRun) {
     return (
       <OnboardingScreen
         onComplete={(answers) => {
-          setHasSeenOnboarding(true);
-          void AsyncStorage.setItem("finsight.onboarding.completed", "true");
+          setOnboardingDoneThisRun(true);
           void saveOnboardingProfile(answers);
         }}
       />
     );
   }
 
-  if (!isAuthenticated) {
-    return <AuthScreen onAuthenticated={() => setIsAuthenticated(true)} />;
+  if (!session) {
+    return <AuthScreen onAuthenticated={() => void loadAuthSession().then(setSession)} />;
   }
 
   return (
     <QueryClientProvider client={queryClient}>
       <NavigationContainer>
         <StatusBar style="dark" />
-        <RootNavigator />
+        <RootNavigator session={session} onLogout={() => void clearAuthSession().then(() => setSession(null))} />
       </NavigationContainer>
     </QueryClientProvider>
   );
@@ -76,32 +73,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
-    backgroundColor: "#F7F5EF"
+    backgroundColor: "#168DF2"
   },
   introLogo: {
-    color: "#14284B",
+    color: "#FFFFFF",
+    fontFamily: "Avenir Next",
     fontSize: 30,
     fontWeight: "700",
     letterSpacing: -0.4
-  },
-  glowTop: {
-    position: "absolute",
-    top: -120,
-    right: -90,
-    width: 280,
-    height: 280,
-    borderRadius: 140,
-    backgroundColor: "#DDF3E8",
-    opacity: 0.8
-  },
-  glowBottom: {
-    position: "absolute",
-    bottom: -160,
-    left: -120,
-    width: 340,
-    height: 340,
-    borderRadius: 170,
-    backgroundColor: "#E3ECFA",
-    opacity: 0.9
   }
 });

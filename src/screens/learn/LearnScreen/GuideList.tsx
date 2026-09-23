@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import type { LearningFocus, LearningLevel } from "../../../lib/onboarding";
 
 interface GuideItem {
   icon: keyof typeof Ionicons.glyphMap;
@@ -15,11 +16,19 @@ const guides: GuideItem[] = [
   { icon: "stats-chart-outline", title: "차트 기초", subtitle: "주가 차트 보는 법" }
 ];
 
-export function GuideList() {
+export function GuideList({ focus, level }: { focus: LearningFocus; level: LearningLevel }) {
+  const personalizedGuides = focus === "decision"
+    ? [guides[2], guides[0], guides[3], guides[4]]
+    : focus === "market"
+      ? [guides[3], guides[4], guides[0], guides[2]]
+      : focus === "reflection"
+        ? [guides[0], guides[2], guides[4], guides[1]]
+        : guides;
+  const visibleGuides = level === "beginner" ? personalizedGuides.slice(0, 4) : personalizedGuides;
   return (
     <View style={styles.card}>
-      <Text style={styles.sectionTitle}>학습 가이드</Text>
-      {guides.map((guide, index) => (
+      <Text style={styles.sectionTitle}>나에게 맞는 학습 가이드</Text>
+      {visibleGuides.map((guide, index) => (
         <TouchableOpacity
           key={guide.title}
           style={[styles.row, index === guides.length - 1 && styles.rowLast]}
