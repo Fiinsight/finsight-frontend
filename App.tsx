@@ -33,7 +33,14 @@ export default function App() {
     const timer = setTimeout(() => setShowIntro(false), 900);
     Promise.all([loadAuthSession(), loadOnboardingProfile()])
       .then(([storedSession, onboardingProfile]) => {
-        setSession(storedSession);
+        const needsKakaoProfileRefresh = storedSession?.nickname === "카카오 사용자"
+          || storedSession?.email.endsWith("@kakao.local");
+        if (needsKakaoProfileRefresh) {
+          void clearAuthSession();
+          setSession(null);
+        } else {
+          setSession(storedSession);
+        }
         setOnboardingDoneThisRun(Boolean(onboardingProfile));
       })
       .catch(() => {
