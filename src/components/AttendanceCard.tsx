@@ -1,4 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { storageGetItem, storageSetItem } from "../lib/storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useMemo, useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
@@ -21,7 +21,7 @@ export function AttendanceCard() {
   const offset = mondayOffset(today);
 
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY)
+    storageGetItem(STORAGE_KEY)
       .then((value) => setAttended(value ? JSON.parse(value) : []))
       .catch(() => setAttended([]));
   }, []);
@@ -38,7 +38,7 @@ export function AttendanceCard() {
     if (checkedIn) return;
     const next = [...attended, todayKey].slice(-60);
     setAttended(next);
-    void AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    void storageSetItem(STORAGE_KEY, JSON.stringify(next));
   };
 
   return (

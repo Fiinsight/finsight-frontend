@@ -1,5 +1,5 @@
 import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { storageGetItem } from "./storage";
 import Constants from "expo-constants";
 import type {
   ChartCandle,
@@ -67,7 +67,7 @@ export const api = axios.create({
 });
 
 api.interceptors.request.use(async (config) => {
-  const raw = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
+  const raw = await storageGetItem(AUTH_STORAGE_KEY);
   if (raw) {
     try {
       const session = JSON.parse(raw) as { accessToken?: string };
