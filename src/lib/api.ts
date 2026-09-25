@@ -9,6 +9,7 @@ import type {
   ChartDocent,
   ChartPoint,
   ChartPointRaw,
+  ArticleNote,
   DailyNote,
   JudgementChoice,
   JudgementAck,
@@ -270,6 +271,30 @@ export async function getDailyNotes(): Promise<DailyNote[]> {
 export async function saveTodayNote(content: string): Promise<DailyNote> {
   const { data } = await api.put<DailyNote>("/notes/today", { content });
   return data;
+}
+
+export async function getArticleNotes(): Promise<ArticleNote[]> {
+  const { data } = await api.get<ArticleNote[]>("/article-notes");
+  return data;
+}
+
+export async function getArticleNotesForNews(newsId: number): Promise<ArticleNote[]> {
+  const { data } = await api.get<ArticleNote[]>(`/article-notes/news/${newsId}`);
+  return data;
+}
+
+export async function createArticleNote(newsId: number, content: string): Promise<ArticleNote> {
+  const { data } = await api.post<ArticleNote>("/article-notes", { newsId, content });
+  return data;
+}
+
+export async function updateArticleNote(noteId: number, content: string): Promise<ArticleNote> {
+  const { data } = await api.put<ArticleNote>(`/article-notes/${noteId}`, { content });
+  return data;
+}
+
+export async function deleteArticleNote(noteId: number): Promise<void> {
+  await api.delete(`/article-notes/${noteId}`);
 }
 
 // ---------------------------------------------------------------------------

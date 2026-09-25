@@ -16,6 +16,7 @@ import { DetailTopBar } from "./DetailTopBar";
 import { ImportanceReasonCard } from "./ImportanceReasonCard";
 import { SentimentBadge } from "./SentimentBadge";
 import { SourceLinkRow } from "./SourceLinkRow";
+import { ArticleNotesPanel } from "./ArticleNotesPanel";
 
 type Props = NativeStackScreenProps<NewsFlowParamList, "NewsDetail">;
 
@@ -61,6 +62,7 @@ export function NewsDetailScreen({ route, navigation }: Props) {
         </View>
 
         <ImportanceReasonCard reason={detail.importanceReason} />
+        <ArticleNotesPanel newsId={newsId} />
       </ScrollView>
 
       <BottomActionBar label="판단하기" onPress={() => navigation.navigate("Judgement", { newsId })} />

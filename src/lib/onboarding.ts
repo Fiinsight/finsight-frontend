@@ -53,7 +53,7 @@ export function mapOnboardingToLearningPreferences(answers: OnboardingAnswer[]):
     ? "decision"
     : interest.includes("시장")
       ? "market"
-      : interest.includes("기록") || goal.includes("생각")
+      : interest.includes("기록") || goal.includes("생각") || goal.includes("메모")
         ? "reflection"
         : "news";
 

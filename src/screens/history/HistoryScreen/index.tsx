@@ -1,8 +1,8 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { getDailyNotes, getJudgementHistory, saveTodayNote } from "../../../lib/api";
+import { useQuery } from "@tanstack/react-query";
+import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { getArticleNotes, getJudgementHistory } from "../../../lib/api";
+import { toRelativeTimeKorean } from "../../../lib/format";
 import { sampleJudgementHistory } from "../../../lib/sampleData";
 import type { HistoryStackParamList } from "../../../navigation/types";
 import { AttendanceCard } from "../../../components/AttendanceCard";
@@ -11,27 +11,19 @@ import { HistoryItem } from "./HistoryItem";
 type Props = NativeStackScreenProps<HistoryStackParamList, "History">;
 
 export function HistoryScreen({ navigation }: Props) {
-  const queryClient = useQueryClient();
-  const [note, setNote] = useState("");
   const { data } = useQuery({
     queryKey: ["judgement-history"],
     queryFn: getJudgementHistory,
     retry: 0
   });
-  const { data: notes = [] } = useQuery({
-    queryKey: ["daily-notes"],
-    queryFn: getDailyNotes,
+  const notesQuery = useQuery({
+    queryKey: ["article-notes"],
+    queryFn: getArticleNotes,
     retry: 0
-  });
-  useEffect(() => {
-    setNote(notes[0]?.content ?? "");
-  }, [notes]);
-  const saveNote = useMutation({
-    mutationFn: () => saveTodayNote(note.trim()),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["daily-notes"] })
   });
 
   const history = data ?? sampleJudgementHistory;
+  const notes = notesQuery.data ?? [];
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -43,25 +35,32 @@ export function HistoryScreen({ navigation }: Props) {
 
         <AttendanceCard />
 
-        <View style={styles.noteCard}>
-          <Text style={styles.noteTitle}>오늘의 한 줄</Text>
-          <Text style={styles.noteSubtitle}>오늘 읽은 뉴스와 내 생각을 짧게 남겨보세요.</Text>
-          <TextInput
-            value={note}
-            onChangeText={setNote}
-            maxLength={280}
-            placeholder="오늘 시장을 보며 든 생각은?"
-            placeholderTextColor="#98A2B3"
-            style={styles.noteInput}
-          />
-          <View style={styles.noteFooter}>
-            <Text style={styles.noteCount}>{note.length}/280</Text>
-            <Pressable disabled={!note.trim() || saveNote.isPending} onPress={() => saveNote.mutate()} style={[styles.saveButton, (!note.trim() || saveNote.isPending) && styles.saveButtonDisabled]}>
-              <Text style={styles.saveButtonText}>{saveNote.isPending ? "저장 중" : "저장"}</Text>
-            </Pressable>
+        <Text style={styles.sectionTitle}>기사 메모 복습</Text>
+        <Text style={styles.sectionSubtitle}>기사에서 남긴 생각을 다시 읽고, 원문으로 돌아가 복습해보세요.</Text>
+        {notesQuery.isLoading ? <Text style={styles.emptyText}>메모를 불러오는 중이에요.</Text> : null}
+        {notesQuery.isError ? <Text style={styles.errorText}>메모를 불러오지 못했어요. 잠시 후 다시 시도해주세요.</Text> : null}
+        {!notesQuery.isLoading && !notesQuery.isError && notes.length === 0 ? (
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyTitle}>아직 저장한 기사 메모가 없어요</Text>
+            <Text style={styles.emptyText}>기사를 읽다가 기억하고 싶은 내용을 메모하면 여기에 쌓여요.</Text>
           </View>
-          {saveNote.isError ? <Text style={styles.noteError}>기록을 저장하지 못했어요. 잠시 후 다시 시도해주세요.</Text> : null}
-        </View>
+        ) : null}
+        {notes.map((note) => (
+          <TouchableOpacity
+            key={note.id}
+            style={styles.noteCard}
+            activeOpacity={0.85}
+            onPress={() => navigation.navigate("NewsDetail", { newsId: note.newsId })}
+          >
+            <View style={styles.noteHeader}>
+              <Text style={styles.noteSource} numberOfLines={1}>{note.source || "뉴스"}</Text>
+              <Text style={styles.noteDate}>{toRelativeTimeKorean(note.updatedAt)}</Text>
+            </View>
+            <Text style={styles.noteTitle} numberOfLines={2}>{note.newsTitle}</Text>
+            <Text style={styles.noteContent} numberOfLines={4}>{note.content}</Text>
+            <Text style={styles.reviewLink}>기사 다시 읽기 →</Text>
+          </TouchableOpacity>
+        ))}
 
         <Text style={styles.sectionTitle}>판단 기록</Text>
 
@@ -100,16 +99,18 @@ const styles = StyleSheet.create({
     color: "#101828",
     fontSize: 18,
     fontWeight: "800",
-    marginTop: 6
+    marginTop: 8
   },
-  noteCard: { backgroundColor: "#EEF4FF", borderRadius: 14, padding: 16, gap: 8, marginTop: 4 },
-  noteTitle: { color: "#175CD3", fontSize: 16, fontWeight: "800" },
-  noteSubtitle: { color: "#667085", fontSize: 12 },
-  noteInput: { backgroundColor: "#FFFFFF", borderColor: "#D0D5DD", borderWidth: 1, borderRadius: 9, paddingHorizontal: 12, paddingVertical: 10, color: "#101828", fontSize: 14 },
-  noteFooter: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  noteCount: { color: "#98A2B3", fontSize: 11 },
-  saveButton: { backgroundColor: "#175CD3", borderRadius: 8, paddingHorizontal: 16, paddingVertical: 8 },
-  saveButtonDisabled: { backgroundColor: "#98A2B3" },
-  saveButtonText: { color: "#FFFFFF", fontSize: 12, fontWeight: "800" },
-  noteError: { color: "#B42318", fontSize: 12 }
+  sectionSubtitle: { color: "#667085", fontSize: 13, lineHeight: 19, marginTop: -6 },
+  noteCard: { backgroundColor: "#FFFFFF", borderColor: "#D0D5DD", borderWidth: 1, borderRadius: 14, padding: 16, gap: 9 },
+  noteHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8 },
+  noteSource: { color: "#175CD3", fontSize: 12, fontWeight: "700", flex: 1 },
+  noteDate: { color: "#98A2B3", fontSize: 11 },
+  noteTitle: { color: "#101828", fontSize: 15, lineHeight: 21, fontWeight: "800" },
+  noteContent: { color: "#475467", fontSize: 14, lineHeight: 21 },
+  reviewLink: { alignSelf: "flex-start", color: "#175CD3", fontSize: 12, fontWeight: "800", marginTop: 2 },
+  emptyCard: { backgroundColor: "#EEF4FF", borderRadius: 14, padding: 18, gap: 6 },
+  emptyTitle: { color: "#182B59", fontSize: 15, fontWeight: "800" },
+  emptyText: { color: "#667085", fontSize: 13, lineHeight: 19 },
+  errorText: { color: "#B42318", fontSize: 13, lineHeight: 19 }
 });
