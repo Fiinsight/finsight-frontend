@@ -18,18 +18,40 @@ const tabIcon: Record<keyof RootTabParamList, keyof typeof Ionicons.glyphMap> = 
   ProfileTab: "person"
 };
 
+const inactiveTabIcon: Partial<Record<keyof RootTabParamList, keyof typeof Ionicons.glyphMap>> = {
+  HomeTab: "home-outline",
+  ProfileTab: "person-outline"
+};
+
 export function RootNavigator({ session, onLogout }: { session: AuthSession; onLogout: () => void }) {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveTintColor: "#175CD3",
-        tabBarInactiveTintColor: "#98A2B3",
-        tabBarIcon: ({ color, size }) => <Ionicons name={tabIcon[route.name as keyof RootTabParamList]} size={size} color={color} />
+        tabBarActiveTintColor: "#202124",
+        tabBarInactiveTintColor: "#C7C9CE",
+        tabBarStyle: {
+          backgroundColor: "#FFFFFF",
+          borderTopColor: "#E5E7EB",
+          borderTopWidth: 1,
+          elevation: 0,
+          shadowOpacity: 0
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: "500"
+        },
+        tabBarIcon: ({ color, focused, size }) => {
+          const routeName = route.name as keyof RootTabParamList;
+          const name = !focused && inactiveTabIcon[routeName]
+            ? inactiveTabIcon[routeName]
+            : tabIcon[routeName];
+          return <Ionicons name={name} size={size} color={color} />;
+        }
       })}
     >
       <Tab.Screen name="HomeTab" component={HomeStack} options={{ title: "홈" }} />
-      <Tab.Screen name="ChartTab" component={ChartStack} options={{ title: "AI차트" }} />
+      <Tab.Screen name="ChartTab" component={ChartStack} options={{ title: "차트" }} />
       <Tab.Screen name="HistoryTab" component={HistoryStack} options={{ title: "기록" }} />
       <Tab.Screen name="LearnTab" options={{ title: "학습", headerShown: true }}>
         {({ navigation }) => <LearnScreen onOpenHistory={() => navigation.navigate("HistoryTab")} />}
