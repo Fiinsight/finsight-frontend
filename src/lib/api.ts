@@ -64,7 +64,12 @@ function resolveApiBaseUrl(): string {
 
 export const api = axios.create({
   baseURL: resolveApiBaseUrl(),
-  timeout: 8000
+  timeout: 8000,
+  // localtunnel shows a browser warning page unless this header is present.
+  // Keep it limited to the free development tunnel; production hosts do not need it.
+  headers: process.env.EXPO_PUBLIC_API_BASE_URL?.includes(".loca.lt")
+    ? { "Bypass-Tunnel-Reminder": "true" }
+    : undefined
 });
 
 api.interceptors.request.use(async (config) => {
