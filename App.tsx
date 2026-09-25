@@ -10,6 +10,7 @@ import { AuthScreen } from "./src/screens/auth/AuthScreen";
 import { clearAuthSession, loadAuthSession, type AuthSession } from "./src/lib/auth";
 import { clearOnboardingProfile, loadOnboardingProfile, saveOnboardingProfile } from "./src/lib/onboarding";
 import { syncOnboardingProfile } from "./src/lib/api";
+import { useAppStore } from "./src/store/useAppStore";
 
 const queryClient = new QueryClient();
 export default function App() {
@@ -17,6 +18,16 @@ export default function App() {
   const [onboardingDoneThisRun, setOnboardingDoneThisRun] = useState(false);
   const [session, setSession] = useState<AuthSession | null>(null);
   const [sessionLoaded, setSessionLoaded] = useState(false);
+
+  const handleLogout = async () => {
+    // Always leave the authenticated tree even if one storage backend rejects
+    // a cleanup call; clear each independent cache without short-circuiting.
+    await Promise.allSettled([clearAuthSession(), clearOnboardingProfile()]);
+    queryClient.clear();
+    useAppStore.getState().resetForLogout();
+    setOnboardingDoneThisRun(false);
+    setSession(null);
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => setShowIntro(false), 900);
@@ -73,15 +84,7 @@ export default function App() {
         <StatusBar style="dark" />
         <RootNavigator
           session={session}
-          onLogout={() =>
-            void clearAuthSession()
-              .then(clearOnboardingProfile)
-              .then(() => {
-                queryClient.clear();
-                setOnboardingDoneThisRun(false);
-                setSession(null);
-              })
-          }
+          onLogout={() => { void handleLogout(); }}
         />
       </NavigationContainer>
     </QueryClientProvider>

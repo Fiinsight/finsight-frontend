@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import packageJson from "../../../../package.json";
 import type { LearningLevel } from "../../../lib/onboarding";
 
@@ -22,14 +22,19 @@ export function SettingsList({ level, onLogout }: { level: LearningLevel; onLogo
   return (
     <View style={styles.card}>
       {rowsWithLevel.map((row, index) => (
-        <View key={row.label} style={[styles.row, index === rows.length - 1 && styles.rowLast]}>
+        <Pressable
+          key={row.label}
+          accessibilityRole={row.label === "로그아웃" ? "button" : undefined}
+          accessibilityLabel={row.label === "로그아웃" ? "로그아웃" : undefined}
+          disabled={row.label !== "로그아웃"}
+          onPress={row.label === "로그아웃" ? onLogout : undefined}
+          style={[styles.row, index === rows.length - 1 && styles.rowLast]}
+        >
           <Ionicons name={row.icon} size={18} color="#667085" />
           <Text style={styles.label}>{row.label}</Text>
           {row.value ? <Text style={styles.value}>{row.value}</Text> : null}
-          <TouchableOpacity disabled={row.label !== "로그아웃"} onPress={row.label === "로그아웃" ? onLogout : undefined} hitSlop={8}>
-            <Ionicons name="chevron-forward" size={16} color="#D0D5DD" />
-          </TouchableOpacity>
-        </View>
+          <Ionicons name="chevron-forward" size={16} color="#D0D5DD" />
+        </Pressable>
       ))}
     </View>
   );

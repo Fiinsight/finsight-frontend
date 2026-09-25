@@ -32,7 +32,7 @@ export function RootNavigator({ session, onLogout }: { session: AuthSession; onL
       <Tab.Screen name="ChartTab" component={ChartStack} options={{ title: "AI차트" }} />
       <Tab.Screen name="HistoryTab" component={HistoryStack} options={{ title: "기록" }} />
       <Tab.Screen name="LearnTab" options={{ title: "학습", headerShown: true }}>
-        {() => <LearnScreen />}
+        {({ navigation }) => <LearnScreen onOpenHistory={() => navigation.navigate("HistoryTab")} />}
       </Tab.Screen>
       <Tab.Screen name="ProfileTab" options={{ title: "프로필", headerShown: true }}>
         {() => <ProfileScreen session={session} onLogout={onLogout} />}
