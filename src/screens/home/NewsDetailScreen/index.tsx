@@ -1,7 +1,8 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useIsFocused } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
+import { AppState, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 import { BottomActionBar } from "../../../components/BottomActionBar";
 import { LevelTabs } from "../../../components/LevelTabs";
 import { TermPopup } from "../../../components/TermPopup";
@@ -17,11 +18,13 @@ import { ImportanceReasonCard } from "./ImportanceReasonCard";
 import { SentimentBadge } from "./SentimentBadge";
 import { SourceLinkRow } from "./SourceLinkRow";
 import { ArticleNotesPanel } from "./ArticleNotesPanel";
+import { recordArticleRead } from "../../../lib/readingProgress";
 
 type Props = NativeStackScreenProps<NewsFlowParamList, "NewsDetail">;
 
 export function NewsDetailScreen({ route, navigation }: Props) {
   const { newsId } = route.params;
+  const isFocused = useIsFocused();
   const [bodyTab, setBodyTab] = useState<BodyTab>("raw");
   const [selectedTerm, setSelectedTerm] = useState<string | null>(null);
 
@@ -40,6 +43,42 @@ export function NewsDetailScreen({ route, navigation }: Props) {
     queryFn: () => getNewsDetail(newsId),
     retry: 0
   });
+
+  useEffect(() => {
+    // A fallback/sample detail is not a completed server read. Only count a
+    // real article after at least 12 seconds while this screen and app are active.
+    if (!data || !isFocused) return;
+    const minimumReadMs = 12_000;
+    let activeSince = AppState.currentState === "active" ? Date.now() : null;
+    let activeMs = 0;
+    let recorded = false;
+
+    const recordIfRead = () => {
+      const totalActiveMs = activeMs + (activeSince === null ? 0 : Date.now() - activeSince);
+      if (!recorded && totalActiveMs >= minimumReadMs) {
+        recorded = true;
+        void recordArticleRead(newsId);
+      }
+    };
+
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active") {
+        activeSince = Date.now();
+      } else if (activeSince !== null) {
+        activeMs += Date.now() - activeSince;
+        activeSince = null;
+        recordIfRead();
+      }
+    });
+    const timer = setInterval(recordIfRead, 1000);
+
+    return () => {
+      if (activeSince !== null) activeMs += Date.now() - activeSince;
+      clearInterval(timer);
+      subscription.remove();
+      recordIfRead();
+    };
+  }, [data?.id, isFocused, newsId]);
 
   const detail: NewsDetail = data ?? getSampleNewsDetail(newsId);
   const levelText = detail.levels[readingLevel] || detail.summary;

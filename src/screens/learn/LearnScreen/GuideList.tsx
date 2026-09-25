@@ -15,7 +15,8 @@ const guides: GuideItem[] = [
   { icon: "bulb-outline", title: "핵심 용어 사전", subtitle: "꼭 알아야 할 투자 용어", content: "용어는 사전 뜻만 외우기보다 뉴스 속 역할을 함께 보세요. 금리·환율·실적처럼 같은 단어도 기업의 매출, 비용, 투자심리 중 어디에 영향을 주는지에 따라 해석이 달라집니다." },
   { icon: "trending-up-outline", title: "실적 이해하기", subtitle: "기업 실적 발표 읽는 법", content: "매출과 영업이익의 방향을 확인한 뒤 시장 기대와 비교해보세요. 숫자가 좋아도 전망이 낮아지면 주가가 약해질 수 있으니, 실적 발표에서는 다음 분기 가이던스까지 함께 읽는 습관이 중요합니다." },
   { icon: "cash-outline", title: "금리와 주가", subtitle: "금리가 주식에 미치는 영향", content: "금리가 오르면 자금 조달 비용과 할인율이 높아져 성장주에 부담이 될 수 있습니다. 반대로 은행처럼 이자 수익과 연결된 업종은 다른 영향을 받을 수 있으므로 시장 전체와 업종별 반응을 나눠 살펴보세요." },
-  { icon: "stats-chart-outline", title: "차트 기초", subtitle: "주가 차트 보는 법", content: "차트는 미래를 맞히는 도구가 아니라 가격이 어떻게 반응했는지 확인하는 기록입니다. 기간을 먼저 정하고 추세·거래량·뉴스 시점을 함께 비교하면 숫자 변화의 맥락을 더 잘 이해할 수 있습니다." }
+  { icon: "stats-chart-outline", title: "차트 기초", subtitle: "주가 차트 보는 법", content: "차트는 미래를 맞히는 도구가 아니라 가격이 어떻게 반응했는지 확인하는 기록입니다. 기간을 먼저 정하고 추세·거래량·뉴스 시점을 함께 비교하면 숫자 변화의 맥락을 더 잘 이해할 수 있습니다." },
+  { icon: "create-outline", title: "기사 메모 복습", subtitle: "내가 남긴 생각을 다시 읽고 연결하기", content: "기록 탭에서 기사 메모를 다시 읽은 뒤 기사 원문으로 돌아가 근거를 확인해보세요. 당시의 생각과 실제로 확인된 내용을 비교하면 나만의 투자 기준을 쌓는 데 도움이 됩니다." }
 ];
 
 export function GuideList({ focus, level }: { focus: LearningFocus; level: LearningLevel }) {
@@ -25,7 +26,7 @@ export function GuideList({ focus, level }: { focus: LearningFocus; level: Learn
     : focus === "market"
       ? [guides[3], guides[4], guides[0], guides[2]]
       : focus === "reflection"
-        ? [guides[0], guides[2], guides[4], guides[1]]
+        ? [guides[5], guides[0], guides[2], guides[1]]
         : guides;
   const visibleGuides = level === "beginner" ? personalizedGuides.slice(0, 4) : personalizedGuides;
   return (
@@ -34,7 +35,7 @@ export function GuideList({ focus, level }: { focus: LearningFocus; level: Learn
       {visibleGuides.map((guide, index) => (
         <TouchableOpacity
           key={guide.title}
-          style={[styles.row, index === guides.length - 1 && styles.rowLast]}
+          style={[styles.row, index === visibleGuides.length - 1 && styles.rowLast]}
           activeOpacity={0.7}
           onPress={() => setSelectedGuide(guide)}
         >
