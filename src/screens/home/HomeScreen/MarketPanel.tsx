@@ -5,7 +5,7 @@ import { getMarketSummary } from "../../../lib/api";
 import { sampleMarketSummary } from "../../../lib/sampleData";
 
 export function MarketPanel() {
-  const { data } = useQuery({
+  const { data, isError } = useQuery({
     queryKey: ["market-summary"],
     queryFn: getMarketSummary,
     retry: 0,
@@ -19,7 +19,10 @@ export function MarketPanel() {
 
   return (
     <View style={styles.panel}>
-      <Text style={styles.sectionTitle}>국내 시장 현황</Text>
+      <View style={styles.headingRow}>
+        <Text style={styles.sectionTitle}>국내 시장 현황</Text>
+        {!data ? <Text style={styles.status}>{isError ? "연결 실패 · 샘플" : "샘플"}</Text> : <Text style={styles.statusLive}>실시간</Text>}
+      </View>
       <View style={styles.row}>
         <MarketStatCard {...market.kospi} />
         <MarketStatCard {...market.exchangeRate} />
@@ -46,5 +49,12 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     gap: 8
-  }
+  },
+  headingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between"
+  },
+  status: { color: "#B54708", fontSize: 11, fontWeight: "700" },
+  statusLive: { color: "#027A48", fontSize: 11, fontWeight: "700" }
 });

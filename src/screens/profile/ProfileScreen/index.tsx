@@ -1,6 +1,7 @@
 import { SafeAreaView, ScrollView, StyleSheet } from "react-native";
 import type { AuthSession } from "../../../lib/auth";
-import { getDefaultLearningPreferences, loadOnboardingProfile, mapOnboardingToLearningPreferences, type LearningLevel } from "../../../lib/onboarding";
+import { getDefaultLearningPreferences, type LearningLevel } from "../../../lib/onboarding";
+import { getLearningPreferences } from "../../../lib/api";
 import { useEffect, useState } from "react";
 import { ProfileHeader } from "./ProfileHeader";
 import { SettingsList } from "./SettingsList";
@@ -9,9 +10,7 @@ export function ProfileScreen({ session, onLogout }: { session: AuthSession; onL
   const [level, setLevel] = useState<LearningLevel>(getDefaultLearningPreferences().level);
 
   useEffect(() => {
-    void loadOnboardingProfile().then((profile) => {
-      if (profile) setLevel(mapOnboardingToLearningPreferences(profile.answers).level);
-    });
+    void getLearningPreferences().then((preferences) => setLevel(preferences.level));
   }, []);
 
   return (

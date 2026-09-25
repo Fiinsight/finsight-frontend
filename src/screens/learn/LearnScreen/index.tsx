@@ -2,15 +2,14 @@ import { useEffect, useState } from "react";
 import { SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 import { DailyTips } from "./DailyTips";
 import { GuideList } from "./GuideList";
-import { getDefaultLearningPreferences, loadOnboardingProfile, mapOnboardingToLearningPreferences, type LearningPreferences } from "../../../lib/onboarding";
+import { getDefaultLearningPreferences, type LearningPreferences } from "../../../lib/onboarding";
+import { getLearningPreferences } from "../../../lib/api";
 
 export function LearnScreen() {
   const [preferences, setPreferences] = useState<LearningPreferences>(getDefaultLearningPreferences());
 
   useEffect(() => {
-    void loadOnboardingProfile().then((profile) => {
-      if (profile) setPreferences(mapOnboardingToLearningPreferences(profile.answers));
-    });
+    void getLearningPreferences().then(setPreferences);
   }, []);
 
   return (

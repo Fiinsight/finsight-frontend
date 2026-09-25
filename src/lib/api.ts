@@ -32,7 +32,7 @@ import type {
 } from "../types/api";
 import { formatPercent } from "./format";
 import { AUTH_STORAGE_KEY } from "./auth";
-import { loadOnboardingProfile } from "./onboarding";
+import { loadOnboardingProfile, mapOnboardingToLearningPreferences, type LearningPreferences } from "./onboarding";
 import { KEY_TERM_DICTIONARY, generateSampleChartPoints, getSamplePopularStock, sampleMarketSummary } from "./sampleData";
 
 export function getApiErrorMessage(error: any, fallback: string): string {
@@ -110,6 +110,24 @@ export async function syncOnboardingProfile(): Promise<void> {
   const profile = await loadOnboardingProfile();
   if (!profile || profile.answers.length === 0) return;
   await api.put("/profile/onboarding", { answers: profile.answers });
+}
+
+export async function getLearningPreferences(): Promise<LearningPreferences> {
+  try {
+    const { data } = await api.get<{
+      learningLevel?: string;
+      learningPace?: string;
+      learningFocus?: string;
+      dailyGoal?: string;
+    }>("/profile/onboarding");
+    const level = data.learningLevel === "analyst" || data.learningLevel === "normal" ? data.learningLevel : "beginner";
+    const pace = data.learningPace === "deep" ? "deep" : data.learningPace === "flexible" ? "on-demand" : "micro";
+    const focus = data.learningFocus === "judgement" ? "decision" : data.learningFocus === "market" ? "market" : data.learningFocus === "routine" ? "reflection" : "news";
+    return { level, pace, focus, dailyGoal: data.dailyGoal || "뉴스 하나 읽기", source: "onboarding" };
+  } catch {
+    const local = await loadOnboardingProfile();
+    return local ? mapOnboardingToLearningPreferences(local.answers) : { level: "beginner", pace: "micro", focus: "news", dailyGoal: "뉴스 하나 읽기", source: "default" };
+  }
 }
 
 // ---------------------------------------------------------------------------
