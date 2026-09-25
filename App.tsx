@@ -1,8 +1,9 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StatusBar } from "expo-status-bar";
+import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text } from "react-native";
 import { RootNavigator } from "./src/navigation/RootNavigator";
 import { OnboardingScreen } from "./src/screens/onboarding/OnboardingScreen";
 import { AuthScreen } from "./src/screens/auth/AuthScreen";
@@ -32,9 +33,9 @@ export default function App() {
 
   if (showIntro || !sessionLoaded) {
     return (
-      <View style={styles.intro}>
+      <LinearGradient colors={["#071B4A", "#0B3D91", "#1769D1"]} locations={[0, 0.52, 1]} style={styles.intro}>
         <Text style={styles.introLogo}>FinSight</Text>
-      </View>
+      </LinearGradient>
     );
   }
 
@@ -83,8 +84,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    overflow: "hidden",
-    backgroundColor: "#168DF2"
+    overflow: "hidden"
   },
   introLogo: {
     color: "#FFFFFF",
