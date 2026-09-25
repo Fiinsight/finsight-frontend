@@ -97,9 +97,9 @@ export function ChartScreen({ route, navigation }: Props) {
           </View>
         ) : null}
         <ChartCard candles={displayCandles} relatedNews={chart.relatedNews} />
-        {period === "MINUTE" && chart.moveInsights.length > 0 ? (
+        {chart.moveInsights.length > 0 ? (
           <View style={styles.insightCard}>
-            <Text style={styles.insightTitle}>급등락과 관련 뉴스</Text>
+            <Text style={styles.insightTitle}>급등락 시점과 관련 뉴스</Text>
             {chart.moveInsights.map((insight, index) => (
               <View key={`${insight.timestamp ?? "move"}-${index}`} style={styles.insightRow}>
                 <Text style={[styles.insightMove, insight.changePercent && insight.changePercent > 0 ? styles.up : styles.down]}>
