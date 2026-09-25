@@ -10,7 +10,7 @@ export function ProfileHeader({ session }: { session: AuthSession }) {
       </View>
       <View>
         <Text style={styles.name}>{session.nickname || "핀사이트 사용자"}</Text>
-        <Text style={styles.hint}>{session.email}</Text>
+        <Text style={styles.hint}>{session.email || "이메일 정보 미제공"}</Text>
       </View>
     </View>
   );

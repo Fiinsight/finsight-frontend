@@ -33,20 +33,16 @@ export default function App() {
     const timer = setTimeout(() => setShowIntro(false), 900);
     Promise.all([loadAuthSession(), loadOnboardingProfile()])
       .then(async ([storedSession, onboardingProfile]) => {
-        const needsKakaoProfileRefresh = storedSession?.nickname === "카카오 사용자"
-          || storedSession?.email.endsWith("@kakao.local");
+        // Older Kakao sessions stored a synthetic local email. Refresh them
+        // once from the backend so newly consented profile data is reflected.
+        const needsKakaoProfileRefresh = storedSession?.email.endsWith("@kakao.local") ?? false;
         if (needsKakaoProfileRefresh) {
           try {
             const refreshedSession = await getCurrentUser();
-            const hasRealProfile = refreshedSession.nickname !== "카카오 사용자"
-              && !refreshedSession.email.endsWith("@kakao.local");
-            if (hasRealProfile) {
-              await saveAuthSession(refreshedSession);
-              setSession(refreshedSession);
-            } else {
-              await clearAuthSession();
-              setSession(null);
-            }
+            // A user may decline optional Kakao profile scopes. That is not an
+            // authentication failure: keep the valid session and its fallback.
+            await saveAuthSession(refreshedSession);
+            setSession(refreshedSession);
           } catch {
             await clearAuthSession();
             setSession(null);
