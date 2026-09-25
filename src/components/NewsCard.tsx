@@ -1,4 +1,4 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import type { NewsBrief } from "../types/api";
 
 // Intentionally not "상승/중립/하락" — that's the exact wording used on the
@@ -24,7 +24,16 @@ interface NewsCardProps {
 
 export function NewsCard({ news, onPress }: NewsCardProps) {
   return (
-    <TouchableOpacity style={styles.newsCard} activeOpacity={0.85} onPress={onPress}>
+    <TouchableOpacity
+      style={styles.newsCard}
+      activeOpacity={0.85}
+      onPress={() => {
+        if (Platform.OS === "web" && typeof document !== "undefined") {
+          (document.activeElement as HTMLElement | null)?.blur();
+        }
+        onPress();
+      }}
+    >
       <View style={styles.cardTop}>
         <Text style={styles.symbol}>{news.relatedSymbol}</Text>
         <Text style={[styles.sentiment, sentimentStyle[news.sentimentHint]]}>{sentimentLabel[news.sentimentHint]}</Text>
