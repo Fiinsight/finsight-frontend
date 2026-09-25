@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, Text, View } from "react-native";
 import type { LearningFocus, LearningLevel, LearningPace } from "../../../lib/learningPreferences";
 
 const tipsByFocus: Record<LearningFocus, string[]> = {
@@ -28,8 +28,6 @@ const tipsByFocus: Record<LearningFocus, string[]> = {
   ]
 };
 
-const accentColors = ["#175CD3", "#12B76A"];
-
 export function DailyTips({ level, pace, focus }: { level: LearningLevel; pace: LearningPace; focus: LearningFocus }) {
   const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
   const tips = tipsByFocus[focus];
@@ -42,8 +40,12 @@ export function DailyTips({ level, pace, focus }: { level: LearningLevel; pace: 
     <View style={styles.group}>
       <Text style={styles.sectionTitle}>{pace === "deep" ? "오늘의 깊이 읽기" : "오늘의 한 줄 팁"}</Text>
       {todaysTips.map((tip, index) => (
-        <View key={index} style={[styles.card, { borderLeftColor: accentColors[index % accentColors.length] }]}>
-          <Text style={styles.tipText}>{tip}</Text>
+        <View key={index} style={styles.tipRow}>
+          <Image source={require("../../../../assets/finsight-mascot-face.png")} style={styles.mascot} resizeMode="contain" />
+          <View style={styles.speechBubble}>
+            <Text style={styles.tipLabel}>수달이의 한마디</Text>
+            <Text style={styles.tipText}>{tip}</Text>
+          </View>
         </View>
       ))}
     </View>
@@ -53,6 +55,9 @@ export function DailyTips({ level, pace, focus }: { level: LearningLevel; pace: 
 const styles = StyleSheet.create({
   group: { gap: 10 },
   sectionTitle: { color: "#101828", fontSize: 16, fontWeight: "800" },
-  card: { backgroundColor: "#FFFFFF", borderColor: "#EAECF0", borderWidth: 1, borderLeftWidth: 4, borderRadius: 8, padding: 14 },
+  tipRow: { minHeight: 88, flexDirection: "row", alignItems: "flex-end", gap: 8 },
+  mascot: { width: 58, height: 70 },
+  speechBubble: { flex: 1, backgroundColor: "#FFFFFF", borderColor: "#D9EEE2", borderWidth: 1, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 12 },
+  tipLabel: { color: "#12B76A", fontSize: 12, fontWeight: "800", marginBottom: 5 },
   tipText: { color: "#344054", fontSize: 14, lineHeight: 21 }
 });

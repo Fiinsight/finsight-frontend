@@ -237,7 +237,7 @@ function normalizeHistoryItem(raw: JudgementHistoryItemRaw, index: number): Judg
   const derivedCorrect =
     raw.correct ??
     raw.aligned ??
-    (raw.actualChangePercent !== undefined
+    (raw.actualChangePercent !== undefined && raw.actualChangePercent !== null
       ? raw.choice === "NEUTRAL"
         ? Math.abs(raw.actualChangePercent) < 0.5
         : (raw.actualChangePercent >= 0) === (raw.choice === "UP")
@@ -251,6 +251,7 @@ function normalizeHistoryItem(raw: JudgementHistoryItemRaw, index: number): Judg
     actualResult:
       raw.actualResult ??
       (raw.actualChangePercent !== undefined
+        && raw.actualChangePercent !== null
         ? `${raw.actualChangePercent > 0 ? "+" : ""}${raw.actualChangePercent}%`
         : raw.actualDirection ?? ""),
     correct: derivedCorrect,

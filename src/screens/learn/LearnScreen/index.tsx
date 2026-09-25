@@ -4,9 +4,8 @@ import { DailyTips } from "./DailyTips";
 import { GuideList } from "./GuideList";
 import { getDefaultLearningPreferences, type LearningPreferences } from "../../../lib/onboarding";
 import { getLearningPreferences } from "../../../lib/api";
-import { LearningPathCard } from "./LearningPathCard";
 
-export function LearnScreen({ onOpenHistory }: { onOpenHistory: () => void }) {
+export function LearnScreen() {
   const [preferences, setPreferences] = useState<LearningPreferences>(getDefaultLearningPreferences());
 
   useEffect(() => {
@@ -18,10 +17,9 @@ export function LearnScreen({ onOpenHistory }: { onOpenHistory: () => void }) {
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>학습 자료</Text>
-          <Text style={styles.subtitle}>온보딩에서 고른 관심사와 공부 방식에 맞춘 자료예요.</Text>
+          <Text style={styles.subtitle}>지금 읽는 뉴스와 투자 공부에 도움이 되는 자료예요.</Text>
         </View>
 
-        <LearningPathCard preferences={preferences} onOpenHistory={onOpenHistory} />
         <GuideList focus={preferences.focus} level={preferences.level} />
         <DailyTips level={preferences.level} pace={preferences.pace} focus={preferences.focus} />
       </ScrollView>
