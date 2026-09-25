@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import * as Linking from "expo-linking";
 import { LinearGradient } from "expo-linear-gradient";
 import { getApiErrorMessage, getKakaoLoginUrl, login, loginWithKakao, signup } from "../../lib/api";
@@ -52,7 +52,15 @@ export function AuthScreen({ onAuthenticated }: Props) {
     setBusy(true);
     try {
       const redirectUri = Linking.createURL("auth/kakao");
-      await Linking.openURL(await getKakaoLoginUrl(redirectUri));
+      const loginUrl = await getKakaoLoginUrl(redirectUri);
+      if (Platform.OS === "web" && typeof window !== "undefined") {
+        // On web, openURL runs after an async API call and can be blocked as a
+        // popup. Reuse the current tab so the OAuth callback returns to the
+        // same Expo web app instance.
+        window.location.assign(loginUrl);
+      } else {
+        await Linking.openURL(loginUrl);
+      }
     }
     catch (error: any) {
       const message = getApiErrorMessage(error, "백엔드와 카카오 로그인 설정을 확인해 주세요.");
