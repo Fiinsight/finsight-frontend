@@ -8,7 +8,7 @@ import { RootNavigator } from "./src/navigation/RootNavigator";
 import { OnboardingScreen } from "./src/screens/onboarding/OnboardingScreen";
 import { AuthScreen } from "./src/screens/auth/AuthScreen";
 import { clearAuthSession, loadAuthSession, type AuthSession } from "./src/lib/auth";
-import { clearOnboardingProfile, saveOnboardingProfile } from "./src/lib/onboarding";
+import { clearOnboardingProfile, loadOnboardingProfile, saveOnboardingProfile } from "./src/lib/onboarding";
 import { syncOnboardingProfile } from "./src/lib/api";
 
 const queryClient = new QueryClient();
@@ -20,7 +20,16 @@ export default function App() {
 
   useEffect(() => {
     const timer = setTimeout(() => setShowIntro(false), 900);
-    loadAuthSession().then(setSession).catch(() => setSession(null)).finally(() => setSessionLoaded(true));
+    Promise.all([loadAuthSession(), loadOnboardingProfile()])
+      .then(([storedSession, onboardingProfile]) => {
+        setSession(storedSession);
+        setOnboardingDoneThisRun(Boolean(onboardingProfile));
+      })
+      .catch(() => {
+        setSession(null);
+        setOnboardingDoneThisRun(false);
+      })
+      .finally(() => setSessionLoaded(true));
     return () => clearTimeout(timer);
   }, []);
 
