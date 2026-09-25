@@ -25,7 +25,8 @@ export function ChartScreen({ route, navigation }: Props) {
     queryKey: ["popular-stocks"],
     queryFn: getPopularStocks,
     retry: 0,
-    refetchInterval: 30_000
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false
   });
   const stocks = popularStocksData && popularStocksData.length > 0 ? popularStocksData : popularStocks;
 
