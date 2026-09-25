@@ -1,15 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useEffect, useState, type MutableRefObject } from "react";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { NewsCard } from "../../../components/NewsCard";
 import { getMoreBriefing, getTodayBriefing } from "../../../lib/api";
 import type { NewsBrief } from "../../../types/api";
 
 interface NewsSectionProps {
   onSelectNews: (newsId: number) => void;
+  loadMoreRef: MutableRefObject<(() => Promise<void>) | null>;
 }
 
-export function NewsSection({ onSelectNews }: NewsSectionProps) {
+export function NewsSection({ onSelectNews, loadMoreRef }: NewsSectionProps) {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["today-briefing"],
     queryFn: getTodayBriefing,
@@ -27,6 +28,7 @@ export function NewsSection({ onSelectNews }: NewsSectionProps) {
   const isRealData = !!data;
 
   const handleLoadMore = async () => {
+    if (!isRealData || loadingMore || !hasMore) return;
     setLoadingMore(true);
     try {
       const more = await getMoreBriefing(nextPage);
@@ -45,6 +47,11 @@ export function NewsSection({ onSelectNews }: NewsSectionProps) {
       setLoadingMore(false);
     }
   };
+
+  useEffect(() => {
+    loadMoreRef.current = handleLoadMore;
+    return () => { loadMoreRef.current = null; };
+  });
 
   return (
     <View style={styles.group}>
@@ -66,11 +73,7 @@ export function NewsSection({ onSelectNews }: NewsSectionProps) {
         <NewsCard key={item.id} news={item} onPress={() => onSelectNews(item.id)} />
       ))}
 
-      {isRealData && hasMore ? (
-        <TouchableOpacity style={styles.moreButton} onPress={handleLoadMore} disabled={loadingMore} activeOpacity={0.8}>
-          {loadingMore ? <ActivityIndicator size="small" color="#175CD3" /> : <Text style={styles.moreButtonText}>더 많은 뉴스 보기</Text>}
-        </TouchableOpacity>
-      ) : null}
+      {isRealData && hasMore && loadingMore ? <ActivityIndicator size="small" color="#175CD3" /> : null}
     </View>
   );
 }
@@ -85,26 +88,13 @@ const styles = StyleSheet.create({
     justifyContent: "space-between"
   },
   sectionTitle: {
-    color: "#FFFFFF",
+    color: "#101828",
     fontSize: 18,
     fontWeight: "700"
   },
   muted: {
-    color: "rgba(255,255,255,0.7)",
+    color: "#667085",
     fontSize: 13
-  },
-  moreButton: {
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderColor: "#D1E9FF",
-    borderRadius: 8,
-    borderWidth: 1,
-    paddingVertical: 12
-  },
-  moreButtonText: {
-    color: "#175CD3",
-    fontSize: 14,
-    fontWeight: "700"
   },
   emptyState: {
     backgroundColor: "rgba(255,255,255,0.94)",
