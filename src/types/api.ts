@@ -168,6 +168,13 @@ export interface JudgementHistoryItem {
   judgedAt: string;
 }
 
+export interface DailyNote {
+  id: number;
+  noteDate: string;
+  content: string;
+  updatedAt: string;
+}
+
 // ---------------------------------------------------------------------------
 // Market summary (GET /market/summary) - shape not finalized yet
 // ---------------------------------------------------------------------------

@@ -9,6 +9,7 @@ import type {
   ChartDocent,
   ChartPoint,
   ChartPointRaw,
+  DailyNote,
   JudgementChoice,
   JudgementAck,
   JudgementHistoryItem,
@@ -254,6 +255,16 @@ function normalizeHistoryItem(raw: JudgementHistoryItemRaw, index: number): Judg
 export async function getJudgementHistory(): Promise<JudgementHistoryItem[]> {
   const { data } = await api.get<JudgementHistoryItemRaw[]>("/judgements/history");
   return data.map(normalizeHistoryItem);
+}
+
+export async function getDailyNotes(): Promise<DailyNote[]> {
+  const { data } = await api.get<DailyNote[]>("/notes");
+  return data;
+}
+
+export async function saveTodayNote(content: string): Promise<DailyNote> {
+  const { data } = await api.put<DailyNote>("/notes/today", { content });
+  return data;
 }
 
 // ---------------------------------------------------------------------------
