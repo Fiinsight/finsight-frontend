@@ -1,11 +1,11 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 import { BottomActionBar } from "../../../components/BottomActionBar";
 import { LevelTabs } from "../../../components/LevelTabs";
 import { TermPopup } from "../../../components/TermPopup";
-import { getNewsDetail } from "../../../lib/api";
+import { getLearningPreferences, getNewsDetail } from "../../../lib/api";
 import { getSampleNewsDetail } from "../../../lib/sampleData";
 import type { NewsFlowParamList } from "../../../navigation/types";
 import { useAppStore } from "../../../store/useAppStore";
@@ -24,8 +24,15 @@ export function NewsDetailScreen({ route, navigation }: Props) {
   const [bodyTab, setBodyTab] = useState<BodyTab>("raw");
   const [selectedTerm, setSelectedTerm] = useState<string | null>(null);
 
-  const readingLevel = useAppStore((state) => state.readingLevelByNewsId[newsId] ?? "beginner");
+  const storedReadingLevel = useAppStore((state) => state.readingLevelByNewsId[newsId]);
   const setReadingLevel = useAppStore((state) => state.setReadingLevel);
+  const [preferredLevel, setPreferredLevel] = useState<ReadingLevel>("beginner");
+
+  useEffect(() => {
+    void getLearningPreferences().then((preferences) => setPreferredLevel(preferences.level));
+  }, []);
+
+  const readingLevel = storedReadingLevel ?? preferredLevel;
 
   const { data } = useQuery({
     queryKey: ["news-detail", newsId],

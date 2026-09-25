@@ -79,3 +79,8 @@ export async function loadOnboardingProfile(): Promise<OnboardingProfile | null>
     return null;
   }
 }
+
+/** Remove device-local onboarding data when the account signs out. */
+export async function clearOnboardingProfile(): Promise<void> {
+  await AsyncStorage.removeItem(ONBOARDING_PROFILE_KEY);
+}

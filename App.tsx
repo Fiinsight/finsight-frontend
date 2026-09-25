@@ -7,7 +7,7 @@ import { RootNavigator } from "./src/navigation/RootNavigator";
 import { OnboardingScreen } from "./src/screens/onboarding/OnboardingScreen";
 import { AuthScreen } from "./src/screens/auth/AuthScreen";
 import { clearAuthSession, loadAuthSession, type AuthSession } from "./src/lib/auth";
-import { saveOnboardingProfile } from "./src/lib/onboarding";
+import { clearOnboardingProfile, saveOnboardingProfile } from "./src/lib/onboarding";
 import { syncOnboardingProfile } from "./src/lib/api";
 
 const queryClient = new QueryClient();
@@ -61,7 +61,18 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <NavigationContainer>
         <StatusBar style="dark" />
-        <RootNavigator session={session} onLogout={() => void clearAuthSession().then(() => setSession(null))} />
+        <RootNavigator
+          session={session}
+          onLogout={() =>
+            void clearAuthSession()
+              .then(clearOnboardingProfile)
+              .then(() => {
+                queryClient.clear();
+                setOnboardingDoneThisRun(false);
+                setSession(null);
+              })
+          }
+        />
       </NavigationContainer>
     </QueryClientProvider>
   );

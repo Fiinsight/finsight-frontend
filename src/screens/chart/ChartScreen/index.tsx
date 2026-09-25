@@ -21,7 +21,7 @@ export function ChartScreen({ route, navigation }: Props) {
   const [period, setPeriod] = useState<Period>("W");
   const [minuteInterval, setMinuteInterval] = useState<1 | 5 | 15>(5);
 
-  const { data: popularStocksData } = useQuery({
+  const { data: popularStocksData, isError: stocksError } = useQuery({
     queryKey: ["popular-stocks"],
     queryFn: getPopularStocks,
     retry: 0,
@@ -37,7 +37,7 @@ export function ChartScreen({ route, navigation }: Props) {
     return stocks.filter((stock) => stock.name.toLowerCase().includes(normalized) || stock.symbol.includes(normalized));
   }, [query, stocks]);
 
-  const { data } = useQuery({
+  const { data, isError: chartError } = useQuery({
     queryKey: ["chart-data", selectedSymbol, period, minuteInterval],
     queryFn: () => getChartData(selectedSymbol, period, minuteInterval),
     retry: 0
@@ -90,10 +90,10 @@ export function ChartScreen({ route, navigation }: Props) {
             ))}
           </View>
         ) : null}
-        {period === "MINUTE" && chart.fallback ? (
+        {chart.fallback || !data || stocksError ? (
           <View style={styles.warningCard}>
-            <Text style={styles.warningTitle}>샘플 분봉 데이터</Text>
-            <Text style={styles.warningText}>실시간 시세를 불러오지 못해 예시 데이터가 표시되고 있습니다.</Text>
+            <Text style={styles.warningTitle}>샘플 데이터 표시 중</Text>
+            <Text style={styles.warningText}>{chartError || stocksError ? "실시간 시세 연결에 실패해 예시 데이터가 표시되고 있습니다." : "현재 이 차트는 백엔드가 제공한 fallback 데이터입니다."}</Text>
           </View>
         ) : null}
         <ChartCard candles={displayCandles} relatedNews={chart.relatedNews} />
