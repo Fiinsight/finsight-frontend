@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Alert, Linking, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import Constants from "expo-constants";
+import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import * as Linking from "expo-linking";
 import { LinearGradient } from "expo-linear-gradient";
 import { getApiErrorMessage, getKakaoLoginUrl, login, loginWithKakao, signup } from "../../lib/api";
 import { saveAuthSession } from "../../lib/auth";
@@ -51,8 +51,7 @@ export function AuthScreen({ onAuthenticated }: Props) {
   async function startKakao() {
     setBusy(true);
     try {
-      const host = Constants.expoConfig?.hostUri?.split(":")[0];
-      const redirectUri = host ? `exp://${host}:8081/--/auth/kakao` : "finsight://auth/kakao";
+      const redirectUri = Linking.createURL("auth/kakao");
       await Linking.openURL(await getKakaoLoginUrl(redirectUri));
     }
     catch (error: any) {

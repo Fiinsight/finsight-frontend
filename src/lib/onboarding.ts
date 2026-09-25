@@ -1,4 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { storageGetItem, storageRemoveItem, storageSetItem } from "./storage";
 
 export const ONBOARDING_PROFILE_KEY = "finsight.onboarding.profile";
 
@@ -66,21 +66,21 @@ export function getDefaultLearningPreferences(): LearningPreferences {
 
 export async function saveOnboardingProfile(answers: OnboardingAnswer[]): Promise<void> {
   const profile: OnboardingProfile = { answers, completedAt: new Date().toISOString() };
-  await AsyncStorage.setItem(ONBOARDING_PROFILE_KEY, JSON.stringify(profile));
+  await storageSetItem(ONBOARDING_PROFILE_KEY, JSON.stringify(profile));
 }
 
 export async function loadOnboardingProfile(): Promise<OnboardingProfile | null> {
-  const raw = await AsyncStorage.getItem(ONBOARDING_PROFILE_KEY);
+  const raw = await storageGetItem(ONBOARDING_PROFILE_KEY);
   if (!raw) return null;
   try {
     return JSON.parse(raw) as OnboardingProfile;
   } catch {
-    await AsyncStorage.removeItem(ONBOARDING_PROFILE_KEY);
+    await storageRemoveItem(ONBOARDING_PROFILE_KEY);
     return null;
   }
 }
 
 /** Remove device-local onboarding data when the account signs out. */
 export async function clearOnboardingProfile(): Promise<void> {
-  await AsyncStorage.removeItem(ONBOARDING_PROFILE_KEY);
+  await storageRemoveItem(ONBOARDING_PROFILE_KEY);
 }
