@@ -103,6 +103,11 @@ export async function login(email: string, password: string): Promise<AuthRespon
   return data;
 }
 
+export async function getCurrentUser(): Promise<AuthResponse> {
+  const { data } = await api.get<AuthResponse>("/auth/me");
+  return data;
+}
+
 export async function getKakaoLoginUrl(state?: string): Promise<string> {
   const { data } = await api.get<{ authorizationUrl: string }>("/auth/kakao/url", { params: state ? { state } : undefined });
   return data.authorizationUrl;

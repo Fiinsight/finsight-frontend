@@ -7,9 +7,9 @@ import { StyleSheet, Text } from "react-native";
 import { RootNavigator } from "./src/navigation/RootNavigator";
 import { OnboardingScreen } from "./src/screens/onboarding/OnboardingScreen";
 import { AuthScreen } from "./src/screens/auth/AuthScreen";
-import { clearAuthSession, loadAuthSession, type AuthSession } from "./src/lib/auth";
+import { clearAuthSession, loadAuthSession, saveAuthSession, type AuthSession } from "./src/lib/auth";
 import { clearOnboardingProfile, loadOnboardingProfile, saveOnboardingProfile } from "./src/lib/onboarding";
-import { syncOnboardingProfile } from "./src/lib/api";
+import { getCurrentUser, syncOnboardingProfile } from "./src/lib/api";
 import { useAppStore } from "./src/store/useAppStore";
 
 const queryClient = new QueryClient();
@@ -32,12 +32,25 @@ export default function App() {
   useEffect(() => {
     const timer = setTimeout(() => setShowIntro(false), 900);
     Promise.all([loadAuthSession(), loadOnboardingProfile()])
-      .then(([storedSession, onboardingProfile]) => {
+      .then(async ([storedSession, onboardingProfile]) => {
         const needsKakaoProfileRefresh = storedSession?.nickname === "카카오 사용자"
           || storedSession?.email.endsWith("@kakao.local");
         if (needsKakaoProfileRefresh) {
-          void clearAuthSession();
-          setSession(null);
+          try {
+            const refreshedSession = await getCurrentUser();
+            const hasRealProfile = refreshedSession.nickname !== "카카오 사용자"
+              && !refreshedSession.email.endsWith("@kakao.local");
+            if (hasRealProfile) {
+              await saveAuthSession(refreshedSession);
+              setSession(refreshedSession);
+            } else {
+              await clearAuthSession();
+              setSession(null);
+            }
+          } catch {
+            await clearAuthSession();
+            setSession(null);
+          }
         } else {
           setSession(storedSession);
         }
