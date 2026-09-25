@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import * as Linking from "expo-linking";
 import { LinearGradient } from "expo-linear-gradient";
 import { getApiErrorMessage, getKakaoLoginUrl, login, loginWithKakao, signup } from "../../lib/api";
 import { saveAuthSession } from "../../lib/auth";
+import { claimKakaoCode } from "../../lib/kakaoCallback";
 
 interface Props { onAuthenticated: () => void; }
 
@@ -14,22 +15,47 @@ export function AuthScreen({ onAuthenticated }: Props) {
   const [nickname, setNickname] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isKakaoLoading, setIsKakaoLoading] = useState(false);
+  const [kakaoError, setKakaoError] = useState<string | null>(null);
   const isBusy = isSubmitting || isKakaoLoading;
-  const handledCode = useRef<string | null>(null);
 
   useEffect(() => {
     const handleUrl = async ({ url }: { url: string }) => {
-      const code = new URL(url).searchParams.get("code");
-      const error = new URL(url).searchParams.get("error");
-      if (error) { setIsKakaoLoading(false); Alert.alert("카카오 로그인 취소", "카카오 로그인 화면에서 인증을 완료해 주세요."); return; }
+      const callbackUrl = new URL(url);
+      const code = callbackUrl.searchParams.get("code");
+      const error = callbackUrl.searchParams.get("error");
+      if (error) {
+        setIsKakaoLoading(false);
+        const message = "카카오 로그인이 취소되었습니다. 다시 시도해 주세요.";
+        setKakaoError(message);
+        if (Platform.OS !== "web") Alert.alert("카카오 로그인 취소", message);
+        return;
+      }
       if (!code) return;
-      if (handledCode.current === code) return;
-      handledCode.current = code;
+      if (!claimKakaoCode(code)) return;
+      if (Platform.OS === "web" && typeof window !== "undefined" && callbackUrl.href === window.location.href) {
+        // Authorization codes are short-lived credentials; remove them from
+        // browser history as soon as they have been captured for exchange.
+        callbackUrl.searchParams.delete("code");
+        callbackUrl.searchParams.delete("state");
+        window.history.replaceState(window.history.state, "", `${callbackUrl.pathname}${callbackUrl.search}${callbackUrl.hash}`);
+      }
+      setKakaoError(null);
       setIsKakaoLoading(true);
       try { await saveAuthSession(await loginWithKakao(code)); onAuthenticated(); }
-      catch (loginError) { handledCode.current = null; Alert.alert("카카오 로그인 실패", getApiErrorMessage(loginError, "카카오 인증 결과를 처리하지 못했습니다.")); }
+      catch (loginError) {
+        const message = getApiErrorMessage(loginError, "카카오 인증 결과를 처리하지 못했습니다.");
+        setKakaoError(message);
+        if (Platform.OS !== "web") Alert.alert("카카오 로그인 실패", message);
+      }
       finally { setIsKakaoLoading(false); }
     };
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+      // A browser OAuth redirect loads this URL as the document itself. Read it
+      // once instead of also subscribing to Linking's initial-url event, which
+      // can deliver the same single-use code twice in Expo web.
+      void handleUrl({ url: window.location.href });
+      return;
+    }
     const subscription = Linking.addEventListener("url", handleUrl);
     void Linking.getInitialURL().then((url) => { if (url) return handleUrl({ url }); });
     return () => subscription.remove();
@@ -51,6 +77,7 @@ export function AuthScreen({ onAuthenticated }: Props) {
   }
 
   async function startKakao() {
+    setKakaoError(null);
     setIsKakaoLoading(true);
     try {
       const redirectUri = Linking.createURL("auth/kakao");
@@ -66,7 +93,8 @@ export function AuthScreen({ onAuthenticated }: Props) {
     }
     catch (error: any) {
       const message = getApiErrorMessage(error, "백엔드와 카카오 로그인 설정을 확인해 주세요.");
-      Alert.alert("카카오 로그인 준비 필요", message);
+      setKakaoError(message);
+      if (Platform.OS !== "web") Alert.alert("카카오 로그인 준비 필요", message);
     }
     finally { setIsKakaoLoading(false); }
   }
@@ -85,6 +113,7 @@ export function AuthScreen({ onAuthenticated }: Props) {
           <Pressable style={styles.linkButton} onPress={() => setIsSignup((value) => !value)}><Text style={styles.link}>{isSignup ? "로그인" : "회원가입"}</Text></Pressable>
         </View>
         <Text style={styles.socialLabel}>간편하게 로그인하세요.</Text>
+        {kakaoError && <Text accessibilityRole="alert" style={styles.kakaoError}>{kakaoError}</Text>}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={isKakaoLoading ? "카카오 로그인 진행 중" : "카카오로 계속하기"}
@@ -116,6 +145,7 @@ const styles = StyleSheet.create({
   linkButton: { minHeight: 24, justifyContent: "center", alignItems: "center" },
   link: { color: "rgba(255,255,255,0.82)", fontFamily: "Pretendard", fontSize: 12, fontWeight: "700" },
   socialLabel: { color: "rgba(255,255,255,0.82)", fontFamily: "Pretendard", fontSize: 12, textAlign: "center", marginTop: 44, marginBottom: 14 },
+  kakaoError: { color: "#FFE1E1", fontFamily: "Pretendard", fontSize: 12, fontWeight: "600", textAlign: "center", marginBottom: 12 },
   kakao: { backgroundColor: "#FEE500", borderRadius: 30, minHeight: 48, paddingVertical: 10, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10 },
   kakaoLoading: { opacity: 0.82 },
   kakaoIcon: { width: 27, height: 27, borderRadius: 14, backgroundColor: "#191919", alignItems: "center", justifyContent: "center" },
