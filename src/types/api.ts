@@ -175,6 +175,16 @@ export interface DailyNote {
   updatedAt: string;
 }
 
+export interface ArticleNote {
+  id: number;
+  newsId: number;
+  newsTitle: string;
+  source: string | null;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ---------------------------------------------------------------------------
 // Market summary (GET /market/summary) - shape not finalized yet
 // ---------------------------------------------------------------------------

@@ -51,7 +51,7 @@ const steps: Array<{ id: string; title: string; options: Option[] }> = [
     title: "오늘 핀사이트에서\n어떤 습관을 시작해볼까요?",
     options: [
       { label: "뉴스 하나 읽기" },
-      { label: "내 생각 한 줄 기록하기" },
+      { label: "기사 메모 남기고 복습하기" },
       { label: "투자 판단 돌아보기" },
       { label: "매일 5분 이어가기" },
     ],
