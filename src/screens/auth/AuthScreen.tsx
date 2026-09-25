@@ -94,7 +94,7 @@ export function AuthScreen({ onAuthenticated }: Props) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, paddingHorizontal: 28, justifyContent: "center" },
-  logo: { color: "#FFFFFF", fontFamily: "Avenir Next", fontSize: 32, fontWeight: "800", letterSpacing: -1.1, textAlign: "center", marginBottom: 38 },
+  logo: { color: "#FFFFFF", fontFamily: "Avenir Next", fontSize: 32, fontWeight: "700", letterSpacing: -0.4, textAlign: "center", marginBottom: 38 },
   card: { width: "100%", maxWidth: 340, alignSelf: "center" },
   heading: { color: "#FFFFFF", fontFamily: "Pretendard", fontSize: 18, fontWeight: "800", textAlign: "center", marginBottom: 18 },
   input: { backgroundColor: "rgba(255,255,255,0.17)", borderRadius: 30, paddingHorizontal: 18, paddingVertical: 14, fontFamily: "Pretendard", fontSize: 14, color: "#FFFFFF", marginBottom: 10 },
