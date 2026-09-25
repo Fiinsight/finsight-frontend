@@ -21,7 +21,7 @@ export function MarketPanel() {
     <View style={styles.panel}>
       <View style={styles.headingRow}>
         <Text style={styles.sectionTitle}>국내 시장 현황</Text>
-        {!data ? <Text style={styles.status}>{isError ? "연결 실패 · 샘플" : "샘플"}</Text> : <Text style={styles.statusLive}>실시간</Text>}
+        {!data ? <Text style={styles.status}>{isError ? "연결 실패 · 샘플" : "샘플"}</Text> : null}
       </View>
       <View style={styles.row}>
         <MarketStatCard {...market.kospi} />
@@ -55,6 +55,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between"
   },
-  status: { color: "#B54708", fontSize: 11, fontWeight: "700" },
-  statusLive: { color: "#027A48", fontSize: 11, fontWeight: "700" }
+  status: { color: "#B54708", fontSize: 11, fontWeight: "700" }
 });
