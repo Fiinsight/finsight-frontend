@@ -41,9 +41,8 @@ export function AttendanceCard() {
     <LinearGradient colors={["#0D1B4C", "#1746B8", "#2A72E8"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.card}>
       <View style={styles.header}>
         <View style={styles.headerCopy}>
-          <Text style={styles.kicker}>기록을 이어가는 중</Text>
           <Text style={styles.title}>오늘의 출석체크 <Text style={styles.titleAccent}>{completed}/7</Text></Text>
-          <Text style={styles.subtitle}>{checkedIn ? "오늘 읽기 목표를 달성했어요!" : "기사 상세 3개를 12초 이상 읽으면 수달 배지가 자동으로 찍혀요."}</Text>
+          <Text style={styles.subtitle}>{checkedIn ? "오늘 읽기 목표를 달성했어요!" : "기사 3개를 읽으면 수달 배지가 자동으로 찍혀요."}</Text>
         </View>
       </View>
 
