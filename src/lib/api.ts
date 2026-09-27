@@ -51,16 +51,15 @@ export function getApiErrorMessage(error: any, fallback: string): string {
 // Expo 개발 서버는 자신이 지금 물려 있는 실제 호스트를 hostUri로 넘겨주므로,
 // 그 호스트를 그대로 재사용하면(포트만 8080으로 바꿔서) IP가 바뀌어도 항상 맞다.
 function resolveApiBaseUrl(): string {
-  const configuredApiUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
-  if (configuredApiUrl) {
-    return configuredApiUrl;
+  if (typeof window !== "undefined" && window.location.hostname) {
+    return `http://${window.location.hostname}:8080/api`;
   }
   const hostUri = Constants.expoConfig?.hostUri;
   const host = hostUri?.split(":")[0];
   if (host) {
     return `http://${host}:8080/api`;
   }
-  return "http://localhost:8080/api";
+  return process.env.EXPO_PUBLIC_API_BASE_URL || "http://localhost:8080/api";
 }
 
 export const api = axios.create({

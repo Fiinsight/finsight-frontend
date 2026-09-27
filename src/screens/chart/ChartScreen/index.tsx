@@ -5,9 +5,10 @@ import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } fr
 import { getChartData, getPopularStocks } from "../../../lib/api";
 import { getSampleChartData, popularStocks } from "../../../lib/sampleData";
 import type { ChartStackParamList } from "../../../navigation/types";
-import type { ChartRelatedNews } from "../../../types/api";
+import type { ChartRelatedNews, MoveInsight } from "../../../types/api";
 import { ChartCard } from "./ChartCard";
 import { InsightBanner } from "./InsightBanner";
+import { RelatedNewsList } from "./RelatedNewsList";
 import { PopularStockChips } from "./PopularStockChips";
 import { StockHeader } from "./StockHeader";
 import { StockSearchBar } from "./StockSearchBar";
@@ -20,6 +21,7 @@ export function ChartScreen({ route, navigation }: Props) {
   const [query, setQuery] = useState("");
   const [period, setPeriod] = useState<Period>("W");
   const [minuteInterval, setMinuteInterval] = useState<1 | 5 | 15>(5);
+  const [selectedInsight, setSelectedInsight] = useState<MoveInsight | null>(null);
 
   const { data: popularStocksData, isError: stocksError } = useQuery({
     queryKey: ["popular-stocks"],
@@ -65,6 +67,11 @@ export function ChartScreen({ route, navigation }: Props) {
     }
   };
 
+  const handleCandlePress = (candle: { date: string }) => {
+    const day = candle.date.slice(0, 10);
+    setSelectedInsight(chart.moveInsights.find((item) => item.timestamp.slice(0, 10) === day) ?? null);
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
@@ -97,7 +104,19 @@ export function ChartScreen({ route, navigation }: Props) {
             <Text style={styles.warningText}>{chartError || stocksError ? "실시간 시세 연결에 실패해 예시 데이터가 표시되고 있습니다." : "현재 이 차트는 백엔드가 제공한 fallback 데이터입니다."}</Text>
           </View>
         ) : null}
-        <ChartCard candles={displayCandles} relatedNews={chart.relatedNews} />
+        <ChartCard candles={displayCandles} relatedNews={chart.relatedNews} onCandlePress={handleCandlePress} />
+        {selectedInsight ? (
+          <View style={styles.selectedInsight}>
+            <Text style={styles.selectedInsightTitle}>선택한 급등락 지점</Text>
+            <Text style={styles.selectedInsightMove}>
+              {selectedInsight.changePercent > 0 ? "+" : ""}{selectedInsight.changePercent.toFixed(2)}%
+            </Text>
+            <Text style={styles.selectedInsightNews}>{selectedInsight.newsTitle || "연결된 뉴스가 없습니다."}</Text>
+            <Text style={styles.selectedInsightExplanation}>
+              {selectedInsight.explanation || "해당 시점의 종목 관련 뉴스가 없어 가격 변동만 표시합니다."}
+            </Text>
+          </View>
+        ) : null}
         {chart.moveInsights.length > 0 ? (
           <View style={styles.insightCard}>
             <Text style={styles.insightTitle}>급등락 시점과 관련 뉴스</Text>
@@ -108,13 +127,14 @@ export function ChartScreen({ route, navigation }: Props) {
                 </Text>
                 <View style={styles.insightCopy}>
                   <Text style={styles.insightTime}>{insight.timestamp?.replace("T", " ").slice(0, 16)}</Text>
-                  <Text style={styles.insightNews}>{insight.newsTitle ?? "해당 시각에 연결된 뉴스가 없습니다."}</Text>
+                  <Text style={styles.insightNews}>{insight.newsTitle || "해당 시각에 저장된 관련 뉴스가 없습니다."}</Text>
                   {insight.explanation ? <Text style={styles.insightExplanation}>{insight.explanation}</Text> : null}
                 </View>
               </View>
             ))}
           </View>
         ) : null}
+        <RelatedNewsList items={chart.relatedNews} onPress={handleRelatedNewsPress} />
         {docentContent ? (
           <InsightBanner content={docentContent} relatedNews={chart.relatedNews} onNewsPress={handleRelatedNewsPress} />
         ) : null}
@@ -246,5 +266,34 @@ const styles = StyleSheet.create({
     color: "#667085",
     fontSize: 12,
     lineHeight: 17
+  },
+  selectedInsight: {
+    backgroundColor: "#F0F9FF",
+    borderColor: "#B9E6FE",
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 14,
+    gap: 5
+  },
+  selectedInsightTitle: {
+    color: "#026AA2",
+    fontSize: 13,
+    fontWeight: "800"
+  },
+  selectedInsightMove: {
+    color: "#101828",
+    fontSize: 18,
+    fontWeight: "900"
+  },
+  selectedInsightNews: {
+    color: "#344054",
+    fontSize: 14,
+    fontWeight: "700",
+    lineHeight: 20
+  },
+  selectedInsightExplanation: {
+    color: "#475467",
+    fontSize: 12,
+    lineHeight: 18
   }
 });

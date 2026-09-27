@@ -5,16 +5,17 @@ import type { ChartCandle, ChartRelatedNews } from "../../../types/api";
 interface ChartCardProps {
   candles: ChartCandle[];
   relatedNews?: ChartRelatedNews[];
+  onCandlePress?: (candle: ChartCandle) => void;
 }
 
-export function ChartCard({ candles, relatedNews = [] }: ChartCardProps) {
+export function ChartCard({ candles, relatedNews = [], onCandlePress }: ChartCardProps) {
   const markers = relatedNews
     .filter((item) => item.publishedAt)
     .map((item) => ({ date: item.publishedAt.slice(0, 10), title: item.title }));
 
   return (
     <View style={styles.card}>
-      <CandlestickChart candles={candles} height={240} markers={markers} />
+      <CandlestickChart candles={candles} height={240} markers={markers} onCandlePress={onCandlePress} />
     </View>
   );
 }
