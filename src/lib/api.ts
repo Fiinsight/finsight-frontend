@@ -431,7 +431,8 @@ function normalizeChartData(raw: ChartDataRaw, symbol: string): ChartData {
       newsId: insight.newsId ?? null,
       newsTitle: insight.newsTitle ?? "",
       newsSource: insight.newsSource ?? "",
-      explanation: insight.explanation ?? ""
+      explanation: insight.explanation ?? "",
+      causeScore: insight.causeScore ?? 0
     })),
     relatedNews: relatedNewsRaw.map((item) => ({
       id: item.id ?? item.newsId ?? null,
