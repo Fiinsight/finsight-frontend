@@ -40,7 +40,7 @@ export function NewsCard({ news, onPress }: NewsCardProps) {
       </View>
       <Text style={styles.newsTitle} numberOfLines={2}>{news.title}</Text>
       <Text style={styles.summary} numberOfLines={2}>{news.summary}</Text>
-      <Text style={styles.reason} numberOfLines={1}>왜 중요한가: {news.importanceReason}</Text>
+      <Text style={styles.reason} numberOfLines={1}>투자 포인트: {news.importanceReason}</Text>
     </TouchableOpacity>
   );
 }
