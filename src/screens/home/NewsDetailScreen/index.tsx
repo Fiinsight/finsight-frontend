@@ -19,6 +19,7 @@ import { ArticleNotesPanel } from "./ArticleNotesPanel";
 import { recordArticleRead } from "../../../lib/readingProgress";
 
 type Props = NativeStackScreenProps<NewsFlowParamList, "NewsDetail">;
+const MAX_IN_APP_EXCERPT_LENGTH = 1200;
 
 export function NewsDetailScreen({ route, navigation }: Props) {
   const { newsId } = route.params;
@@ -58,6 +59,9 @@ export function NewsDetailScreen({ route, navigation }: Props) {
 
   const detail: NewsDetail = data;
   const levelText = detail.levels[readingLevel] || detail.summary;
+  const rawExcerpt = detail.rawContent.length > MAX_IN_APP_EXCERPT_LENGTH
+    ? `${detail.rawContent.slice(0, MAX_IN_APP_EXCERPT_LENGTH).trim()}\n\n전체 원문은 위 출처 링크에서 확인하세요.`
+    : detail.rawContent;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -72,7 +76,7 @@ export function NewsDetailScreen({ route, navigation }: Props) {
         {bodyTab === "level" ? <LevelTabs value={readingLevel} onChange={(level: ReadingLevel) => setReadingLevel(newsId, level)} /> : null}
 
         <View style={styles.bodyCard}>
-          <ArticleBody text={bodyTab === "raw" ? detail.rawContent : levelText} terms={detail.keyTerms} onTermPress={setSelectedTerm} />
+          <ArticleBody text={bodyTab === "raw" ? rawExcerpt : levelText} terms={detail.keyTerms} onTermPress={setSelectedTerm} />
         </View>
 
         <ImportanceReasonCard reason={detail.importanceReason} />
