@@ -85,6 +85,12 @@ export function ChartScreen({ route, navigation }: Props) {
     }
   };
 
+  const handleMoveNewsPress = (newsId: number | null) => {
+    if (newsId !== null) {
+      navigation.navigate("NewsDetail", { newsId });
+    }
+  };
+
   const handleCandlePress = (candle: { date: string }) => {
     const day = candle.date.slice(0, 10);
     setSelectedInsight(chart.moveInsights.find((item) => item.timestamp.slice(0, 10) === day) ?? null);
@@ -153,7 +159,13 @@ export function ChartScreen({ route, navigation }: Props) {
             <Text style={styles.selectedInsightMove}>
               {selectedInsight.changePercent > 0 ? "+" : ""}{selectedInsight.changePercent.toFixed(2)}%
             </Text>
-            <Text style={styles.selectedInsightNews}>{selectedInsight.newsTitle || "연결된 뉴스가 없습니다."}</Text>
+            {selectedInsight.newsId !== null ? (
+              <TouchableOpacity activeOpacity={0.75} onPress={() => handleMoveNewsPress(selectedInsight.newsId)}>
+                <Text style={[styles.selectedInsightNews, styles.newsLink]}>{selectedInsight.newsTitle}</Text>
+              </TouchableOpacity>
+            ) : (
+              <Text style={styles.selectedInsightNews}>연결된 뉴스가 없습니다.</Text>
+            )}
             <Text style={styles.selectedInsightExplanation}>
               {selectedInsight.explanation || "해당 시점의 종목 관련 뉴스가 없어 가격 변동만 표시합니다."}
             </Text>
@@ -169,7 +181,13 @@ export function ChartScreen({ route, navigation }: Props) {
                 </Text>
                 <View style={styles.insightCopy}>
                   <Text style={styles.insightTime}>{insight.timestamp?.replace("T", " ").slice(0, 16)}</Text>
-                  <Text style={styles.insightNews}>{insight.newsTitle || "해당 시각에 저장된 관련 뉴스가 없습니다."}</Text>
+                  {insight.newsId !== null ? (
+                    <TouchableOpacity activeOpacity={0.75} onPress={() => handleMoveNewsPress(insight.newsId)}>
+                      <Text style={[styles.insightNews, styles.newsLink]}>{insight.newsTitle}</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <Text style={styles.insightNews}>해당 시각에 저장된 관련 뉴스가 없습니다.</Text>
+                  )}
                   {insight.explanation ? <Text style={styles.insightExplanation}>{insight.explanation}</Text> : null}
                   {insight.causeScore > 0 ? <Text style={styles.insightConfidence}>근거 점수 {Math.round(insight.causeScore * 100)}%</Text> : null}
                 </View>
@@ -331,6 +349,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
     lineHeight: 18
+  },
+  newsLink: {
+    color: "#175CD3",
+    textDecorationLine: "underline"
   },
   insightExplanation: {
     color: "#667085",
