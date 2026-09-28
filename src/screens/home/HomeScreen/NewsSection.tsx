@@ -1,16 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState, type MutableRefObject } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { NewsCard } from "../../../components/NewsCard";
 import { getMoreBriefing, getTodayBriefing } from "../../../lib/api";
 import type { NewsBrief } from "../../../types/api";
 
 interface NewsSectionProps {
   onSelectNews: (newsId: number) => void;
-  loadMoreRef: MutableRefObject<(() => Promise<void>) | null>;
 }
 
-export function NewsSection({ onSelectNews, loadMoreRef }: NewsSectionProps) {
+export function NewsSection({ onSelectNews }: NewsSectionProps) {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["today-briefing"],
     queryFn: getTodayBriefing,
@@ -48,11 +47,6 @@ export function NewsSection({ onSelectNews, loadMoreRef }: NewsSectionProps) {
     }
   };
 
-  useEffect(() => {
-    loadMoreRef.current = handleLoadMore;
-    return () => { loadMoreRef.current = null; };
-  });
-
   return (
     <View style={styles.group}>
       <View style={styles.sectionHeader}>
@@ -73,7 +67,11 @@ export function NewsSection({ onSelectNews, loadMoreRef }: NewsSectionProps) {
         <NewsCard key={item.id} news={item} onPress={() => onSelectNews(item.id)} />
       ))}
 
-      {isRealData && hasMore && loadingMore ? <ActivityIndicator size="small" color="#175CD3" /> : null}
+      {isRealData && hasMore ? (
+        <Pressable style={styles.moreButton} onPress={() => void handleLoadMore()} disabled={loadingMore}>
+          {loadingMore ? <ActivityIndicator size="small" color="#175CD3" /> : <Text style={styles.moreButtonText}>더 많은 뉴스 보기</Text>}
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -114,5 +112,19 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginTop: 8,
     textAlign: "center"
+  },
+  moreButton: {
+    alignItems: "center",
+    borderColor: "#D0D5DD",
+    borderRadius: 8,
+    borderWidth: 1,
+    minHeight: 44,
+    justifyContent: "center",
+    paddingHorizontal: 16
+  },
+  moreButtonText: {
+    color: "#175CD3",
+    fontSize: 14,
+    fontWeight: "700"
   }
 });
