@@ -1,9 +1,8 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { getChartData, getPopularStocks, searchStocks } from "../../../lib/api";
-import { getSampleChartData, popularStocks } from "../../../lib/sampleData";
 import type { ChartStackParamList } from "../../../navigation/types";
 import type { ChartRelatedNews, MoveInsight } from "../../../types/api";
 import { ChartCard } from "./ChartCard";
@@ -30,12 +29,17 @@ function isKoreanMarketOpen() {
   return ["Mon", "Tue", "Wed", "Thu", "Fri"].includes(weekday) && minutes >= 540 && minutes <= 930;
 }
 
+function formatMoveInsightTime(timestamp: string, period: Period) {
+  const date = timestamp?.slice(0, 10) ?? "";
+  return period === "W" ? `${date} 주간 구간` : timestamp?.replace("T", " ").slice(0, 16);
+}
+
 export function ChartScreen({ route, navigation }: Props) {
-  const [selectedSymbol, setSelectedSymbol] = useState(route.params?.symbol ?? popularStocks[0].symbol);
-  const [selectedStockName, setSelectedStockName] = useState<string | undefined>(route.params?.symbol ? undefined : popularStocks[0].name);
+  const [selectedSymbol, setSelectedSymbol] = useState(route.params?.symbol ?? "");
+  const [selectedStockName, setSelectedStockName] = useState<string | undefined>();
   const [query, setQuery] = useState("");
   const [period, setPeriod] = useState<Period>("W");
-  const [minuteInterval, setMinuteInterval] = useState<5 | 15>(15);
+  const [minuteInterval, setMinuteInterval] = useState<1 | 5 | 15>(5);
   const [selectedInsight, setSelectedInsight] = useState<MoveInsight | null>(null);
 
   const { data: popularStocksData, isError: stocksError } = useQuery({
@@ -47,7 +51,14 @@ export function ChartScreen({ route, navigation }: Props) {
     refetchOnWindowFocus: true,
     refetchOnReconnect: true
   });
-  const stocks = popularStocksData && popularStocksData.length > 0 ? popularStocksData : popularStocks;
+  const stocks = popularStocksData ?? [];
+  useEffect(() => {
+    const firstStock = popularStocksData?.[0];
+    if (!selectedSymbol && firstStock) {
+      setSelectedSymbol(firstStock.symbol);
+      setSelectedStockName(firstStock.name);
+    }
+  }, [popularStocksData, selectedSymbol]);
   const searchTerm = query.trim();
 
   const { data: searchResults = [], isFetching: searchFetching } = useQuery({
@@ -61,6 +72,7 @@ export function ChartScreen({ route, navigation }: Props) {
   const { data, isError: chartError, isFetching } = useQuery({
     queryKey: ["chart-data", selectedSymbol, period, minuteInterval],
     queryFn: () => getChartData(selectedSymbol, period, minuteInterval),
+    enabled: Boolean(selectedSymbol),
     retry: 0,
     staleTime: 15_000,
     refetchOnMount: "always",
@@ -69,13 +81,13 @@ export function ChartScreen({ route, navigation }: Props) {
     placeholderData: keepPreviousData
   });
 
-  const chart = data ?? getSampleChartData(selectedSymbol);
-  const displayCandles = period === "MINUTE" && chart.minuteCandles.length > 0 ? chart.minuteCandles : chart.candles;
+  const chart = data;
+  const displayCandles = chart && period === "MINUTE" && chart.minuteCandles.length > 0 ? chart.minuteCandles : chart?.candles ?? [];
 
   // Only build a docent banner when there's a real, symbol-tagged news
   // article backing it — no more falling back to fixed sample copy that
   // has nothing to do with the actual chart being shown.
-  const docentContent = chart.docent
+  const docentContent = chart?.docent
     ? {
         insightTitle: chart.docent.newsTitle,
         whatHappened: chart.docent.whatHappened,
@@ -98,17 +110,10 @@ export function ChartScreen({ route, navigation }: Props) {
 
   const handleCandlePress = (candle: { date: string }) => {
     const day = candle.date.slice(0, 10);
-    setSelectedInsight(chart.moveInsights.find((item) => item.timestamp.slice(0, 10) === day) ?? null);
+    setSelectedInsight(chart?.moveInsights.find((item) => item.timestamp.slice(0, 10) === day) ?? null);
   };
 
-  const marketClosed = !isKoreanMarketOpen();
-  const hasLiveChartData = Boolean(data) && !chart.fallback && !chartError && !stocksError;
-  const latestCandle = displayCandles[displayCandles.length - 1];
-  const latestDataLabel = latestCandle?.date
-    ? period === "MINUTE"
-      ? latestCandle.date.replace("T", " ").slice(0, 16)
-      : latestCandle.date.slice(0, 10)
-    : "최근 거래일";
+  const marketClosed = period === "MINUTE" && !isKoreanMarketOpen();
   const changeLabel = period === "D"
     ? "전일 종가 대비"
     : period === "W"
@@ -136,8 +141,8 @@ export function ChartScreen({ route, navigation }: Props) {
             ))}
           </View>
         ) : null}
-        <PopularStockChips stocks={stocks} selectedSymbol={selectedSymbol} onSelect={(symbol) => selectStock(symbol, stocks.find((stock) => stock.symbol === symbol)?.name ?? chart.symbolName)} />
-        <StockHeader name={selectedStockName ?? chart.symbolName} symbol={chart.symbol} price={chart.price} changePercent={chart.changePercent} changeLabel={changeLabel} />
+        {stocks.length > 0 ? <PopularStockChips stocks={stocks} selectedSymbol={selectedSymbol} onSelect={(symbol) => selectStock(symbol, stocks.find((stock) => stock.symbol === symbol)?.name ?? chart?.symbolName ?? symbol)} /> : null}
+        {chart ? <StockHeader name={selectedStockName ?? chart.symbolName} symbol={chart.symbol} price={chart.price} changePercent={chart.changePercent} changeLabel={changeLabel} /> : <View style={styles.emptyCard}><Text style={styles.emptyText}>{stocksError ? "인기 종목을 불러오지 못했습니다." : "시세 데이터를 불러오는 중입니다."}</Text></View>}
         <View style={styles.periodRow}>
           <TouchableOpacity style={[styles.periodTab, period === "D" && styles.periodTabActive]} onPress={() => setPeriod("D")}>
             <Text style={[styles.periodText, period === "D" && styles.periodTextActive]}>일봉</Text>
@@ -151,7 +156,7 @@ export function ChartScreen({ route, navigation }: Props) {
         </View>
         {period === "MINUTE" ? (
           <View style={styles.intervalRow}>
-            {([5, 15] as const).map((value) => (
+            {([1, 5, 15] as const).map((value) => (
               <TouchableOpacity key={value} style={[styles.intervalTab, minuteInterval === value && styles.intervalTabActive]} onPress={() => setMinuteInterval(value)}>
                 <Text style={[styles.intervalText, minuteInterval === value && styles.intervalTextActive]}>{value}분</Text>
               </TouchableOpacity>
@@ -163,33 +168,21 @@ export function ChartScreen({ route, navigation }: Props) {
             <Text style={styles.refreshText}>차트와 현재가를 갱신하고 있어요…</Text>
           </View>
         ) : null}
-        {chart.fallback || chartError || stocksError || (marketClosed && hasLiveChartData) ? (
+        {chart?.fallback || !data || stocksError || marketClosed ? (
           <View style={styles.warningCard}>
-            <Text style={styles.warningTitle}>
-              {chart.fallback || chartError || stocksError
-                ? "시세 연결 안내"
-                : period === "MINUTE"
-                  ? "장 마감 - 최신 장중 데이터 기준"
-                  : "장 마감 - 최신 종가 기준"}
-            </Text>
-            <Text style={styles.warningText}>
-              {chart.fallback || chartError || stocksError
-                ? "실시간 시세 연결에 실패해 예시 데이터가 표시되고 있습니다."
-                : period === "MINUTE"
-                  ? `${latestDataLabel} 기준 마지막 장중 데이터를 보여드려요. 다음 거래일 장중에 새 분봉이 갱신됩니다.`
-                  : `${latestDataLabel} 장 마감 종가를 보여드려요. 다음 거래일 장중에 현재가가 갱신됩니다.`}
-            </Text>
+            <Text style={styles.warningTitle}>{marketClosed ? "현재 장외시간입니다" : "시세 상태 안내"}</Text>
+            <Text style={styles.warningText}>{marketClosed ? "분봉은 최근 거래일 장중 데이터가 있을 때만 새로 갱신됩니다." : chartError || stocksError ? "실시간 시세 연결에 실패했습니다. 잠시 후 다시 시도해 주세요." : "현재 이 차트는 백엔드가 제공한 fallback 데이터입니다."}</Text>
           </View>
         ) : null}
-        <ChartCard
+        {chart ? <ChartCard
           candles={displayCandles}
           period={period}
           minuteInterval={minuteInterval}
           relatedNews={chart.relatedNews}
           moveInsights={chart.moveInsights}
           onCandlePress={handleCandlePress}
-        />
-        {selectedInsight ? (
+        /> : <View style={styles.emptyCard}><Text style={styles.emptyText}>실제 차트 데이터가 없어 차트를 표시할 수 없습니다.</Text></View>}
+        {chart && selectedInsight ? (
           <View style={styles.selectedInsight}>
             <Text style={styles.selectedInsightTitle}>선택한 급등락 지점</Text>
             <Text style={styles.selectedInsightMove}>
@@ -197,26 +190,17 @@ export function ChartScreen({ route, navigation }: Props) {
             </Text>
             {selectedInsight.newsId !== null ? (
               <TouchableOpacity activeOpacity={0.75} onPress={() => handleMoveNewsPress(selectedInsight.newsId)}>
-                <Text style={[styles.selectedInsightNews, styles.newsLink]}>
-                  {selectedInsight.causeScore >= 0.8 ? "원인 가능성 높은 뉴스: " : "관련 뉴스(원인 미확정): "}
-                  {selectedInsight.newsTitle}
-                </Text>
+                <Text style={[styles.selectedInsightNews, styles.newsLink]}>{selectedInsight.newsTitle}</Text>
               </TouchableOpacity>
             ) : (
-              <Text style={styles.selectedInsightNews}>
-                {chart.relatedNews.length > 0
-                  ? "관련 뉴스는 있지만 주가 변동의 원인으로 확정할 근거가 부족합니다."
-                  : "해당 구간에 확인된 관련 뉴스가 없습니다."}
-              </Text>
+              <Text style={styles.selectedInsightNews}>연결된 뉴스가 없습니다.</Text>
             )}
             <Text style={styles.selectedInsightExplanation}>
-              {selectedInsight.explanation || (chart.relatedNews.length > 0
-                ? "관련 뉴스 목록에서 당시 보도를 확인할 수 있지만, 가격 변동과의 인과관계는 확인되지 않았습니다."
-                : "해당 시점의 종목 관련 뉴스가 없어 가격 변동만 표시합니다.")}
+              {selectedInsight.explanation || "해당 시점의 종목 관련 뉴스가 없어 가격 변동만 표시합니다."}
             </Text>
           </View>
         ) : null}
-        {chart.moveInsights.length > 0 ? (
+        {chart && chart.moveInsights.length > 0 ? (
           <View style={styles.insightCard}>
             <Text style={styles.insightTitle}>급등락 시점과 관련 뉴스</Text>
             {chart.moveInsights.map((insight, index) => (
@@ -225,7 +209,7 @@ export function ChartScreen({ route, navigation }: Props) {
                   {insight.changePercent && insight.changePercent > 0 ? "+" : ""}{insight.changePercent?.toFixed(2)}%
                 </Text>
                 <View style={styles.insightCopy}>
-                  <Text style={styles.insightTime}>{insight.timestamp?.replace("T", " ").slice(0, 16)}</Text>
+                  <Text style={styles.insightTime}>{formatMoveInsightTime(insight.timestamp, period)}</Text>
                   {insight.newsId !== null ? (
                     <TouchableOpacity activeOpacity={0.75} onPress={() => handleMoveNewsPress(insight.newsId)}>
                       <Text style={[styles.insightNews, styles.newsLink]}>{insight.newsTitle}</Text>
@@ -234,15 +218,15 @@ export function ChartScreen({ route, navigation }: Props) {
                     <Text style={styles.insightNews}>해당 시각에 저장된 관련 뉴스가 없습니다.</Text>
                   )}
                   {insight.explanation ? <Text style={styles.insightExplanation}>{insight.explanation}</Text> : null}
-                  {insight.causeScore > 0 ? <Text style={styles.insightConfidence}>근거 점수 {Math.round(insight.causeScore * 100)}%</Text> : null}
+                  {insight.causeScore > 0 ? <Text style={styles.insightConfidence}>연관성 점수 {Math.round(insight.causeScore * 100)}% · 규칙 기반</Text> : null}
                 </View>
               </View>
             ))}
           </View>
         ) : null}
-        <RelatedNewsList items={chart.relatedNews} onPress={handleRelatedNewsPress} />
+        {chart ? <RelatedNewsList items={chart.relatedNews} onPress={handleRelatedNewsPress} /> : null}
         {docentContent ? (
-          <InsightBanner content={docentContent} changePercent={chart.changePercent} relatedNews={chart.relatedNews} onNewsPress={handleRelatedNewsPress} />
+          <InsightBanner content={docentContent} changePercent={chart?.changePercent ?? 0} relatedNews={chart?.relatedNews ?? []} onNewsPress={handleRelatedNewsPress} />
         ) : null}
       </ScrollView>
     </SafeAreaView>
@@ -284,6 +268,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 10,
     padding: 10
+  },
+  emptyCard: {
+    backgroundColor: "#FFFFFF",
+    borderColor: "#EAECF0",
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 16
+  },
+  emptyText: {
+    color: "#667085",
+    fontSize: 13,
+    lineHeight: 19
   },
   refreshText: { color: "#175CD3", fontSize: 12, fontWeight: "700" },
   periodRow: {
