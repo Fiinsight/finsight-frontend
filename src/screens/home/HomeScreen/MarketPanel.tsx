@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { StyleSheet, Text, View } from "react-native";
 import { MarketStatCard } from "../../../components/MarketStatCard";
 import { getMarketSummary } from "../../../lib/api";
-import { sampleMarketSummary } from "../../../lib/sampleData";
 
 export function MarketPanel() {
   const { data, isError, isPending } = useQuery({
@@ -13,13 +12,13 @@ export function MarketPanel() {
     refetchOnWindowFocus: false
   });
 
-  const market = data ?? (isError ? sampleMarketSummary : null);
+  const market = data;
 
   return (
     <View style={styles.panel}>
       <View style={styles.headingRow}>
         <Text style={styles.sectionTitle}>국내 시장 현황</Text>
-        {!data ? <Text style={styles.status}>{isPending ? "불러오는 중" : "연결 실패 · 샘플"}</Text> : null}
+        {!data ? <Text style={styles.status}>{isPending ? "불러오는 중" : isError ? "연결 확인 필요" : ""}</Text> : null}
       </View>
       {market ? (
         <View style={styles.row}>
@@ -28,7 +27,7 @@ export function MarketPanel() {
           <MarketStatCard {...market.baseRate} />
         </View>
       ) : (
-        <Text style={styles.loading}>시장 현황을 불러오는 중이에요.</Text>
+        <Text style={styles.loading}>{isError ? "실제 시장 데이터를 불러오지 못했어요." : "시장 현황을 불러오는 중이에요."}</Text>
       )}
     </View>
   );

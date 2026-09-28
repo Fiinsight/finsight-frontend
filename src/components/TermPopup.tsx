@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { explainTerm } from "../lib/api";
-import { getFallbackTermExplanation } from "../lib/sampleData";
 
 interface TermPopupProps {
   visible: boolean;
@@ -11,7 +10,7 @@ interface TermPopupProps {
 }
 
 export function TermPopup({ visible, term, newsId, onClose }: TermPopupProps) {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["term-explain", term, newsId],
     queryFn: () => explainTerm({ term: term as string, newsId }),
     enabled: visible && !!term,
@@ -22,30 +21,19 @@ export function TermPopup({ visible, term, newsId, onClose }: TermPopupProps) {
     return null;
   }
 
-  const explanation = data ?? getFallbackTermExplanation(term);
-
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
         <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
           <View style={styles.handle} />
-          <Text style={styles.term}>{explanation.term}</Text>
+          <Text style={styles.term}>{term}</Text>
           {isLoading ? <Text style={styles.loading}>불러오는 중...</Text> : null}
-
-          <View style={styles.block}>
-            <Text style={styles.blockLabel}>뜻</Text>
-            <Text style={styles.blockBody}>{explanation.definition}</Text>
-          </View>
-
-          <View style={styles.block}>
-            <Text style={styles.blockLabel}>이 뉴스에서는</Text>
-            <Text style={styles.blockBody}>{explanation.contextExplanation}</Text>
-          </View>
-
-          <View style={styles.block}>
-            <Text style={styles.blockLabel}>시장 영향</Text>
-            <Text style={styles.blockBody}>{explanation.marketImpact}</Text>
-          </View>
+          {isError ? <Text style={styles.error}>실제 기사 문맥을 확인하지 못해 예시 설명을 표시하지 않습니다.</Text> : null}
+          {data ? <>
+            <View style={styles.block}><Text style={styles.blockLabel}>뜻</Text><Text style={styles.blockBody}>{data.definition}</Text></View>
+            <View style={styles.block}><Text style={styles.blockLabel}>이 뉴스에서는</Text><Text style={styles.blockBody}>{data.contextExplanation}</Text></View>
+            <View style={styles.block}><Text style={styles.blockLabel}>시장 영향</Text><Text style={styles.blockBody}>{data.marketImpact}</Text></View>
+          </> : null}
 
           <TouchableOpacity style={styles.closeButton} onPress={onClose} activeOpacity={0.85}>
             <Text style={styles.closeButtonText}>닫기</Text>
@@ -87,6 +75,7 @@ const styles = StyleSheet.create({
     color: "#98A2B3",
     fontSize: 12
   },
+  error: { color: "#B42318", fontSize: 13, lineHeight: 20 },
   block: {
     gap: 4
   },

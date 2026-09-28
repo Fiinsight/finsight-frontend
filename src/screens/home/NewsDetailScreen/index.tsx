@@ -2,12 +2,11 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useIsFocused } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 import { BottomActionBar } from "../../../components/BottomActionBar";
 import { LevelTabs } from "../../../components/LevelTabs";
 import { TermPopup } from "../../../components/TermPopup";
 import { getLearningPreferences, getNewsDetail } from "../../../lib/api";
-import { getSampleNewsDetail } from "../../../lib/sampleData";
 import type { NewsFlowParamList } from "../../../navigation/types";
 import { useAppStore } from "../../../store/useAppStore";
 import type { NewsDetail, ReadingLevel } from "../../../types/api";
@@ -37,7 +36,7 @@ export function NewsDetailScreen({ route, navigation }: Props) {
 
   const readingLevel = storedReadingLevel ?? preferredLevel;
 
-  const { data } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["news-detail", newsId],
     queryFn: () => getNewsDetail(newsId),
     retry: 0
@@ -50,7 +49,20 @@ export function NewsDetailScreen({ route, navigation }: Props) {
     void recordArticleRead(newsId);
   }, [data?.id, isFocused, newsId]);
 
-  const detail: NewsDetail = data ?? getSampleNewsDetail(newsId);
+  if (!data) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.errorState}>
+          <Text style={styles.errorTitle}>{isLoading ? "뉴스를 불러오는 중이에요" : "뉴스를 불러오지 못했어요"}</Text>
+          <Text style={styles.errorBody}>{isError ? "실제 기사 데이터를 확인할 수 없어 예시 내용을 표시하지 않습니다." : "잠시만 기다려주세요."}</Text>
+          {isError ? <Pressable style={styles.retryButton} onPress={() => void refetch()}><Text style={styles.retryText}>다시 시도</Text></Pressable> : null}
+          <Pressable onPress={() => navigation.goBack()}><Text style={styles.backText}>돌아가기</Text></Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const detail: NewsDetail = data;
   const levelText = detail.levels[readingLevel] || detail.summary;
 
   return (
@@ -102,5 +114,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 8,
     padding: 16
-  }
+  },
+  errorState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 28,
+    gap: 12
+  },
+  errorTitle: { color: "#101828", fontSize: 18, fontWeight: "800", textAlign: "center" },
+  errorBody: { color: "#667085", fontSize: 14, lineHeight: 21, textAlign: "center" },
+  retryButton: { backgroundColor: "#175CD3", borderRadius: 8, paddingHorizontal: 20, paddingVertical: 12 },
+  retryText: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
+  backText: { color: "#175CD3", fontSize: 14, fontWeight: "700" }
 });
