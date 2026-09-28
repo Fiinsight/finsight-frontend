@@ -35,7 +35,7 @@ import type {
 import { formatPercent } from "./format";
 import { getActiveAccessToken, loadAuthSession } from "./auth";
 import { loadOnboardingProfile, mapOnboardingToLearningPreferences, type LearningPreferences } from "./onboarding";
-import { KEY_TERM_DICTIONARY, generateSampleChartPoints, getSamplePopularStock, sampleMarketSummary } from "./sampleData";
+import { KEY_TERM_DICTIONARY } from "./sampleData";
 
 export function getApiErrorMessage(error: any, fallback: string): string {
   const data = error?.response?.data;
@@ -305,15 +305,17 @@ type ChangeFormat = "percent" | "point";
 function normalizeMarketStat(
   label: string,
   raw: MarketStatRaw | undefined,
-  fallback: MarketStat,
   changeFormat: ChangeFormat = "percent"
 ): MarketStat {
   if (!raw) {
-    return fallback;
+    throw new Error(`${label} 시세 데이터가 없습니다.`);
   }
   // finsight-backend's MarketIndexView uses `currentValue`, RateView uses `value`.
   const rawValue = raw.value ?? raw.currentValue;
-  const value = rawValue !== undefined ? String(rawValue) : fallback.value;
+  if (rawValue === undefined) {
+    throw new Error(`${label} 현재값이 없습니다.`);
+  }
+  const value = String(rawValue);
   const changeNumber = typeof raw.changePercent === "number" ? raw.changePercent : undefined;
 
   let change: string;
@@ -327,10 +329,10 @@ function normalizeMarketStat(
   } else if (raw.change !== undefined) {
     change = String(raw.change);
   } else {
-    change = fallback.change;
+    change = "변동 정보 없음";
   }
 
-  const tone: Tone = raw.tone ?? (changeNumber !== undefined ? (changeNumber > 0 ? "up" : changeNumber < 0 ? "down" : "flat") : fallback.tone);
+  const tone: Tone = raw.tone ?? (changeNumber !== undefined ? (changeNumber > 0 ? "up" : changeNumber < 0 ? "down" : "flat") : "flat");
 
   return { label, value, change, tone };
 }
@@ -339,10 +341,10 @@ export async function getMarketSummary(): Promise<MarketSummary> {
   const { data } = await api.get<MarketSummaryRaw>("/market/summary");
 
   return {
-    kospi: normalizeMarketStat("KOSPI", data.kospi, sampleMarketSummary.kospi),
-    kosdaq: normalizeMarketStat("KOSDAQ", data.kosdaq, sampleMarketSummary.kosdaq),
-    exchangeRate: normalizeMarketStat("원/달러", data.exchangeRate ?? data.usdKrw ?? data.usdKrwRate, sampleMarketSummary.exchangeRate),
-    baseRate: normalizeMarketStat("기준금리", data.baseRate, sampleMarketSummary.baseRate, "point")
+    kospi: normalizeMarketStat("KOSPI", data.kospi),
+    kosdaq: normalizeMarketStat("KOSDAQ", data.kosdaq),
+    exchangeRate: normalizeMarketStat("원/달러", data.exchangeRate ?? data.usdKrw ?? data.usdKrwRate),
+    baseRate: normalizeMarketStat("기준금리", data.baseRate, "point")
   };
 }
 
@@ -370,13 +372,10 @@ function synthesizeCandlesFromPoints(points: ChartPoint[]): ChartCandle[] {
 function normalizeChartData(raw: ChartDataRaw, symbol: string): ChartData {
   const rawPoints: Array<ChartPointRaw | ChartCandleRaw> = raw.points ?? raw.candles ?? [];
   const generatedFallback = rawPoints.length === 0;
-  const points: ChartPoint[] =
-    rawPoints.length > 0
-      ? rawPoints.map((point) => {
-          const p = point as ChartPointRaw & ChartCandleRaw;
-          return { date: p.date ?? "", value: p.value ?? p.close ?? p.price ?? 0 };
-        })
-      : generateSampleChartPoints(symbol, raw.price ?? getSamplePopularStock(symbol).price);
+  const points: ChartPoint[] = rawPoints.map((point) => {
+    const p = point as ChartPointRaw & ChartCandleRaw;
+    return { date: p.date ?? "", value: p.value ?? p.close ?? p.price ?? 0 };
+  });
 
   const candles: ChartCandle[] =
     raw.candles && raw.candles.length > 0
@@ -405,7 +404,7 @@ function normalizeChartData(raw: ChartDataRaw, symbol: string): ChartData {
 
   return {
     symbol: raw.symbol ?? symbol,
-    symbolName: raw.symbolName ?? raw.name ?? getSamplePopularStock(symbol).name,
+    symbolName: raw.symbolName ?? raw.name ?? symbol,
     price: raw.price ?? points[points.length - 1]?.value ?? 0,
     changePercent: raw.changePercent ?? 0,
     points,
