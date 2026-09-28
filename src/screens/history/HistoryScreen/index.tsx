@@ -6,6 +6,7 @@ import { toRelativeTimeKorean } from "../../../lib/format";
 import { sampleJudgementHistory } from "../../../lib/sampleData";
 import type { HistoryStackParamList } from "../../../navigation/types";
 import { AttendanceCard } from "../../../components/AttendanceCard";
+import { TabScreenHeader } from "../../../components/TabScreenHeader";
 import { HistoryItem } from "./HistoryItem";
 
 type Props = NativeStackScreenProps<HistoryStackParamList, "History">;
@@ -28,10 +29,7 @@ export function HistoryScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>기록</Text>
-          <Text style={styles.subtitle}>출석과 투자 판단을 함께 돌아보세요</Text>
-        </View>
+        <TabScreenHeader title="기록" subtitle="출석과 투자 판단을 함께 돌아보세요" />
 
         <AttendanceCard />
 
@@ -81,19 +79,6 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 40,
     gap: 12
-  },
-  header: {
-    gap: 4,
-    marginBottom: 4
-  },
-  title: {
-    color: "#101828",
-    fontSize: 22,
-    fontWeight: "800"
-  },
-  subtitle: {
-    color: "#667085",
-    fontSize: 14
   },
   sectionTitle: {
     color: "#101828",
