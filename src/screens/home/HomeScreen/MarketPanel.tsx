@@ -5,7 +5,7 @@ import { getMarketSummary } from "../../../lib/api";
 import { sampleMarketSummary } from "../../../lib/sampleData";
 
 export function MarketPanel() {
-  const { data, isError } = useQuery({
+  const { data, isError, isPending } = useQuery({
     queryKey: ["market-summary"],
     queryFn: getMarketSummary,
     retry: 0,
@@ -13,19 +13,23 @@ export function MarketPanel() {
     refetchOnWindowFocus: false
   });
 
-  const market = data ?? sampleMarketSummary;
+  const market = data ?? (isError ? sampleMarketSummary : null);
 
   return (
     <View style={styles.panel}>
       <View style={styles.headingRow}>
         <Text style={styles.sectionTitle}>국내 시장 현황</Text>
-        {!data ? <Text style={styles.status}>{isError ? "연결 실패 · 샘플" : "샘플"}</Text> : null}
+        {!data ? <Text style={styles.status}>{isPending ? "불러오는 중" : "연결 실패 · 샘플"}</Text> : null}
       </View>
-      <View style={styles.row}>
-        <MarketStatCard {...market.kospi} />
-        <MarketStatCard {...market.exchangeRate} />
-        <MarketStatCard {...market.baseRate} />
-      </View>
+      {market ? (
+        <View style={styles.row}>
+          <MarketStatCard {...market.kospi} />
+          <MarketStatCard {...market.exchangeRate} />
+          <MarketStatCard {...market.baseRate} />
+        </View>
+      ) : (
+        <Text style={styles.loading}>시장 현황을 불러오는 중이에요.</Text>
+      )}
     </View>
   );
 }
@@ -53,5 +57,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between"
   },
-  status: { color: "#B54708", fontSize: 11, fontWeight: "700" }
+  status: { color: "#B54708", fontSize: 11, fontWeight: "700" },
+  loading: { color: "#667085", fontSize: 14, paddingVertical: 12 }
 });
