@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { getArticleNotes, getJudgementHistory } from "../../../lib/api";
 import { toRelativeTimeKorean } from "../../../lib/format";
-import { sampleJudgementHistory } from "../../../lib/sampleData";
 import type { HistoryStackParamList } from "../../../navigation/types";
 import { AttendanceCard } from "../../../components/AttendanceCard";
 import { TabScreenHeader } from "../../../components/TabScreenHeader";
@@ -12,7 +11,7 @@ import { HistoryItem } from "./HistoryItem";
 type Props = NativeStackScreenProps<HistoryStackParamList, "History">;
 
 export function HistoryScreen({ navigation }: Props) {
-  const { data } = useQuery({
+  const { data, isLoading: historyLoading, isError: historyError } = useQuery({
     queryKey: ["judgement-history"],
     queryFn: getJudgementHistory,
     retry: 0
@@ -23,7 +22,7 @@ export function HistoryScreen({ navigation }: Props) {
     retry: 0
   });
 
-  const history = data ?? sampleJudgementHistory;
+  const history = data ?? [];
   const notes = notesQuery.data ?? [];
 
   return (
@@ -61,8 +60,10 @@ export function HistoryScreen({ navigation }: Props) {
         ))}
 
         <Text style={styles.sectionTitle}>판단 기록</Text>
-
-        {history.map((item) => (
+        {historyLoading ? <Text style={styles.emptyText}>판단 기록을 불러오는 중이에요.</Text> : null}
+        {historyError ? <Text style={styles.errorText}>판단 기록을 불러오지 못했어요. 예시 기록은 표시하지 않습니다.</Text> : null}
+        {!historyLoading && !historyError && history.length === 0 ? <View style={styles.emptyCard}><Text style={styles.emptyTitle}>아직 판단 기록이 없어요</Text><Text style={styles.emptyText}>뉴스를 읽고 내일 주가 방향을 판단하면 여기에 남아요.</Text></View> : null}
+        {!historyLoading && !historyError && history.map((item) => (
           <HistoryItem key={item.id} item={item} onPress={() => navigation.navigate("NewsDetail", { newsId: item.newsId })} />
         ))}
       </ScrollView>

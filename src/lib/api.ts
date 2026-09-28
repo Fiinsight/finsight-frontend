@@ -369,6 +369,7 @@ function synthesizeCandlesFromPoints(points: ChartPoint[]): ChartCandle[] {
 
 function normalizeChartData(raw: ChartDataRaw, symbol: string): ChartData {
   const rawPoints: Array<ChartPointRaw | ChartCandleRaw> = raw.points ?? raw.candles ?? [];
+  const generatedFallback = rawPoints.length === 0;
   const points: ChartPoint[] =
     rawPoints.length > 0
       ? rawPoints.map((point) => {
@@ -418,7 +419,7 @@ function normalizeChartData(raw: ChartDataRaw, symbol: string): ChartData {
     })),
     period: raw.period ?? "D",
     intervalMinutes: raw.intervalMinutes ?? null,
-    fallback: raw.fallback ?? false,
+    fallback: raw.fallback ?? generatedFallback,
     moveInsights: (raw.moveInsights ?? []).map((insight) => ({
       timestamp: insight.timestamp ?? "",
       changePercent: insight.changePercent ?? 0,

@@ -5,7 +5,6 @@ import { KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, T
 import { BottomActionBar } from "../../../components/BottomActionBar";
 import { ScreenTopBar } from "../../../components/ScreenTopBar";
 import { getNewsDetail, submitJudgement } from "../../../lib/api";
-import { getSampleNewsDetail } from "../../../lib/sampleData";
 import type { NewsFlowParamList } from "../../../navigation/types";
 import { useAppStore } from "../../../store/useAppStore";
 import type { JudgementChoice } from "../../../types/api";
@@ -24,14 +23,13 @@ export function JudgementScreen({ route, navigation }: Props) {
   const clearJudgementDraft = useAppStore((state) => state.clearJudgementDraft);
   const [submitError, setSubmitError] = useState(false);
 
-  const { data } = useQuery({
+  const { data, isError, isLoading } = useQuery({
     queryKey: ["news-detail", newsId],
     queryFn: () => getNewsDetail(newsId),
     retry: 0
   });
 
-  const detail = data ?? getSampleNewsDetail(newsId);
-  const symbolLabel = detail.relatedSymbolName || detail.relatedSymbol || "관련 종목";
+  const symbolLabel = data?.relatedSymbolName || data?.relatedSymbol || "관련 종목";
 
   const mutation = useMutation({
     mutationFn: () => submitJudgement({ newsId, choice: choice as JudgementChoice, reason: reason || undefined })
@@ -64,15 +62,17 @@ export function JudgementScreen({ route, navigation }: Props) {
           <Text style={styles.question}>{`이 뉴스가 내일 ${symbolLabel} 주가에 미칠 영향은?`}</Text>
           <Text style={styles.subtitle}>뉴스 내용을 바탕으로 주가 방향을 예측해보세요</Text>
 
-          <NewsSummaryCard summary={detail.summary} />
-          <DirectionChoices value={choice} onChange={(next) => setJudgementChoice(newsId, next)} />
-          <ReasonInput value={reason} onChange={(text) => setJudgementReason(newsId, text)} />
+          {isLoading ? <Text style={styles.errorText}>뉴스를 불러오는 중이에요.</Text> : null}
+          {isError || !data ? <Text style={styles.errorText}>실제 뉴스를 확인할 수 없어 판단을 저장할 수 없어요. 이전 화면에서 다시 시도해주세요.</Text> : null}
+          {data ? <NewsSummaryCard summary={data.summary} /> : null}
+          {data ? <DirectionChoices value={choice} onChange={(next) => setJudgementChoice(newsId, next)} /> : null}
+          {data ? <ReasonInput value={reason} onChange={(text) => setJudgementReason(newsId, text)} /> : null}
 
           {submitError ? <Text style={styles.errorText}>서버에 연결하지 못해 판단이 저장되지 않았어요. 다시 시도해주세요.</Text> : null}
         </ScrollView>
       </KeyboardAvoidingView>
 
-      <BottomActionBar label="제출하기" onPress={handleSubmit} disabled={!choice} loading={mutation.isPending} />
+      <BottomActionBar label="제출하기" onPress={handleSubmit} disabled={!choice || !data} loading={mutation.isPending} />
     </SafeAreaView>
   );
 }
