@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { CandlestickChart } from "../../../components/CandlestickChart";
-import type { ChartCandle, ChartRelatedNews } from "../../../types/api";
+import type { ChartCandle, ChartRelatedNews, MoveInsight } from "../../../types/api";
 
 type ChartPeriod = "D" | "W" | "MINUTE";
 
@@ -11,10 +11,11 @@ interface ChartCardProps {
   period: ChartPeriod;
   minuteInterval?: number;
   relatedNews?: ChartRelatedNews[];
+  moveInsights?: MoveInsight[];
   onCandlePress?: (candle: ChartCandle) => void;
 }
 
-export function ChartCard({ candles, period, minuteInterval, relatedNews = [], onCandlePress }: ChartCardProps) {
+export function ChartCard({ candles, period, minuteInterval, relatedNews = [], moveInsights = [], onCandlePress }: ChartCardProps) {
   const [showGuide, setShowGuide] = useState(false);
   const markers = relatedNews
     .filter((item) => item.publishedAt)
@@ -23,7 +24,14 @@ export function ChartCard({ candles, period, minuteInterval, relatedNews = [], o
 
   return (
     <View style={styles.card}>
-      <CandlestickChart candles={candles} height={240} markers={markers} onCandlePress={onCandlePress} showTimeLabels={period === "MINUTE"} />
+      <CandlestickChart
+        candles={candles}
+        height={240}
+        markers={markers}
+        moveMarkers={moveInsights.map((item) => ({ date: item.timestamp.slice(0, 10), changePercent: item.changePercent }))}
+        onCandlePress={onCandlePress}
+        showTimeLabels={period === "MINUTE"}
+      />
       <TouchableOpacity style={styles.guideTrigger} onPress={() => setShowGuide(true)} activeOpacity={0.75}>
         <Text style={styles.guideTriggerText}>차트 읽는 법</Text>
         <Ionicons name="information-circle-outline" size={20} color="#175CD3" />

@@ -1,12 +1,17 @@
 import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import Svg, { Line, Rect, Text as SvgText } from "react-native-svg";
+import Svg, { Line, Polygon, Rect, Text as SvgText } from "react-native-svg";
 import { formatPrice, formatShortDate, formatShortDateTime, formatShortTime } from "../lib/format";
 import type { ChartCandle } from "../types/api";
 
 interface DateMarker {
   date: string;
   title: string;
+}
+
+interface MoveMarker {
+  date: string;
+  changePercent: number;
 }
 
 interface CandlestickChartProps {
@@ -18,6 +23,8 @@ interface CandlestickChartProps {
   showTimeLabels?: boolean;
   /** Real news items to ground the biggest-move callout in an actual headline. */
   markers?: DateMarker[];
+  /** Small, non-blocking markers for the largest backend-detected moves. */
+  moveMarkers?: MoveMarker[];
 }
 
 const PADDING_TOP = 40;
@@ -36,7 +43,8 @@ export function CandlestickChart({
   downColor = "#175CD3",
   onCandlePress,
   showTimeLabels = false,
-  markers = []
+  markers = [],
+  moveMarkers = []
 }: CandlestickChartProps) {
   const [width, setWidth] = useState(0);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -102,6 +110,10 @@ export function CandlestickChart({
       }
     }
     const matchingMarker = markers.find((m) => m.date === biggestMove.candle.date);
+    const moveMarkerByDate = new Map(moveMarkers.map((marker) => [marker.date, marker]));
+    const visibleMoveMarkers = bars
+      .map((bar) => ({ bar, marker: moveMarkerByDate.get(bar.candle.date) }))
+      .filter((item): item is { bar: (typeof bars)[number]; marker: MoveMarker } => Boolean(item.marker));
     const showCallout = Math.abs(biggestMove.changePercent) >= 1 && candles.length > 1;
     const calloutIsUp = biggestMove.changePercent >= 0;
     const calloutY = calloutIsUp ? biggestMove.wickTop - 10 : biggestMove.wickBottom + 10;
@@ -123,9 +135,10 @@ export function CandlestickChart({
       biggestMove,
       calloutY,
       calloutText,
-      calloutIsUp
+      calloutIsUp,
+      visibleMoveMarkers
     };
-  }, [width, height, candles, selectedIndex, upColor, downColor, markers]);
+  }, [width, height, candles, selectedIndex, upColor, downColor, markers, moveMarkers]);
 
   return (
     <View style={styles.container} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
@@ -169,6 +182,21 @@ export function CandlestickChart({
                 strokeWidth={1.5}
               />
             ))}
+            {chart.visibleMoveMarkers.map(({ bar, marker }) => {
+              const isUp = marker.changePercent > 0;
+              const y = isUp ? bar.wickTop - 7 : bar.wickBottom + 7;
+              const points = isUp
+                ? `${bar.x},${y - 5} ${bar.x - 4},${y + 2} ${bar.x + 4},${y + 2}`
+                : `${bar.x},${y + 5} ${bar.x - 4},${y - 2} ${bar.x + 4},${y - 2}`;
+              return (
+                <Polygon
+                  key={`move-marker-${bar.index}`}
+                  points={points}
+                  fill={isUp ? upColor : downColor}
+                  opacity={0.9}
+                />
+              );
+            })}
             {chart.bars.map((bar) => (
               <Rect
                 key={`body-${bar.index}`}

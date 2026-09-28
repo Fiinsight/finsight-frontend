@@ -186,6 +186,7 @@ export function ChartScreen({ route, navigation }: Props) {
           period={period}
           minuteInterval={minuteInterval}
           relatedNews={chart.relatedNews}
+          moveInsights={chart.moveInsights}
           onCandlePress={handleCandlePress}
         />
         {selectedInsight ? (
