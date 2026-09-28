@@ -21,6 +21,7 @@ export const sampleNews: NewsBrief[] = [
     summary: "반도체 업황 회복 신호가 이어지며 국내 대형 기술주의 실적 기대가 커지고 있습니다.",
     importanceReason: "수출과 실적 전망은 주가 방향을 판단하는 핵심 근거입니다.",
     relatedSymbol: "005930",
+    category: "산업·기술",
     sentimentHint: "POSITIVE"
   },
   {
@@ -29,6 +30,7 @@ export const sampleNews: NewsBrief[] = [
     summary: "환율이 단기적으로 흔들리면서 외국인 매수세와 수입 비용 부담이 함께 관찰됩니다.",
     importanceReason: "환율은 기업 이익과 외국인 자금 흐름에 동시에 영향을 줍니다.",
     relatedSymbol: "KOSPI",
+    category: "환율·원자재",
     sentimentHint: "NEUTRAL"
   },
   {
@@ -37,6 +39,7 @@ export const sampleNews: NewsBrief[] = [
     summary: "기준금리 동결 가능성이 커지며 성장주의 할인율 부담이 일부 낮아질 수 있습니다.",
     importanceReason: "금리 변화는 미래 이익의 현재 가치 평가에 직접 연결됩니다.",
     relatedSymbol: "KQ150",
+    category: "금리·채권",
     sentimentHint: "POSITIVE"
   }
 ];

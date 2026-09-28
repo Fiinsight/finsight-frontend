@@ -35,7 +35,7 @@ export function NewsCard({ news, onPress }: NewsCardProps) {
       }}
     >
       <View style={styles.cardTop}>
-        <Text style={styles.symbol}>{news.relatedSymbol}</Text>
+        <Text style={styles.symbol}>{news.category}</Text>
         <Text style={[styles.sentiment, sentimentStyle[news.sentimentHint]]}>{sentimentLabel[news.sentimentHint]}</Text>
       </View>
       <Text style={styles.newsTitle} numberOfLines={2}>{news.title}</Text>
