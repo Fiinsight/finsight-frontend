@@ -259,6 +259,7 @@ function normalizeHistoryItem(raw: JudgementHistoryItemRaw, index: number): Judg
         ? `${raw.actualChangePercent > 0 ? "+" : ""}${raw.actualChangePercent}%`
         : raw.actualDirection ?? ""),
     correct: derivedCorrect,
+    feedbackText: raw.feedbackText ?? "",
     judgedAt: raw.judgedAt ?? raw.createdAt ?? new Date().toISOString()
   };
 }
