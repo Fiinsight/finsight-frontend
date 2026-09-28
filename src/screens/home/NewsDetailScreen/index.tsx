@@ -70,7 +70,7 @@ export function NewsDetailScreen({ route, navigation }: Props) {
         </View>
 
         <ImportanceReasonCard reason={detail.importanceReason} />
-        <ArticleNotesPanel newsId={newsId} />
+        <ArticleNotesPanel newsId={newsId} sourceUrl={detail.url} />
       </ScrollView>
 
       <BottomActionBar label="판단하기" onPress={() => navigation.navigate("Judgement", { newsId })} />

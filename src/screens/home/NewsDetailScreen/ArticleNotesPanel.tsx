@@ -1,11 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
+import * as Linking from "expo-linking";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { createArticleNote, deleteArticleNote, getArticleNotesForNews, updateArticleNote } from "../../../lib/api";
 import { toRelativeTimeKorean } from "../../../lib/format";
 
-export function ArticleNotesPanel({ newsId }: { newsId: number }) {
+export function ArticleNotesPanel({ newsId, sourceUrl }: { newsId: number; sourceUrl?: string }) {
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -144,11 +145,11 @@ export function ArticleNotesPanel({ newsId }: { newsId: number }) {
           </View>
         ))}
         {updateMutation.isError || deleteMutation.isError ? <Text style={styles.error}>변경을 저장하지 못했어요. 다시 시도해주세요.</Text> : null}
-        <View style={styles.paperFooter} accessibilityElementsHidden>
-          <View style={styles.sitePill}>
+        <View style={styles.paperFooter}>
+          {sourceUrl ? <Pressable accessibilityRole="link" accessibilityLabel="사이트 방문" onPress={() => { void Linking.openURL(sourceUrl); }} style={styles.sitePill}>
             <Ionicons name="open-outline" size={17} color="#101828" />
-            <Text style={styles.sitePillText}>기사 읽고 기록하기</Text>
-          </View>
+            <Text style={styles.sitePillText}>사이트 방문</Text>
+          </Pressable> : <View />}
           <Ionicons name="expand-outline" size={21} color="#101828" />
         </View>
       </View>
