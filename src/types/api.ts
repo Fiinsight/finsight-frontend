@@ -366,3 +366,8 @@ export interface PopularStockRaw {
   price?: number;
   changePercent?: number;
 }
+
+export interface StockSearchResult {
+  symbol: string;
+  name: string;
+}

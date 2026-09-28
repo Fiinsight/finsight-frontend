@@ -26,6 +26,7 @@ import type {
   NewsDetailRaw,
   PopularStock,
   PopularStockRaw,
+  StockSearchResult,
   ReadingLevel,
   TermExplainRequest,
   TermExplainResponseRaw,
@@ -458,6 +459,11 @@ export async function getPopularStocks(): Promise<PopularStock[]> {
     price: item.price ?? 0,
     changePercent: item.changePercent ?? 0
   }));
+}
+
+export async function searchStocks(query: string): Promise<StockSearchResult[]> {
+  const { data } = await api.get<StockSearchResult[]>("/stocks/search", { params: { query } });
+  return data.map((item) => ({ symbol: item.symbol ?? "", name: item.name ?? "" }));
 }
 
 export type { ReadingLevel, JudgementChoice };
