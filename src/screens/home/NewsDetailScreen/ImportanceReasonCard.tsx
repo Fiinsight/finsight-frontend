@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 export function ImportanceReasonCard({ reason }: { reason: string }) {
   return (
     <View style={styles.card}>
-      <Text style={styles.label}>왜 중요한가</Text>
+      <Text style={styles.label}>투자 포인트</Text>
       <Text style={styles.body}>{reason}</Text>
     </View>
   );
