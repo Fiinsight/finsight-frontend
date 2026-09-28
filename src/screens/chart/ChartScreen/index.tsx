@@ -30,6 +30,11 @@ function isKoreanMarketOpen() {
   return ["Mon", "Tue", "Wed", "Thu", "Fri"].includes(weekday) && minutes >= 540 && minutes <= 930;
 }
 
+function formatMoveInsightTime(timestamp: string, period: Period) {
+  const date = timestamp?.slice(0, 10) ?? "";
+  return period === "W" ? `${date} 주간 구간` : timestamp?.replace("T", " ").slice(0, 16);
+}
+
 export function ChartScreen({ route, navigation }: Props) {
   const [selectedSymbol, setSelectedSymbol] = useState(route.params?.symbol ?? popularStocks[0].symbol);
   const [selectedStockName, setSelectedStockName] = useState<string | undefined>(route.params?.symbol ? undefined : popularStocks[0].name);
@@ -186,7 +191,7 @@ export function ChartScreen({ route, navigation }: Props) {
                   {insight.changePercent && insight.changePercent > 0 ? "+" : ""}{insight.changePercent?.toFixed(2)}%
                 </Text>
                 <View style={styles.insightCopy}>
-                  <Text style={styles.insightTime}>{insight.timestamp?.replace("T", " ").slice(0, 16)}</Text>
+                  <Text style={styles.insightTime}>{formatMoveInsightTime(insight.timestamp, period)}</Text>
                   {insight.newsId !== null ? (
                     <TouchableOpacity activeOpacity={0.75} onPress={() => handleMoveNewsPress(insight.newsId)}>
                       <Text style={[styles.insightNews, styles.newsLink]}>{insight.newsTitle}</Text>
@@ -195,7 +200,7 @@ export function ChartScreen({ route, navigation }: Props) {
                     <Text style={styles.insightNews}>해당 시각에 저장된 관련 뉴스가 없습니다.</Text>
                   )}
                   {insight.explanation ? <Text style={styles.insightExplanation}>{insight.explanation}</Text> : null}
-                  {insight.causeScore > 0 ? <Text style={styles.insightConfidence}>근거 점수 {Math.round(insight.causeScore * 100)}%</Text> : null}
+                  {insight.causeScore > 0 ? <Text style={styles.insightConfidence}>연관성 점수 {Math.round(insight.causeScore * 100)}% · 규칙 기반</Text> : null}
                 </View>
               </View>
             ))}
