@@ -16,6 +16,20 @@ import { StockSearchBar } from "./StockSearchBar";
 type Props = NativeStackScreenProps<ChartStackParamList, "Chart">;
 type Period = "D" | "W" | "MINUTE";
 
+function isKoreanMarketOpen() {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Seoul",
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
+  }).formatToParts(new Date());
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const weekday = values.weekday;
+  const minutes = Number(values.hour) * 60 + Number(values.minute);
+  return ["Mon", "Tue", "Wed", "Thu", "Fri"].includes(weekday) && minutes >= 540 && minutes <= 930;
+}
+
 export function ChartScreen({ route, navigation }: Props) {
   const [selectedSymbol, setSelectedSymbol] = useState(route.params?.symbol ?? popularStocks[0].symbol);
   const [query, setQuery] = useState("");
@@ -72,6 +86,8 @@ export function ChartScreen({ route, navigation }: Props) {
     setSelectedInsight(chart.moveInsights.find((item) => item.timestamp.slice(0, 10) === day) ?? null);
   };
 
+  const marketClosed = period === "MINUTE" && !isKoreanMarketOpen();
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
@@ -98,10 +114,10 @@ export function ChartScreen({ route, navigation }: Props) {
             ))}
           </View>
         ) : null}
-        {chart.fallback || !data || stocksError ? (
+        {chart.fallback || !data || stocksError || marketClosed ? (
           <View style={styles.warningCard}>
-            <Text style={styles.warningTitle}>샘플 데이터 표시 중</Text>
-            <Text style={styles.warningText}>{chartError || stocksError ? "실시간 시세 연결에 실패해 예시 데이터가 표시되고 있습니다." : "현재 이 차트는 백엔드가 제공한 fallback 데이터입니다."}</Text>
+            <Text style={styles.warningTitle}>{marketClosed ? "현재 장외시간입니다" : "시세 상태 안내"}</Text>
+            <Text style={styles.warningText}>{marketClosed ? "분봉은 최근 거래일 장중 데이터가 있을 때만 새로 갱신됩니다." : chartError || stocksError ? "실시간 시세 연결에 실패해 예시 데이터가 표시되고 있습니다." : "현재 이 차트는 백엔드가 제공한 fallback 데이터입니다."}</Text>
           </View>
         ) : null}
         <ChartCard candles={displayCandles} relatedNews={chart.relatedNews} onCandlePress={handleCandlePress} />
@@ -129,6 +145,7 @@ export function ChartScreen({ route, navigation }: Props) {
                   <Text style={styles.insightTime}>{insight.timestamp?.replace("T", " ").slice(0, 16)}</Text>
                   <Text style={styles.insightNews}>{insight.newsTitle || "해당 시각에 저장된 관련 뉴스가 없습니다."}</Text>
                   {insight.explanation ? <Text style={styles.insightExplanation}>{insight.explanation}</Text> : null}
+                  {insight.causeScore > 0 ? <Text style={styles.insightConfidence}>근거 점수 {Math.round(insight.causeScore * 100)}%</Text> : null}
                 </View>
               </View>
             ))}
@@ -266,6 +283,11 @@ const styles = StyleSheet.create({
     color: "#667085",
     fontSize: 12,
     lineHeight: 17
+  },
+  insightConfidence: {
+    color: "#027A48",
+    fontSize: 11,
+    fontWeight: "700"
   },
   selectedInsight: {
     backgroundColor: "#F0F9FF",

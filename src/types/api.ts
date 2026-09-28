@@ -285,6 +285,7 @@ export interface ChartMoveInsightRaw {
   newsTitle?: string | null;
   newsSource?: string | null;
   explanation?: string | null;
+  causeScore?: number;
 }
 
 export interface ChartDocentRaw {
@@ -322,6 +323,7 @@ export interface MoveInsight {
   newsTitle: string;
   newsSource: string;
   explanation: string;
+  causeScore: number;
 }
 
 export interface ChartDocent {
