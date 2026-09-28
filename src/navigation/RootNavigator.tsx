@@ -53,8 +53,8 @@ export function RootNavigator({ session, onLogout }: { session: AuthSession; onL
       <Tab.Screen name="HomeTab" component={HomeStack} options={{ title: "홈" }} />
       <Tab.Screen name="ChartTab" component={ChartStack} options={{ title: "차트" }} />
       <Tab.Screen name="HistoryTab" component={HistoryStack} options={{ title: "기록" }} />
-      <Tab.Screen name="LearnTab" component={LearnScreen} options={{ title: "학습", headerShown: true }} />
-      <Tab.Screen name="ProfileTab" options={{ title: "프로필", headerShown: true }}>
+      <Tab.Screen name="LearnTab" component={LearnScreen} options={{ title: "학습" }} />
+      <Tab.Screen name="ProfileTab" options={{ title: "프로필" }}>
         {() => <ProfileScreen session={session} onLogout={onLogout} />}
       </Tab.Screen>
     </Tab.Navigator>

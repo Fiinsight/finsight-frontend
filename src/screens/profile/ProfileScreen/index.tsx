@@ -5,6 +5,7 @@ import { getLearningPreferences } from "../../../lib/api";
 import { useEffect, useState } from "react";
 import { ProfileHeader } from "./ProfileHeader";
 import { SettingsList } from "./SettingsList";
+import { TabScreenHeader } from "../../../components/TabScreenHeader";
 
 export function ProfileScreen({ session, onLogout }: { session: AuthSession; onLogout: () => void }) {
   const [level, setLevel] = useState<LearningLevel>(getDefaultLearningPreferences().level);
@@ -16,6 +17,7 @@ export function ProfileScreen({ session, onLogout }: { session: AuthSession; onL
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
+        <TabScreenHeader title="프로필" subtitle="내 투자 학습과 계정 설정을 관리하세요." />
         <ProfileHeader session={session} />
         <SettingsList level={level} onLogout={onLogout} />
       </ScrollView>
