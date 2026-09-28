@@ -15,7 +15,6 @@ import { ArticleBody } from "./ArticleBody";
 import { BodyTabs, type BodyTab } from "./BodyTabs";
 import { DetailTopBar } from "./DetailTopBar";
 import { ImportanceReasonCard } from "./ImportanceReasonCard";
-import { SentimentBadge } from "./SentimentBadge";
 import { SourceLinkRow } from "./SourceLinkRow";
 import { ArticleNotesPanel } from "./ArticleNotesPanel";
 import { recordArticleRead } from "../../../lib/readingProgress";
@@ -60,7 +59,6 @@ export function NewsDetailScreen({ route, navigation }: Props) {
 
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.title}>{detail.title}</Text>
-        <SentimentBadge sentiment={detail.sentimentHint} />
         <SourceLinkRow source={detail.source} url={detail.url} />
 
         <BodyTabs value={bodyTab} onChange={setBodyTab} />

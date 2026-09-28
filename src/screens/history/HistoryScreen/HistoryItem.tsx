@@ -29,6 +29,7 @@ export function HistoryItem({ item, onPress }: { item: JudgementHistoryItem; onP
           </View>
         ) : null}
       </View>
+      {item.feedbackText ? <Text style={styles.feedback}>{item.feedbackText}</Text> : null}
       <Text style={styles.date}>{toRelativeTimeKorean(item.judgedAt)}</Text>
     </TouchableOpacity>
   );
@@ -65,6 +66,14 @@ const styles = StyleSheet.create({
   pending: {
     color: "#98A2B3",
     fontSize: 13
+  },
+  feedback: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 6,
+    color: "#344054",
+    fontSize: 13,
+    lineHeight: 20,
+    padding: 10
   },
   badge: {
     borderRadius: 999,

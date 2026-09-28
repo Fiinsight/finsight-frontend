@@ -155,6 +155,7 @@ export interface JudgementHistoryItemRaw {
   actualChangePercent?: number | null;
   correct?: boolean;
   aligned?: boolean;
+  feedbackText?: string;
   createdAt?: string;
   judgedAt?: string;
 }
@@ -166,6 +167,7 @@ export interface JudgementHistoryItem {
   choice: JudgementChoice;
   actualResult: string;
   correct: boolean | null;
+  feedbackText: string;
   judgedAt: string;
 }
 
