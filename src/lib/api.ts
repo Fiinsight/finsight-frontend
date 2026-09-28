@@ -1,5 +1,4 @@
 import axios from "axios";
-import { storageGetItem } from "./storage";
 import Constants from "expo-constants";
 import type {
   ChartCandle,
@@ -34,7 +33,7 @@ import type {
   Tone
 } from "../types/api";
 import { formatPercent } from "./format";
-import { AUTH_STORAGE_KEY } from "./auth";
+import { getActiveAccessToken, loadAuthSession } from "./auth";
 import { loadOnboardingProfile, mapOnboardingToLearningPreferences, type LearningPreferences } from "./onboarding";
 import { KEY_TERM_DICTIONARY, generateSampleChartPoints, getSamplePopularStock, sampleMarketSummary } from "./sampleData";
 
@@ -74,15 +73,8 @@ export const api = axios.create({
 });
 
 api.interceptors.request.use(async (config) => {
-  const raw = await storageGetItem(AUTH_STORAGE_KEY);
-  if (raw) {
-    try {
-      const session = JSON.parse(raw) as { accessToken?: string };
-      if (session.accessToken) config.headers.set("Authorization", `Bearer ${session.accessToken}`);
-    } catch {
-      // A malformed local session should not prevent public API requests.
-    }
-  }
+  const token = getActiveAccessToken() ?? (await loadAuthSession())?.accessToken;
+  if (token) config.headers.set("Authorization", `Bearer ${token}`);
   return config;
 });
 
