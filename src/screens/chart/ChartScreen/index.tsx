@@ -152,7 +152,13 @@ export function ChartScreen({ route, navigation }: Props) {
             <Text style={styles.warningText}>{marketClosed ? "분봉은 최근 거래일 장중 데이터가 있을 때만 새로 갱신됩니다." : chartError || stocksError ? "실시간 시세 연결에 실패해 예시 데이터가 표시되고 있습니다." : "현재 이 차트는 백엔드가 제공한 fallback 데이터입니다."}</Text>
           </View>
         ) : null}
-        <ChartCard candles={displayCandles} relatedNews={chart.relatedNews} onCandlePress={handleCandlePress} />
+        <ChartCard
+          candles={displayCandles}
+          period={period}
+          minuteInterval={minuteInterval}
+          relatedNews={chart.relatedNews}
+          onCandlePress={handleCandlePress}
+        />
         {selectedInsight ? (
           <View style={styles.selectedInsight}>
             <Text style={styles.selectedInsightTitle}>선택한 급등락 지점</Text>
