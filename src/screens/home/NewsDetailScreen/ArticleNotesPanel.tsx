@@ -159,7 +159,7 @@ export function ArticleNotesPanel({ newsId, sourceUrl }: { newsId: number; sourc
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: "#A8C9EA", borderRadius: 24, padding: 8, overflow: "hidden" },
+  card: { backgroundColor: "transparent" },
   browserWindow: { backgroundColor: "#FFFFFF", borderRadius: 18, overflow: "hidden", borderWidth: 1, borderColor: "#E3ECF6" },
   browserBar: { minHeight: 58, flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 12, backgroundColor: "#F4F8FC", borderBottomWidth: 1, borderBottomColor: "#E7EEF5" },
   trafficLights: { flexDirection: "row", gap: 4 },
