@@ -12,6 +12,11 @@ import { clearOnboardingProfile, loadOnboardingProfile, saveOnboardingProfile } 
 import { getCurrentUser, syncOnboardingProfile } from "./src/lib/api";
 import { useAppStore } from "./src/store/useAppStore";
 
+function isAuthFailure(error: unknown) {
+  const status = (error as { response?: { status?: number } })?.response?.status;
+  return status === 401 || status === 403;
+}
+
 const queryClient = new QueryClient();
 export default function App() {
   const [showIntro, setShowIntro] = useState(true);
@@ -43,9 +48,15 @@ export default function App() {
             // authentication failure: keep the valid session and its fallback.
             await saveAuthSession(refreshedSession);
             setSession(refreshedSession);
-          } catch {
-            await clearAuthSession();
-            setSession(null);
+          } catch (error) {
+            // Keep a valid stored session through temporary backend/network
+            // failures. Only an explicit auth rejection should log the user out.
+            if (isAuthFailure(error)) {
+              await clearAuthSession();
+              setSession(null);
+            } else {
+              setSession(storedSession);
+            }
           }
         } else {
           setSession(storedSession);
@@ -70,6 +81,7 @@ export default function App() {
   if (showIntro || !sessionLoaded) {
     return (
       <LinearGradient colors={["#071B4A", "#0B3D91", "#1769D1"]} locations={[0, 0.52, 1]} style={styles.intro}>
+        <Text style={styles.introTagline}>흩어지는 뉴스 속, 나만의 투자 인사이트</Text>
         <Text style={styles.introLogo}>FinSight</Text>
       </LinearGradient>
     );
@@ -120,5 +132,12 @@ const styles = StyleSheet.create({
     fontSize: 30,
     fontWeight: "700",
     letterSpacing: -0.4
+  },
+  introTagline: {
+    color: "rgba(255,255,255,0.82)",
+    fontFamily: "Avenir Next",
+    fontSize: 16,
+    letterSpacing: 0.2,
+    marginBottom: 8
   }
 });

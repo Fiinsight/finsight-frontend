@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, InteractionManager, Keyboard, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import * as Linking from "expo-linking";
 import { LinearGradient } from "expo-linear-gradient";
 import { getApiErrorMessage, getKakaoLoginUrl, login, loginWithKakao, signup } from "../../lib/api";
@@ -61,6 +61,13 @@ export function AuthScreen({ onAuthenticated }: Props) {
     return () => subscription.remove();
   }, [onAuthenticated]);
 
+  useEffect(() => {
+    // Expo Go/iOS can restore a stale TextInput focus after a reload. Do not
+    // open the keyboard before the user chooses a field on the auth screen.
+    const task = InteractionManager.runAfterInteractions(() => Keyboard.dismiss());
+    return () => task.cancel();
+  }, []);
+
   async function submit() {
     if (!email.trim() || password.length < 8 || (isSignup && !nickname.trim())) {
       Alert.alert("입력 확인", isSignup ? "이메일, 8자 이상 비밀번호, 닉네임을 입력해 주세요." : "이메일과 8자 이상 비밀번호를 입력해 주세요.");
@@ -77,6 +84,7 @@ export function AuthScreen({ onAuthenticated }: Props) {
   }
 
   async function startKakao() {
+    Keyboard.dismiss();
     setKakaoError(null);
     setIsKakaoLoading(true);
     try {

@@ -6,9 +6,10 @@ interface StockHeaderProps {
   symbol: string;
   price: number;
   changePercent: number;
+  changeLabel: string;
 }
 
-export function StockHeader({ name, symbol, price, changePercent }: StockHeaderProps) {
+export function StockHeader({ name, symbol, price, changePercent, changeLabel }: StockHeaderProps) {
   return (
     <View style={styles.row}>
       <View>
@@ -18,6 +19,7 @@ export function StockHeader({ name, symbol, price, changePercent }: StockHeaderP
       <View style={styles.priceGroup}>
         <Text style={styles.price}>{formatPrice(price)}</Text>
         <Text style={[styles.change, { color: changePercent >= 0 ? "#D92D20" : "#175CD3" }]}>{formatPercent(changePercent)}</Text>
+        <Text style={styles.changeLabel}>{changeLabel}</Text>
       </View>
     </View>
   );
@@ -50,6 +52,11 @@ const styles = StyleSheet.create({
   change: {
     fontSize: 13,
     fontWeight: "700",
+    marginTop: 2
+  },
+  changeLabel: {
+    color: "#98A2B3",
+    fontSize: 10,
     marginTop: 2
   }
 });

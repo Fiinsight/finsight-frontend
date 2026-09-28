@@ -38,6 +38,22 @@ export function formatShortDate(isoDate: string): string {
   return `${date.getMonth() + 1}/${date.getDate()}`;
 }
 
+export function formatShortTime(isoDate: string): string {
+  const date = new Date(isoDate);
+  if (Number.isNaN(date.getTime())) {
+    return isoDate;
+  }
+  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+}
+
+export function formatShortDateTime(isoDate: string): string {
+  const date = new Date(isoDate);
+  if (Number.isNaN(date.getTime())) {
+    return isoDate;
+  }
+  return `${formatShortDate(isoDate)} ${formatShortTime(isoDate)}`;
+}
+
 export function formatPercent(value: number): string {
   const sign = value > 0 ? "+" : "";
   return `${sign}${value.toFixed(2)}%`;

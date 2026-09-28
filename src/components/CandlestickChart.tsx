@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, { Line, Rect, Text as SvgText } from "react-native-svg";
-import { formatPrice, formatShortDate } from "../lib/format";
+import { formatPrice, formatShortDate, formatShortDateTime, formatShortTime } from "../lib/format";
 import type { ChartCandle } from "../types/api";
 
 interface DateMarker {
@@ -15,6 +15,7 @@ interface CandlestickChartProps {
   upColor?: string;
   downColor?: string;
   onCandlePress?: (candle: ChartCandle) => void;
+  showTimeLabels?: boolean;
   /** Real news items to ground the biggest-move callout in an actual headline. */
   markers?: DateMarker[];
 }
@@ -34,6 +35,7 @@ export function CandlestickChart({
   upColor = "#D92D20",
   downColor = "#175CD3",
   onCandlePress,
+  showTimeLabels = false,
   markers = []
 }: CandlestickChartProps) {
   const [width, setWidth] = useState(0);
@@ -130,7 +132,7 @@ export function CandlestickChart({
       {chart ? (
         <>
           <View style={[styles.tooltip, { left: chart.tooltipLeft }]}>
-            <Text style={styles.tooltipDate}>{formatShortDate(chart.activeBar.candle.date)}</Text>
+            <Text style={styles.tooltipDate}>{showTimeLabels ? formatShortDateTime(chart.activeBar.candle.date) : formatShortDate(chart.activeBar.candle.date)}</Text>
             <Text style={styles.tooltipValue}>
               종가 <Text style={styles.tooltipStrong}>{formatPrice(chart.activeBar.candle.close)}</Text>
             </Text>
@@ -215,7 +217,7 @@ export function CandlestickChart({
           <View style={[styles.axisRow, { paddingRight: PADDING_RIGHT }]}>
             {chart.labelIndices.map((idx) => (
               <Text key={idx} style={styles.axisLabel}>
-                {formatShortDate(candles[idx].date)}
+                {showTimeLabels ? formatShortTime(candles[idx].date) : formatShortDate(candles[idx].date)}
               </Text>
             ))}
           </View>
