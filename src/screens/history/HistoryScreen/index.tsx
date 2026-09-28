@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { getArticleNotes, getJudgementHistory } from "../../../lib/api";
 import { toRelativeTimeKorean } from "../../../lib/format";
-import { sampleJudgementHistory } from "../../../lib/sampleData";
 import type { HistoryStackParamList } from "../../../navigation/types";
 import { AttendanceCard } from "../../../components/AttendanceCard";
 import { TabScreenHeader } from "../../../components/TabScreenHeader";
@@ -12,7 +11,7 @@ import { HistoryItem } from "./HistoryItem";
 type Props = NativeStackScreenProps<HistoryStackParamList, "History">;
 
 export function HistoryScreen({ navigation }: Props) {
-  const { data } = useQuery({
+  const { data, isError: isHistoryError } = useQuery({
     queryKey: ["judgement-history"],
     queryFn: getJudgementHistory,
     retry: 0
@@ -23,7 +22,7 @@ export function HistoryScreen({ navigation }: Props) {
     retry: 0
   });
 
-  const history = data ?? sampleJudgementHistory;
+  const history = data ?? [];
   const notes = notesQuery.data ?? [];
 
   return (
@@ -61,6 +60,8 @@ export function HistoryScreen({ navigation }: Props) {
         ))}
 
         <Text style={styles.sectionTitle}>판단 기록</Text>
+
+        {isHistoryError ? <Text style={styles.errorText}>판단 기록을 불러오지 못했어요. 잠시 후 다시 시도해주세요.</Text> : null}
 
         {history.map((item) => (
           <HistoryItem key={item.id} item={item} onPress={() => navigation.navigate("NewsDetail", { newsId: item.newsId })} />

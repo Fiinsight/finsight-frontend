@@ -7,7 +7,6 @@ import { BottomActionBar } from "../../../components/BottomActionBar";
 import { LevelTabs } from "../../../components/LevelTabs";
 import { TermPopup } from "../../../components/TermPopup";
 import { getLearningPreferences, getNewsDetail } from "../../../lib/api";
-import { getSampleNewsDetail } from "../../../lib/sampleData";
 import type { NewsFlowParamList } from "../../../navigation/types";
 import { useAppStore } from "../../../store/useAppStore";
 import type { NewsDetail, ReadingLevel } from "../../../types/api";
@@ -37,7 +36,7 @@ export function NewsDetailScreen({ route, navigation }: Props) {
 
   const readingLevel = storedReadingLevel ?? preferredLevel;
 
-  const { data } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["news-detail", newsId],
     queryFn: () => getNewsDetail(newsId),
     retry: 0
@@ -50,7 +49,14 @@ export function NewsDetailScreen({ route, navigation }: Props) {
     void recordArticleRead(newsId);
   }, [data?.id, isFocused, newsId]);
 
-  const detail: NewsDetail = data ?? getSampleNewsDetail(newsId);
+  if (isLoading) {
+    return <MessageScreen message="기사 원문을 불러오는 중입니다." onBack={() => navigation.goBack()} />;
+  }
+  if (isError || !data) {
+    return <MessageScreen message="이 기사의 원문을 확인할 수 없습니다." onBack={() => navigation.goBack()} />;
+  }
+
+  const detail: NewsDetail = data;
   const levelText = detail.levels[readingLevel] || detail.summary;
 
   return (
@@ -80,6 +86,17 @@ export function NewsDetailScreen({ route, navigation }: Props) {
   );
 }
 
+function MessageScreen({ message, onBack }: { message: string; onBack: () => void }) {
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <DetailTopBar category="뉴스" publishedAt="" onBack={onBack} />
+      <View style={styles.message}>
+        <Text style={styles.messageText}>{message}</Text>
+      </View>
+    </SafeAreaView>
+  );
+}
+
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -102,5 +119,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 8,
     padding: 16
+  },
+  message: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24
+  },
+  messageText: {
+    color: "#667085",
+    fontSize: 16
   }
 });

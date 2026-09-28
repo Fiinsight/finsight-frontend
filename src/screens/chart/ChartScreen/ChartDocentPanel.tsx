@@ -6,11 +6,18 @@ interface ChartDocentPanelProps {
   whatHappened: string;
   whyItMoved: string;
   marketImpact: string;
+  changePercent: number;
   relatedNews: ChartRelatedNews[];
   onNewsPress: (item: ChartRelatedNews) => void;
 }
 
-export function ChartDocentPanel({ whatHappened, whyItMoved, marketImpact, relatedNews, onNewsPress }: ChartDocentPanelProps) {
+export function ChartDocentPanel({ whatHappened, whyItMoved, marketImpact, changePercent, relatedNews, onNewsPress }: ChartDocentPanelProps) {
+  const movementLabel = changePercent > 0
+    ? "왜 주가가 올랐나요?"
+    : changePercent < 0
+      ? "왜 주가가 떨어졌나요?"
+      : "주가가 움직이지 않은 이유는?";
+
   return (
     <View style={styles.panel}>
       <View style={styles.block}>
@@ -19,7 +26,7 @@ export function ChartDocentPanel({ whatHappened, whyItMoved, marketImpact, relat
       </View>
 
       <View style={styles.highlightBox}>
-        <Text style={styles.highlightLabel}>왜 주가가 올랐나요?</Text>
+        <Text style={styles.highlightLabel}>{movementLabel}</Text>
         <Text style={styles.highlightBody}>{whyItMoved}</Text>
       </View>
 

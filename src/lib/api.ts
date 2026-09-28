@@ -1,5 +1,6 @@
 import axios from "axios";
 import Constants from "expo-constants";
+import { getExpoGoProjectConfig } from "expo";
 import type {
   ChartCandle,
   ChartCandleRaw,
@@ -51,10 +52,11 @@ export function getApiErrorMessage(error: any, fallback: string): string {
 // Expo 개발 서버는 자신이 지금 물려 있는 실제 호스트를 hostUri로 넘겨주므로,
 // 그 호스트를 그대로 재사용하면(포트만 8080으로 바꿔서) IP가 바뀌어도 항상 맞다.
 function resolveApiBaseUrl(): string {
-  if (typeof window !== "undefined" && window.location.hostname) {
-    return `http://${window.location.hostname}:8080/api`;
+  const webHost = typeof window !== "undefined" ? window.location?.hostname : undefined;
+  if (webHost) {
+    return `http://${webHost}:8080/api`;
   }
-  const hostUri = Constants.expoConfig?.hostUri;
+  const hostUri = Constants.expoConfig?.hostUri ?? getExpoGoProjectConfig()?.debuggerHost;
   const host = hostUri?.split(":")[0];
   if (host) {
     return `http://${host}:8080/api`;

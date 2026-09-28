@@ -35,15 +35,17 @@ export function ChartScreen({ route, navigation }: Props) {
   const [selectedStockName, setSelectedStockName] = useState<string | undefined>(route.params?.symbol ? undefined : popularStocks[0].name);
   const [query, setQuery] = useState("");
   const [period, setPeriod] = useState<Period>("W");
-  const [minuteInterval, setMinuteInterval] = useState<1 | 5 | 15>(5);
+  const [minuteInterval, setMinuteInterval] = useState<5 | 15>(15);
   const [selectedInsight, setSelectedInsight] = useState<MoveInsight | null>(null);
 
   const { data: popularStocksData, isError: stocksError } = useQuery({
     queryKey: ["popular-stocks"],
     queryFn: getPopularStocks,
     retry: 0,
-    staleTime: 5 * 60_000,
-    refetchOnWindowFocus: false
+    staleTime: 30_000,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true
   });
   const stocks = popularStocksData && popularStocksData.length > 0 ? popularStocksData : popularStocks;
   const searchTerm = query.trim();
@@ -60,7 +62,10 @@ export function ChartScreen({ route, navigation }: Props) {
     queryKey: ["chart-data", selectedSymbol, period, minuteInterval],
     queryFn: () => getChartData(selectedSymbol, period, minuteInterval),
     retry: 0,
-    staleTime: 60_000,
+    staleTime: 15_000,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
     placeholderData: keepPreviousData
   });
 
@@ -96,7 +101,19 @@ export function ChartScreen({ route, navigation }: Props) {
     setSelectedInsight(chart.moveInsights.find((item) => item.timestamp.slice(0, 10) === day) ?? null);
   };
 
-  const marketClosed = period === "MINUTE" && !isKoreanMarketOpen();
+  const marketClosed = !isKoreanMarketOpen();
+  const hasLiveChartData = Boolean(data) && !chart.fallback && !chartError && !stocksError;
+  const latestCandle = displayCandles[displayCandles.length - 1];
+  const latestDataLabel = latestCandle?.date
+    ? period === "MINUTE"
+      ? latestCandle.date.replace("T", " ").slice(0, 16)
+      : latestCandle.date.slice(0, 10)
+    : "최근 거래일";
+  const changeLabel = period === "D"
+    ? "전일 종가 대비"
+    : period === "W"
+      ? "전주 종가 대비"
+      : `직전 ${minuteInterval}분봉 대비`;
   const selectStock = (symbol: string, name: string) => {
     setSelectedSymbol(symbol);
     setSelectedStockName(name);
@@ -120,7 +137,7 @@ export function ChartScreen({ route, navigation }: Props) {
           </View>
         ) : null}
         <PopularStockChips stocks={stocks} selectedSymbol={selectedSymbol} onSelect={(symbol) => selectStock(symbol, stocks.find((stock) => stock.symbol === symbol)?.name ?? chart.symbolName)} />
-        <StockHeader name={selectedStockName ?? chart.symbolName} symbol={chart.symbol} price={chart.price} changePercent={chart.changePercent} />
+        <StockHeader name={selectedStockName ?? chart.symbolName} symbol={chart.symbol} price={chart.price} changePercent={chart.changePercent} changeLabel={changeLabel} />
         <View style={styles.periodRow}>
           <TouchableOpacity style={[styles.periodTab, period === "D" && styles.periodTabActive]} onPress={() => setPeriod("D")}>
             <Text style={[styles.periodText, period === "D" && styles.periodTextActive]}>일봉</Text>
@@ -134,7 +151,7 @@ export function ChartScreen({ route, navigation }: Props) {
         </View>
         {period === "MINUTE" ? (
           <View style={styles.intervalRow}>
-            {([1, 5, 15] as const).map((value) => (
+            {([5, 15] as const).map((value) => (
               <TouchableOpacity key={value} style={[styles.intervalTab, minuteInterval === value && styles.intervalTabActive]} onPress={() => setMinuteInterval(value)}>
                 <Text style={[styles.intervalText, minuteInterval === value && styles.intervalTextActive]}>{value}분</Text>
               </TouchableOpacity>
@@ -146,10 +163,22 @@ export function ChartScreen({ route, navigation }: Props) {
             <Text style={styles.refreshText}>차트와 현재가를 갱신하고 있어요…</Text>
           </View>
         ) : null}
-        {chart.fallback || !data || stocksError || marketClosed ? (
+        {chart.fallback || chartError || stocksError || (marketClosed && hasLiveChartData) ? (
           <View style={styles.warningCard}>
-            <Text style={styles.warningTitle}>{marketClosed ? "현재 장외시간입니다" : "시세 상태 안내"}</Text>
-            <Text style={styles.warningText}>{marketClosed ? "분봉은 최근 거래일 장중 데이터가 있을 때만 새로 갱신됩니다." : chartError || stocksError ? "실시간 시세 연결에 실패해 예시 데이터가 표시되고 있습니다." : "현재 이 차트는 백엔드가 제공한 fallback 데이터입니다."}</Text>
+            <Text style={styles.warningTitle}>
+              {chart.fallback || chartError || stocksError
+                ? "시세 연결 안내"
+                : period === "MINUTE"
+                  ? "장 마감 - 최신 장중 데이터 기준"
+                  : "장 마감 - 최신 종가 기준"}
+            </Text>
+            <Text style={styles.warningText}>
+              {chart.fallback || chartError || stocksError
+                ? "실시간 시세 연결에 실패해 예시 데이터가 표시되고 있습니다."
+                : period === "MINUTE"
+                  ? `${latestDataLabel} 기준 마지막 장중 데이터를 보여드려요. 다음 거래일 장중에 새 분봉이 갱신됩니다.`
+                  : `${latestDataLabel} 장 마감 종가를 보여드려요. 다음 거래일 장중에 현재가가 갱신됩니다.`}
+            </Text>
           </View>
         ) : null}
         <ChartCard
@@ -167,13 +196,22 @@ export function ChartScreen({ route, navigation }: Props) {
             </Text>
             {selectedInsight.newsId !== null ? (
               <TouchableOpacity activeOpacity={0.75} onPress={() => handleMoveNewsPress(selectedInsight.newsId)}>
-                <Text style={[styles.selectedInsightNews, styles.newsLink]}>{selectedInsight.newsTitle}</Text>
+                <Text style={[styles.selectedInsightNews, styles.newsLink]}>
+                  {selectedInsight.causeScore >= 0.8 ? "원인 가능성 높은 뉴스: " : "관련 뉴스(원인 미확정): "}
+                  {selectedInsight.newsTitle}
+                </Text>
               </TouchableOpacity>
             ) : (
-              <Text style={styles.selectedInsightNews}>연결된 뉴스가 없습니다.</Text>
+              <Text style={styles.selectedInsightNews}>
+                {chart.relatedNews.length > 0
+                  ? "관련 뉴스는 있지만 주가 변동의 원인으로 확정할 근거가 부족합니다."
+                  : "해당 구간에 확인된 관련 뉴스가 없습니다."}
+              </Text>
             )}
             <Text style={styles.selectedInsightExplanation}>
-              {selectedInsight.explanation || "해당 시점의 종목 관련 뉴스가 없어 가격 변동만 표시합니다."}
+              {selectedInsight.explanation || (chart.relatedNews.length > 0
+                ? "관련 뉴스 목록에서 당시 보도를 확인할 수 있지만, 가격 변동과의 인과관계는 확인되지 않았습니다."
+                : "해당 시점의 종목 관련 뉴스가 없어 가격 변동만 표시합니다.")}
             </Text>
           </View>
         ) : null}
@@ -203,7 +241,7 @@ export function ChartScreen({ route, navigation }: Props) {
         ) : null}
         <RelatedNewsList items={chart.relatedNews} onPress={handleRelatedNewsPress} />
         {docentContent ? (
-          <InsightBanner content={docentContent} relatedNews={chart.relatedNews} onNewsPress={handleRelatedNewsPress} />
+          <InsightBanner content={docentContent} changePercent={chart.changePercent} relatedNews={chart.relatedNews} onNewsPress={handleRelatedNewsPress} />
         ) : null}
       </ScrollView>
     </SafeAreaView>
