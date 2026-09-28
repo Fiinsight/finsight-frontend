@@ -177,7 +177,7 @@ function normalizeNewsDetail(raw: NewsDetailRaw, fallbackId: number): NewsDetail
     id: raw.id ?? fallbackId,
     title: raw.title ?? "",
     category: raw.category ?? "국내증시",
-    publishedAt: raw.publishedAt ?? raw.createdAt ?? new Date().toISOString(),
+    publishedAt: raw.publishedAt ?? raw.createdAt ?? "",
     summary: derivedSummary,
     rawContent,
     importanceReason: raw.importanceReason ?? "",
@@ -434,7 +434,7 @@ function normalizeChartData(raw: ChartDataRaw, symbol: string): ChartData {
       id: item.id ?? item.newsId ?? null,
       title: item.title ?? "",
       source: item.source ?? "",
-      publishedAt: item.publishedAt ?? item.date ?? new Date().toISOString()
+      publishedAt: item.publishedAt ?? item.date ?? ""
     })),
     docent
   };
