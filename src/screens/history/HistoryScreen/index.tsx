@@ -14,12 +14,14 @@ export function HistoryScreen({ navigation }: Props) {
   const { data, isLoading: historyLoading, isError: historyError } = useQuery({
     queryKey: ["judgement-history"],
     queryFn: getJudgementHistory,
-    retry: 0
+    retry: 0,
+    staleTime: 60_000
   });
   const notesQuery = useQuery({
     queryKey: ["article-notes"],
     queryFn: getArticleNotes,
-    retry: 0
+    retry: 0,
+    staleTime: 60_000
   });
 
   const history = data ?? [];

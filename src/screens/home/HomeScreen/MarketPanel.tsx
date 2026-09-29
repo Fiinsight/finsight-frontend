@@ -8,7 +8,8 @@ export function MarketPanel() {
     queryKey: ["market-summary"],
     queryFn: getMarketSummary,
     retry: 0,
-    staleTime: 5 * 60_000,
+    staleTime: 60_000,
+    refetchInterval: 60_000,
     refetchOnWindowFocus: false
   });
 

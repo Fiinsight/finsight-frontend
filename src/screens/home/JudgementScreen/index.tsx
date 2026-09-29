@@ -26,7 +26,8 @@ export function JudgementScreen({ route, navigation }: Props) {
   const { data, isError, isLoading } = useQuery({
     queryKey: ["news-detail", newsId],
     queryFn: () => getNewsDetail(newsId),
-    retry: 0
+    retry: 0,
+    staleTime: 60_000
   });
 
   const symbolLabel = data?.relatedSymbolName || data?.relatedSymbol || "관련 종목";

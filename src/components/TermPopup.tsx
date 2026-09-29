@@ -14,7 +14,8 @@ export function TermPopup({ visible, term, newsId, onClose }: TermPopupProps) {
     queryKey: ["term-explain", term, newsId],
     queryFn: () => explainTerm({ term: term as string, newsId }),
     enabled: visible && !!term,
-    retry: 0
+    retry: 0,
+    staleTime: 600_000
   });
 
   if (!term) {

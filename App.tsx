@@ -17,7 +17,9 @@ function isAuthFailure(error: unknown) {
   return status === 401 || status === 403;
 }
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { staleTime: 60_000 } }
+});
 export default function App() {
   const [showIntro, setShowIntro] = useState(true);
   const [onboardingDoneThisRun, setOnboardingDoneThisRun] = useState(false);

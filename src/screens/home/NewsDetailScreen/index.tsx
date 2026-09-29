@@ -17,6 +17,8 @@ import { ImportanceReasonCard } from "./ImportanceReasonCard";
 import { SourceLinkRow } from "./SourceLinkRow";
 import { ArticleNotesPanel } from "./ArticleNotesPanel";
 import { recordArticleRead } from "../../../lib/readingProgress";
+import { LocalMlPanel } from "../../../localml/LocalMlPanel";
+import { searchLocalMl } from "../../../localml/transport";
 
 type Props = NativeStackScreenProps<NewsFlowParamList, "NewsDetail">;
 const MAX_IN_APP_EXCERPT_LENGTH = 1200;
@@ -40,7 +42,8 @@ export function NewsDetailScreen({ route, navigation }: Props) {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["news-detail", newsId],
     queryFn: () => getNewsDetail(newsId),
-    retry: 0
+    retry: 0,
+    staleTime: 60_000
   });
 
   useEffect(() => {
@@ -65,6 +68,7 @@ export function NewsDetailScreen({ route, navigation }: Props) {
 
   const detail: NewsDetail = data;
   const levelText = detail.levels[readingLevel] || detail.summary;
+  const importanceReason = detail.importanceReasons?.[readingLevel] || detail.importanceReason;
   const rawExcerpt = detail.rawContent.length > MAX_IN_APP_EXCERPT_LENGTH
     ? `${detail.rawContent.slice(0, MAX_IN_APP_EXCERPT_LENGTH).trim()}\n\n전체 원문은 위 출처 링크에서 확인하세요.`
     : detail.rawContent;
@@ -85,7 +89,21 @@ export function NewsDetailScreen({ route, navigation }: Props) {
           <ArticleBody text={bodyTab === "raw" ? rawExcerpt : levelText} terms={detail.keyTerms} onTermPress={setSelectedTerm} />
         </View>
 
-        <ImportanceReasonCard reason={detail.importanceReason} />
+        <LocalMlPanel
+          title="비슷한 뉴스"
+          request={{ kind: "news", query: detail.title, endAt: detail.publishedAt }}
+          search={searchLocalMl}
+        />
+
+        {selectedTerm ? (
+          <LocalMlPanel
+            title={`${selectedTerm} 관련 용어 자료`}
+            request={{ kind: "term", query: selectedTerm, term: selectedTerm }}
+            search={searchLocalMl}
+          />
+        ) : null}
+
+        <ImportanceReasonCard reason={importanceReason} />
         <ArticleNotesPanel newsId={newsId} sourceUrl={detail.url} />
       </ScrollView>
 

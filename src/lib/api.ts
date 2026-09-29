@@ -161,6 +161,11 @@ function normalizeNewsDetail(raw: NewsDetailRaw, fallbackId: number): NewsDetail
     normal: raw.levels?.normal ?? raw.normalContent ?? raw.rewrittenNormal ?? "",
     analyst: raw.levels?.analyst ?? raw.analystContent ?? raw.rewrittenAnalyst ?? ""
   };
+  const importanceReasons = {
+    beginner: raw.importanceReasonBeginner ?? raw.importanceReason ?? "",
+    normal: raw.importanceReasonNormal ?? raw.importanceReason ?? "",
+    analyst: raw.importanceReasonAnalyst ?? raw.importanceReason ?? ""
+  };
 
   const keyTerms =
     raw.keyTerms && raw.keyTerms.length > 0
@@ -181,6 +186,7 @@ function normalizeNewsDetail(raw: NewsDetailRaw, fallbackId: number): NewsDetail
     summary: derivedSummary,
     rawContent,
     importanceReason: raw.importanceReason ?? "",
+    importanceReasons,
     relatedSymbol: raw.relatedSymbol ?? "",
     relatedSymbolName: raw.relatedSymbolName ?? raw.symbolName ?? raw.relatedSymbol ?? "",
     sentimentHint: raw.sentimentHint ?? "NEUTRAL",
@@ -440,8 +446,8 @@ function normalizeChartData(raw: ChartDataRaw, symbol: string): ChartData {
   };
 }
 
-export async function getChartData(symbol: string, period: "D" | "W" | "MINUTE" = "D", interval = 5): Promise<ChartData> {
-  const { data } = await api.get<ChartDataRaw>(`/charts/${symbol}`, { params: { period, interval } });
+export async function getChartData(symbol: string, period: "D" | "W" | "MINUTE" = "D", interval = 5, signal?: AbortSignal): Promise<ChartData> {
+  const { data } = await api.get<ChartDataRaw>(`/charts/${symbol}`, { params: { period, interval }, signal });
   return normalizeChartData(data, symbol);
 }
 

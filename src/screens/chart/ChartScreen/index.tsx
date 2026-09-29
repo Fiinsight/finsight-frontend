@@ -46,10 +46,7 @@ export function ChartScreen({ route, navigation }: Props) {
     queryKey: ["popular-stocks"],
     queryFn: getPopularStocks,
     retry: 0,
-    staleTime: 30_000,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
-    refetchOnReconnect: true
+    staleTime: 60_000
   });
   const stocks = popularStocksData ?? [];
   useEffect(() => {
@@ -71,13 +68,10 @@ export function ChartScreen({ route, navigation }: Props) {
 
   const { data, isError: chartError, isFetching } = useQuery({
     queryKey: ["chart-data", selectedSymbol, period, minuteInterval],
-    queryFn: () => getChartData(selectedSymbol, period, minuteInterval),
+    queryFn: ({ signal }) => getChartData(selectedSymbol, period, minuteInterval, signal),
     enabled: Boolean(selectedSymbol),
     retry: 0,
-    staleTime: 15_000,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
-    refetchOnReconnect: true,
+    staleTime: 60_000,
     placeholderData: keepPreviousData
   });
 

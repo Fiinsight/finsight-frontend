@@ -88,7 +88,9 @@ export function AuthScreen({ onAuthenticated }: Props) {
     setKakaoError(null);
     setIsKakaoLoading(true);
     try {
-      const redirectUri = Linking.createURL("auth/kakao");
+      const redirectUri = Platform.OS === "web" && typeof window !== "undefined"
+        ? `${window.location.origin}/auth/kakao`
+        : Linking.createURL("auth/kakao");
       const loginUrl = await getKakaoLoginUrl(redirectUri);
       if (Platform.OS === "web" && typeof window !== "undefined") {
         // On web, openURL runs after an async API call and can be blocked as a

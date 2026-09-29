@@ -13,7 +13,7 @@ export function ArticleNotesPanel({ newsId, sourceUrl }: { newsId: number; sourc
   const [editingContent, setEditingContent] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const queryKey = ["article-notes", newsId];
-  const notesQuery = useQuery({ queryKey, queryFn: () => getArticleNotesForNews(newsId), retry: 0 });
+  const notesQuery = useQuery({ queryKey, queryFn: () => getArticleNotesForNews(newsId), retry: 0, staleTime: 60_000 });
   const refreshNotes = () => {
     void queryClient.invalidateQueries({ queryKey });
     void queryClient.invalidateQueries({ queryKey: ["article-notes"] });
