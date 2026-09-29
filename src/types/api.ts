@@ -44,6 +44,9 @@ export interface NewsDetailRaw {
   content?: string;
   originalContent?: string;
   importanceReason?: string;
+  importanceReasonBeginner?: string;
+  importanceReasonNormal?: string;
+  importanceReasonAnalyst?: string;
   relatedSymbol?: string;
   relatedSymbolName?: string;
   symbolName?: string;
@@ -71,6 +74,7 @@ export interface NewsDetail {
   summary: string;
   rawContent: string;
   importanceReason: string;
+  importanceReasons?: Record<ReadingLevel, string>;
   relatedSymbol: string;
   relatedSymbolName: string;
   sentimentHint: Sentiment;

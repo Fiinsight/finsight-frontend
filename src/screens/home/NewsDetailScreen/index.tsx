@@ -43,6 +43,7 @@ export function NewsDetailScreen({ route, navigation }: Props) {
 
   const detail: NewsDetail = data ?? getSampleNewsDetail(newsId);
   const levelText = detail.levels[readingLevel] || detail.summary;
+  const importanceReason = detail.importanceReasons?.[readingLevel] || detail.importanceReason;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -61,7 +62,7 @@ export function NewsDetailScreen({ route, navigation }: Props) {
           <ArticleBody text={bodyTab === "raw" ? detail.rawContent : levelText} terms={detail.keyTerms} onTermPress={setSelectedTerm} />
         </View>
 
-        <ImportanceReasonCard reason={detail.importanceReason} />
+        <ImportanceReasonCard reason={importanceReason} />
         <ArticleNotesPanel newsId={newsId} />
       </ScrollView>
 

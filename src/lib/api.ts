@@ -162,6 +162,11 @@ function normalizeNewsDetail(raw: NewsDetailRaw, fallbackId: number): NewsDetail
     normal: raw.levels?.normal ?? raw.normalContent ?? raw.rewrittenNormal ?? "",
     analyst: raw.levels?.analyst ?? raw.analystContent ?? raw.rewrittenAnalyst ?? ""
   };
+  const importanceReasons = {
+    beginner: raw.importanceReasonBeginner ?? raw.importanceReason ?? "",
+    normal: raw.importanceReasonNormal ?? raw.importanceReason ?? "",
+    analyst: raw.importanceReasonAnalyst ?? raw.importanceReason ?? ""
+  };
 
   const keyTerms =
     raw.keyTerms && raw.keyTerms.length > 0
@@ -182,6 +187,7 @@ function normalizeNewsDetail(raw: NewsDetailRaw, fallbackId: number): NewsDetail
     summary: derivedSummary,
     rawContent,
     importanceReason: raw.importanceReason ?? "",
+    importanceReasons,
     relatedSymbol: raw.relatedSymbol ?? "",
     relatedSymbolName: raw.relatedSymbolName ?? raw.symbolName ?? raw.relatedSymbol ?? "",
     sentimentHint: raw.sentimentHint ?? "NEUTRAL",
