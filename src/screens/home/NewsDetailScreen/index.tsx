@@ -17,6 +17,8 @@ import { ImportanceReasonCard } from "./ImportanceReasonCard";
 import { SentimentBadge } from "./SentimentBadge";
 import { SourceLinkRow } from "./SourceLinkRow";
 import { ArticleNotesPanel } from "./ArticleNotesPanel";
+import { LocalMlPanel } from "../../../localml/LocalMlPanel";
+import { searchLocalMl } from "../../../localml/transport";
 
 type Props = NativeStackScreenProps<NewsFlowParamList, "NewsDetail">;
 
@@ -61,6 +63,20 @@ export function NewsDetailScreen({ route, navigation }: Props) {
         <View style={styles.bodyCard}>
           <ArticleBody text={bodyTab === "raw" ? detail.rawContent : levelText} terms={detail.keyTerms} onTermPress={setSelectedTerm} />
         </View>
+
+        <LocalMlPanel
+          title="비슷한 뉴스"
+          request={{ kind: "news", query: detail.title, endAt: detail.publishedAt }}
+          search={searchLocalMl}
+        />
+
+        {selectedTerm ? (
+          <LocalMlPanel
+            title={`${selectedTerm} 관련 용어 자료`}
+            request={{ kind: "term", query: selectedTerm, term: selectedTerm }}
+            search={searchLocalMl}
+          />
+        ) : null}
 
         <ImportanceReasonCard reason={importanceReason} />
         <ArticleNotesPanel newsId={newsId} />
