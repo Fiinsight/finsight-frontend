@@ -212,7 +212,6 @@ export function ChartScreen({ route, navigation }: Props) {
                     <Text style={styles.insightNews}>해당 시각에 저장된 관련 뉴스가 없습니다.</Text>
                   )}
                   {insight.explanation ? <Text style={styles.insightExplanation}>{insight.explanation}</Text> : null}
-                  {insight.causeScore > 0 ? <Text style={styles.insightConfidence}>연관성 점수 {Math.round(insight.causeScore * 100)}% · 규칙 기반</Text> : null}
                 </View>
               </View>
             ))}
@@ -393,11 +392,6 @@ const styles = StyleSheet.create({
     color: "#667085",
     fontSize: 12,
     lineHeight: 17
-  },
-  insightConfidence: {
-    color: "#027A48",
-    fontSize: 11,
-    fontWeight: "700"
   },
   selectedInsight: {
     backgroundColor: "#F0F9FF",
