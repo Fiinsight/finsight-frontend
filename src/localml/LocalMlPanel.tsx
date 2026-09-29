@@ -82,14 +82,13 @@ export function LocalMlPanel({
           <Button title="다시 검색" onPress={() => setRetry((value) => value + 1)} />
         </>
       )}
-      {data && <Text>{data.status === "MODEL" ? "E5 로컬 모델 · 의미 검색" : data.status === "RULE_FALLBACK" ? "규칙 대체 검색" : "자료 없음"}</Text>}
+      {data && <Text>{data.results.length > 0 ? "관련 자료를 찾았어요" : "관련 자료가 없어요"}</Text>}
       {data?.results.map((row) => (
         <View key={row.id} style={styles.row}>
           <Text style={styles.rowTitle}>{row.title}</Text>
           <Text>{row.publishedAt || "발행 시각 확인 불가"}</Text>
           {row.matchReason && <Text style={styles.matchReason}>{row.matchReason}</Text>}
           <Text numberOfLines={5}>{row.evidence}</Text>
-          <Text>검색 유사도 {row.score.toFixed(3)}</Text>
         </View>
       ))}
       {data && data.results.length === 0 && <Text>조건에 맞는 추가 자료가 없습니다.</Text>}
