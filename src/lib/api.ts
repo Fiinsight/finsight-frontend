@@ -1,6 +1,6 @@
 import axios from "axios";
-import { storageGetItem } from "./storage";
 import Constants from "expo-constants";
+import { getExpoGoProjectConfig } from "expo";
 import type {
   ChartCandle,
   ChartCandleRaw,
@@ -26,6 +26,7 @@ import type {
   NewsDetailRaw,
   PopularStock,
   PopularStockRaw,
+  StockSearchResult,
   ReadingLevel,
   TermExplainRequest,
   TermExplainResponseRaw,
@@ -33,9 +34,9 @@ import type {
   Tone
 } from "../types/api";
 import { formatPercent } from "./format";
-import { AUTH_STORAGE_KEY } from "./auth";
+import { getActiveAccessToken, loadAuthSession } from "./auth";
 import { loadOnboardingProfile, mapOnboardingToLearningPreferences, type LearningPreferences } from "./onboarding";
-import { KEY_TERM_DICTIONARY, generateSampleChartPoints, getSamplePopularStock, sampleMarketSummary } from "./sampleData";
+import { KEY_TERM_DICTIONARY } from "./sampleData";
 
 export function getApiErrorMessage(error: any, fallback: string): string {
   const data = error?.response?.data;
@@ -51,16 +52,16 @@ export function getApiErrorMessage(error: any, fallback: string): string {
 // Expo 개발 서버는 자신이 지금 물려 있는 실제 호스트를 hostUri로 넘겨주므로,
 // 그 호스트를 그대로 재사용하면(포트만 8080으로 바꿔서) IP가 바뀌어도 항상 맞다.
 function resolveApiBaseUrl(): string {
-  const configuredApiUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
-  if (configuredApiUrl) {
-    return configuredApiUrl;
+  const webHost = typeof window !== "undefined" ? window.location?.hostname : undefined;
+  if (webHost) {
+    return `http://${webHost}:8080/api`;
   }
-  const hostUri = Constants.expoConfig?.hostUri;
+  const hostUri = Constants.expoConfig?.hostUri ?? getExpoGoProjectConfig()?.debuggerHost;
   const host = hostUri?.split(":")[0];
   if (host) {
     return `http://${host}:8080/api`;
   }
-  return "http://localhost:8080/api";
+  return process.env.EXPO_PUBLIC_API_BASE_URL || "http://localhost:8080/api";
 }
 
 export const api = axios.create({
@@ -74,15 +75,8 @@ export const api = axios.create({
 });
 
 api.interceptors.request.use(async (config) => {
-  const raw = await storageGetItem(AUTH_STORAGE_KEY);
-  if (raw) {
-    try {
-      const session = JSON.parse(raw) as { accessToken?: string };
-      if (session.accessToken) config.headers.set("Authorization", `Bearer ${session.accessToken}`);
-    } catch {
-      // A malformed local session should not prevent public API requests.
-    }
-  }
+  const token = getActiveAccessToken() ?? (await loadAuthSession())?.accessToken;
+  if (token) config.headers.set("Authorization", `Bearer ${token}`);
   return config;
 });
 
@@ -100,6 +94,11 @@ export async function signup(email: string, password: string, nickname: string):
 
 export async function login(email: string, password: string): Promise<AuthResponse> {
   const { data } = await api.post<AuthResponse>("/auth/login", { email, password });
+  return data;
+}
+
+export async function getCurrentUser(): Promise<AuthResponse> {
+  const { data } = await api.get<AuthResponse>("/auth/me");
   return data;
 }
 
@@ -183,7 +182,7 @@ function normalizeNewsDetail(raw: NewsDetailRaw, fallbackId: number): NewsDetail
     id: raw.id ?? fallbackId,
     title: raw.title ?? "",
     category: raw.category ?? "국내증시",
-    publishedAt: raw.publishedAt ?? raw.createdAt ?? new Date().toISOString(),
+    publishedAt: raw.publishedAt ?? raw.createdAt ?? "",
     summary: derivedSummary,
     rawContent,
     importanceReason: raw.importanceReason ?? "",
@@ -243,7 +242,7 @@ function normalizeHistoryItem(raw: JudgementHistoryItemRaw, index: number): Judg
   const derivedCorrect =
     raw.correct ??
     raw.aligned ??
-    (raw.actualChangePercent !== undefined
+    (raw.actualChangePercent !== undefined && raw.actualChangePercent !== null
       ? raw.choice === "NEUTRAL"
         ? Math.abs(raw.actualChangePercent) < 0.5
         : (raw.actualChangePercent >= 0) === (raw.choice === "UP")
@@ -257,9 +256,11 @@ function normalizeHistoryItem(raw: JudgementHistoryItemRaw, index: number): Judg
     actualResult:
       raw.actualResult ??
       (raw.actualChangePercent !== undefined
+        && raw.actualChangePercent !== null
         ? `${raw.actualChangePercent > 0 ? "+" : ""}${raw.actualChangePercent}%`
         : raw.actualDirection ?? ""),
     correct: derivedCorrect,
+    feedbackText: raw.feedbackText ?? "",
     judgedAt: raw.judgedAt ?? raw.createdAt ?? new Date().toISOString()
   };
 }
@@ -312,15 +313,17 @@ type ChangeFormat = "percent" | "point";
 function normalizeMarketStat(
   label: string,
   raw: MarketStatRaw | undefined,
-  fallback: MarketStat,
   changeFormat: ChangeFormat = "percent"
 ): MarketStat {
   if (!raw) {
-    return fallback;
+    throw new Error(`${label} 시세 데이터가 없습니다.`);
   }
   // finsight-backend's MarketIndexView uses `currentValue`, RateView uses `value`.
   const rawValue = raw.value ?? raw.currentValue;
-  const value = rawValue !== undefined ? String(rawValue) : fallback.value;
+  if (rawValue === undefined) {
+    throw new Error(`${label} 현재값이 없습니다.`);
+  }
+  const value = String(rawValue);
   const changeNumber = typeof raw.changePercent === "number" ? raw.changePercent : undefined;
 
   let change: string;
@@ -334,10 +337,10 @@ function normalizeMarketStat(
   } else if (raw.change !== undefined) {
     change = String(raw.change);
   } else {
-    change = fallback.change;
+    change = "변동 정보 없음";
   }
 
-  const tone: Tone = raw.tone ?? (changeNumber !== undefined ? (changeNumber > 0 ? "up" : changeNumber < 0 ? "down" : "flat") : fallback.tone);
+  const tone: Tone = raw.tone ?? (changeNumber !== undefined ? (changeNumber > 0 ? "up" : changeNumber < 0 ? "down" : "flat") : "flat");
 
   return { label, value, change, tone };
 }
@@ -346,10 +349,10 @@ export async function getMarketSummary(): Promise<MarketSummary> {
   const { data } = await api.get<MarketSummaryRaw>("/market/summary");
 
   return {
-    kospi: normalizeMarketStat("KOSPI", data.kospi, sampleMarketSummary.kospi),
-    kosdaq: normalizeMarketStat("KOSDAQ", data.kosdaq, sampleMarketSummary.kosdaq),
-    exchangeRate: normalizeMarketStat("원/달러", data.exchangeRate ?? data.usdKrw ?? data.usdKrwRate, sampleMarketSummary.exchangeRate),
-    baseRate: normalizeMarketStat("기준금리", data.baseRate, sampleMarketSummary.baseRate, "point")
+    kospi: normalizeMarketStat("KOSPI", data.kospi),
+    kosdaq: normalizeMarketStat("KOSDAQ", data.kosdaq),
+    exchangeRate: normalizeMarketStat("원/달러", data.exchangeRate ?? data.usdKrw ?? data.usdKrwRate),
+    baseRate: normalizeMarketStat("기준금리", data.baseRate, "point")
   };
 }
 
@@ -376,13 +379,11 @@ function synthesizeCandlesFromPoints(points: ChartPoint[]): ChartCandle[] {
 
 function normalizeChartData(raw: ChartDataRaw, symbol: string): ChartData {
   const rawPoints: Array<ChartPointRaw | ChartCandleRaw> = raw.points ?? raw.candles ?? [];
-  const points: ChartPoint[] =
-    rawPoints.length > 0
-      ? rawPoints.map((point) => {
-          const p = point as ChartPointRaw & ChartCandleRaw;
-          return { date: p.date ?? "", value: p.value ?? p.close ?? p.price ?? 0 };
-        })
-      : generateSampleChartPoints(symbol, raw.price ?? getSamplePopularStock(symbol).price);
+  const generatedFallback = rawPoints.length === 0;
+  const points: ChartPoint[] = rawPoints.map((point) => {
+    const p = point as ChartPointRaw & ChartCandleRaw;
+    return { date: p.date ?? "", value: p.value ?? p.close ?? p.price ?? 0 };
+  });
 
   const candles: ChartCandle[] =
     raw.candles && raw.candles.length > 0
@@ -411,7 +412,7 @@ function normalizeChartData(raw: ChartDataRaw, symbol: string): ChartData {
 
   return {
     symbol: raw.symbol ?? symbol,
-    symbolName: raw.symbolName ?? raw.name ?? getSamplePopularStock(symbol).name,
+    symbolName: raw.symbolName ?? raw.name ?? symbol,
     price: raw.price ?? points[points.length - 1]?.value ?? 0,
     changePercent: raw.changePercent ?? 0,
     points,
@@ -425,14 +426,15 @@ function normalizeChartData(raw: ChartDataRaw, symbol: string): ChartData {
     })),
     period: raw.period ?? "D",
     intervalMinutes: raw.intervalMinutes ?? null,
-    fallback: raw.fallback ?? false,
+    fallback: raw.fallback ?? generatedFallback,
     moveInsights: (raw.moveInsights ?? []).map((insight) => ({
       timestamp: insight.timestamp ?? "",
       changePercent: insight.changePercent ?? 0,
       newsId: insight.newsId ?? null,
       newsTitle: insight.newsTitle ?? "",
       newsSource: insight.newsSource ?? "",
-      explanation: insight.explanation ?? ""
+      explanation: insight.explanation ?? "",
+      causeScore: insight.causeScore ?? 0
     })),
     relatedNews: relatedNewsRaw.map((item) => ({
       id: item.id ?? item.newsId ?? null,
@@ -457,6 +459,11 @@ export async function getPopularStocks(): Promise<PopularStock[]> {
     price: item.price ?? 0,
     changePercent: item.changePercent ?? 0
   }));
+}
+
+export async function searchStocks(query: string): Promise<StockSearchResult[]> {
+  const { data } = await api.get<StockSearchResult[]>("/stocks/search", { params: { query } });
+  return data.map((item) => ({ symbol: item.symbol ?? "", name: item.name ?? "" }));
 }
 
 export type { ReadingLevel, JudgementChoice };

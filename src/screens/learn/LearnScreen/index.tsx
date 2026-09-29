@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView, ScrollView, StyleSheet } from "react-native";
 import { DailyTips } from "./DailyTips";
 import { GuideList } from "./GuideList";
 import { getDefaultLearningPreferences, type LearningPreferences } from "../../../lib/onboarding";
 import { getLearningPreferences } from "../../../lib/api";
+import { TabScreenHeader } from "../../../components/TabScreenHeader";
 
 export function LearnScreen() {
   const [preferences, setPreferences] = useState<LearningPreferences>(getDefaultLearningPreferences());
@@ -15,13 +16,10 @@ export function LearnScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>학습 자료</Text>
-          <Text style={styles.subtitle}>{preferences.focus === "decision" ? "판단의 근거를 쌓아보세요" : "지금의 투자 습관에 맞춰 골라봤어요"}</Text>
-        </View>
+        <TabScreenHeader title="학습" subtitle="지금 읽는 뉴스와 투자 공부에 도움이 되는 자료예요." />
 
         <GuideList focus={preferences.focus} level={preferences.level} />
-        <DailyTips level={preferences.level} pace={preferences.pace} />
+        <DailyTips level={preferences.level} pace={preferences.pace} focus={preferences.focus} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -73,16 +71,4 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19
   },
-  header: {
-    gap: 6
-  },
-  title: {
-    color: "#101828",
-    fontSize: 24,
-    fontWeight: "800"
-  },
-  subtitle: {
-    color: "#667085",
-    fontSize: 14
-  }
 });

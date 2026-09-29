@@ -2,33 +2,34 @@ import { useQuery } from "@tanstack/react-query";
 import { StyleSheet, Text, View } from "react-native";
 import { MarketStatCard } from "../../../components/MarketStatCard";
 import { getMarketSummary } from "../../../lib/api";
-import { sampleMarketSummary } from "../../../lib/sampleData";
 
 export function MarketPanel() {
-  const { data, isError } = useQuery({
+  const { data, isError, isPending } = useQuery({
     queryKey: ["market-summary"],
     queryFn: getMarketSummary,
     retry: 0,
     staleTime: 60_000,
-    // KOSPI/KOSDAQ move continuously during market hours; without this the
-    // query only ever fires once on mount and the panel goes stale while the
-    // screen stays open.
-    refetchInterval: 60_000
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: false
   });
 
-  const market = data ?? sampleMarketSummary;
+  const market = data;
 
   return (
     <View style={styles.panel}>
       <View style={styles.headingRow}>
         <Text style={styles.sectionTitle}>국내 시장 현황</Text>
-        {!data ? <Text style={styles.status}>{isError ? "연결 실패 · 샘플" : "샘플"}</Text> : <Text style={styles.statusLive}>실시간</Text>}
+        {!data ? <Text style={styles.status}>{isPending ? "불러오는 중" : isError ? "연결 확인 필요" : ""}</Text> : null}
       </View>
-      <View style={styles.row}>
-        <MarketStatCard {...market.kospi} />
-        <MarketStatCard {...market.exchangeRate} />
-        <MarketStatCard {...market.baseRate} />
-      </View>
+      {market ? (
+        <View style={styles.row}>
+          <MarketStatCard {...market.kospi} />
+          <MarketStatCard {...market.exchangeRate} />
+          <MarketStatCard {...market.baseRate} />
+        </View>
+      ) : (
+        <Text style={styles.loading}>{isError ? "실제 시장 데이터를 불러오지 못했어요." : "시장 현황을 불러오는 중이에요."}</Text>
+      )}
     </View>
   );
 }
@@ -57,5 +58,5 @@ const styles = StyleSheet.create({
     justifyContent: "space-between"
   },
   status: { color: "#B54708", fontSize: 11, fontWeight: "700" },
-  statusLive: { color: "#027A48", fontSize: 11, fontWeight: "700" }
+  loading: { color: "#667085", fontSize: 14, paddingVertical: 12 }
 });

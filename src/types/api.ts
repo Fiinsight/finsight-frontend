@@ -24,6 +24,7 @@ export interface NewsBrief {
   summary: string;
   importanceReason: string;
   relatedSymbol: string;
+  category: string;
   sentimentHint: Sentiment;
 }
 
@@ -155,9 +156,10 @@ export interface JudgementHistoryItemRaw {
   choice?: JudgementChoice;
   actualResult?: string;
   actualDirection?: string;
-  actualChangePercent?: number;
+  actualChangePercent?: number | null;
   correct?: boolean;
   aligned?: boolean;
+  feedbackText?: string;
   createdAt?: string;
   judgedAt?: string;
 }
@@ -169,6 +171,7 @@ export interface JudgementHistoryItem {
   choice: JudgementChoice;
   actualResult: string;
   correct: boolean | null;
+  feedbackText: string;
   judgedAt: string;
 }
 
@@ -289,6 +292,7 @@ export interface ChartMoveInsightRaw {
   newsTitle?: string | null;
   newsSource?: string | null;
   explanation?: string | null;
+  causeScore?: number;
 }
 
 export interface ChartDocentRaw {
@@ -326,6 +330,7 @@ export interface MoveInsight {
   newsTitle: string;
   newsSource: string;
   explanation: string;
+  causeScore: number;
 }
 
 export interface ChartDocent {
@@ -364,4 +369,9 @@ export interface PopularStockRaw {
   name?: string;
   price?: number;
   changePercent?: number;
+}
+
+export interface StockSearchResult {
+  symbol: string;
+  name: string;
 }

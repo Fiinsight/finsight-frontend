@@ -10,7 +10,10 @@ type Props = NativeStackScreenProps<HomeStackParamList, "Home">;
 export function HomeScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.container}
+      >
         <HomeHeader />
         <MarketPanel />
         <NewsSection onSelectNews={(newsId) => navigation.navigate("NewsDetail", { newsId })} />

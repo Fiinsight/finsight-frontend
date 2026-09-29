@@ -14,10 +14,16 @@ interface AppState {
   setJudgementChoice: (newsId: number, choice: JudgementChoice) => void;
   setJudgementReason: (newsId: number, reason: string) => void;
   clearJudgementDraft: (newsId: number) => void;
+  resetForLogout: () => void;
 }
 
-export const useAppStore = create<AppState>((set) => ({
+const initialState = {
   readingLevelByNewsId: {},
+  judgementDraftByNewsId: {}
+};
+
+export const useAppStore = create<AppState>((set) => ({
+  ...initialState,
   setReadingLevel: (newsId, level) =>
     set((state) => ({
       readingLevelByNewsId: { ...state.readingLevelByNewsId, [newsId]: level }
@@ -43,5 +49,6 @@ export const useAppStore = create<AppState>((set) => ({
       const next = { ...state.judgementDraftByNewsId };
       delete next[newsId];
       return { judgementDraftByNewsId: next };
-    })
+    }),
+  resetForLogout: () => set(initialState)
 }));

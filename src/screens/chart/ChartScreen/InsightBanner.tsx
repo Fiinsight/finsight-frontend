@@ -7,11 +7,12 @@ import { ChartDocentPanel } from "./ChartDocentPanel";
 
 interface InsightBannerProps {
   content: ChartDocentContent;
+  changePercent: number;
   relatedNews: ChartRelatedNews[];
   onNewsPress: (item: ChartRelatedNews) => void;
 }
 
-export function InsightBanner({ content, relatedNews, onNewsPress }: InsightBannerProps) {
+export function InsightBanner({ content, changePercent, relatedNews, onNewsPress }: InsightBannerProps) {
   const [dismissed, setDismissed] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
@@ -34,6 +35,7 @@ export function InsightBanner({ content, relatedNews, onNewsPress }: InsightBann
           whatHappened={content.whatHappened}
           whyItMoved={content.whyItMoved}
           marketImpact={content.marketImpact}
+          changePercent={changePercent}
           relatedNews={relatedNews}
           onNewsPress={onNewsPress}
         />
