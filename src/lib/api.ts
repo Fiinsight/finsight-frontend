@@ -235,18 +235,20 @@ export async function submitJudgement(request: JudgementRequest): Promise<Judgem
 
 function normalizeHistoryItem(raw: JudgementHistoryItemRaw, index: number): JudgementHistoryItem {
   // finsight-backend's JudgementHistoryResponse doesn't send a `correct`/`aligned`
-  // boolean directly, but does send `actualChangePercent` once the feedback
-  // scheduler has run — derive alignment the same way the judgement-submit
-  // normalizer does (UP aligned with a positive move, DOWN with a negative one,
-  // NEUTRAL is never marked wrong outright).
-  const derivedCorrect =
-    raw.correct ??
-    raw.aligned ??
-    (raw.actualChangePercent !== undefined && raw.actualChangePercent !== null
-      ? raw.choice === "NEUTRAL"
+  // boolean directly, but does send the actual direction once the feedback
+  // scheduler has run. Prefer that authoritative value; a 0% change is
+  // NEUTRAL, not an UP hit.
+  const actualDirection = raw.actualDirection?.trim().toUpperCase();
+  let derivedCorrect: boolean | null = raw.correct ?? raw.aligned ?? null;
+  if (derivedCorrect === null) {
+    if (actualDirection) {
+      derivedCorrect = actualDirection === "UNKNOWN" ? null : actualDirection === raw.choice;
+    } else if (raw.actualChangePercent !== undefined && raw.actualChangePercent !== null) {
+      derivedCorrect = raw.choice === "NEUTRAL"
         ? Math.abs(raw.actualChangePercent) < 0.5
-        : (raw.actualChangePercent >= 0) === (raw.choice === "UP")
-      : null);
+        : raw.choice === "UP" ? raw.actualChangePercent > 0 : raw.actualChangePercent < 0;
+    }
+  }
 
   return {
     id: raw.id ?? raw.judgementId ?? index,
