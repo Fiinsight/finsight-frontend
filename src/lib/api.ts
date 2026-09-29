@@ -455,7 +455,7 @@ export async function getChartData(symbol: string, period: "D" | "W" | "MINUTE" 
 }
 
 export async function getPopularStocks(): Promise<PopularStock[]> {
-  const { data } = await api.get<PopularStockRaw[]>("/stocks/popular");
+  const { data } = await api.get<PopularStockRaw[]>("/stocks/popular", { timeout: 20_000 });
   return data.map((item) => ({
     symbol: item.symbol ?? "",
     name: item.name ?? "",
