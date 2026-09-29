@@ -26,9 +26,11 @@ export function SettingsList({ level, onLogout }: { level: LearningLevel; onLogo
           <Ionicons name={row.icon} size={18} color="#667085" />
           <Text style={styles.label}>{row.label}</Text>
           {row.value ? <Text style={styles.value}>{row.value}</Text> : null}
-          <TouchableOpacity disabled={row.label !== "로그아웃"} onPress={row.label === "로그아웃" ? onLogout : undefined} hitSlop={8}>
-            <Ionicons name="chevron-forward" size={16} color="#D0D5DD" />
-          </TouchableOpacity>
+          {row.label === "로그아웃" ? (
+            <TouchableOpacity onPress={onLogout} hitSlop={8}>
+              <Ionicons name="chevron-forward" size={16} color="#D0D5DD" />
+            </TouchableOpacity>
+          ) : null}
         </View>
       ))}
     </View>

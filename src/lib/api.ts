@@ -438,14 +438,14 @@ function normalizeChartData(raw: ChartDataRaw, symbol: string): ChartData {
       id: item.id ?? item.newsId ?? null,
       title: item.title ?? "",
       source: item.source ?? "",
-      publishedAt: item.publishedAt ?? item.date ?? new Date().toISOString()
+      publishedAt: item.publishedAt ?? item.date ?? ""
     })),
     docent
   };
 }
 
-export async function getChartData(symbol: string, period: "D" | "W" | "MINUTE" = "D", interval = 5): Promise<ChartData> {
-  const { data } = await api.get<ChartDataRaw>(`/charts/${symbol}`, { params: { period, interval } });
+export async function getChartData(symbol: string, period: "D" | "W" | "MINUTE" = "D", interval = 5, signal?: AbortSignal): Promise<ChartData> {
+  const { data } = await api.get<ChartDataRaw>(`/charts/${symbol}`, { params: { period, interval }, signal });
   return normalizeChartData(data, symbol);
 }
 

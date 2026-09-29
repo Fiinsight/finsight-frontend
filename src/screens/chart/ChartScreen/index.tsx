@@ -39,12 +39,13 @@ export function ChartScreen({ route, navigation }: Props) {
 
   const { data, isError: chartError } = useQuery({
     queryKey: ["chart-data", selectedSymbol, period, minuteInterval],
-    queryFn: () => getChartData(selectedSymbol, period, minuteInterval),
+    queryFn: ({ signal }) => getChartData(selectedSymbol, period, minuteInterval, signal),
     retry: 0
   });
 
   const chart = data ?? getSampleChartData(selectedSymbol);
   const displayCandles = period === "MINUTE" && chart.minuteCandles.length > 0 ? chart.minuteCandles : chart.candles;
+  const noSearchResults = query.trim().length > 0 && filteredStocks.length === 0;
 
   // Only build a docent banner when there's a real, symbol-tagged news
   // article backing it — no more falling back to fixed sample copy that
@@ -68,6 +69,12 @@ export function ChartScreen({ route, navigation }: Props) {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
         <StockSearchBar value={query} onChange={setQuery} />
+        {noSearchResults ? (
+          <View style={styles.noResults}>
+            <Text style={styles.noResultsTitle}>검색 결과가 없습니다.</Text>
+            <Text style={styles.noResultsText}>종목명이나 종목코드를 다시 확인해 주세요.</Text>
+          </View>
+        ) : <>
         <PopularStockChips stocks={filteredStocks} selectedSymbol={selectedSymbol} onSelect={setSelectedSymbol} />
         <StockHeader name={chart.symbolName} symbol={chart.symbol} price={chart.price} changePercent={chart.changePercent} />
         <View style={styles.periodRow}>
@@ -117,6 +124,7 @@ export function ChartScreen({ route, navigation }: Props) {
         {docentContent ? (
           <InsightBanner content={docentContent} relatedNews={chart.relatedNews} onNewsPress={handleRelatedNewsPress} />
         ) : null}
+        </>}
       </ScrollView>
     </SafeAreaView>
   );
@@ -177,6 +185,23 @@ const styles = StyleSheet.create({
   },
   intervalTextActive: {
     color: "#FFFFFF"
+  },
+  noResults: {
+    backgroundColor: "#FFFFFF",
+    borderColor: "#EAECF0",
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 20,
+    gap: 6
+  },
+  noResultsTitle: {
+    color: "#101828",
+    fontSize: 15,
+    fontWeight: "800"
+  },
+  noResultsText: {
+    color: "#667085",
+    fontSize: 13
   },
   warningCard: {
     backgroundColor: "#FFFAEB",

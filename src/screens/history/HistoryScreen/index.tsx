@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { getArticleNotes, getJudgementHistory } from "../../../lib/api";
 import { toRelativeTimeKorean } from "../../../lib/format";
-import { sampleJudgementHistory } from "../../../lib/sampleData";
 import type { HistoryStackParamList } from "../../../navigation/types";
 import { AttendanceCard } from "../../../components/AttendanceCard";
 import { HistoryItem } from "./HistoryItem";
@@ -22,7 +21,7 @@ export function HistoryScreen({ navigation }: Props) {
     retry: 0
   });
 
-  const history = data ?? sampleJudgementHistory;
+  const history = data ?? [];
   const notes = notesQuery.data ?? [];
 
   return (
