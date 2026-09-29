@@ -31,7 +31,8 @@ function isKoreanMarketOpen() {
 
 function formatMoveInsightTime(timestamp: string, period: Period) {
   const date = timestamp?.slice(0, 10) ?? "";
-  return period === "W" ? `${date} 주간 구간` : timestamp?.replace("T", " ").slice(0, 16);
+  if (period === "MINUTE") return timestamp?.replace("T", " ").slice(0, 16) ?? "";
+  return period === "W" ? `${date} 주간 구간` : date;
 }
 
 export function ChartScreen({ route, navigation }: Props) {
