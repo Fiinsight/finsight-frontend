@@ -22,16 +22,25 @@ export function SettingsList({ level, onLogout }: { level: LearningLevel; onLogo
   return (
     <View style={styles.card}>
       {rowsWithLevel.map((row, index) => (
-        <View key={row.label} style={[styles.row, index === rows.length - 1 && styles.rowLast]}>
-          <Ionicons name={row.icon} size={18} color="#667085" />
-          <Text style={styles.label}>{row.label}</Text>
-          {row.value ? <Text style={styles.value}>{row.value}</Text> : null}
-          {row.label === "로그아웃" ? (
-            <TouchableOpacity onPress={onLogout} hitSlop={8}>
-              <Ionicons name="chevron-forward" size={16} color="#D0D5DD" />
-            </TouchableOpacity>
-          ) : null}
-        </View>
+        row.label === "로그아웃" ? (
+          <TouchableOpacity
+            key={row.label}
+            style={[styles.row, index === rows.length - 1 && styles.rowLast]}
+            onPress={onLogout}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+          >
+            <Ionicons name={row.icon} size={18} color="#667085" />
+            <Text style={styles.label}>{row.label}</Text>
+            <Ionicons name="chevron-forward" size={16} color="#D0D5DD" />
+          </TouchableOpacity>
+        ) : (
+          <View key={row.label} style={[styles.row, index === rows.length - 1 && styles.rowLast]}>
+            <Ionicons name={row.icon} size={18} color="#667085" />
+            <Text style={styles.label}>{row.label}</Text>
+            {row.value ? <Text style={styles.value}>{row.value}</Text> : null}
+          </View>
+        )
       ))}
     </View>
   );
