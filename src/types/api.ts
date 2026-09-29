@@ -160,6 +160,7 @@ export interface JudgementHistoryItemRaw {
   correct?: boolean;
   aligned?: boolean;
   feedbackText?: string;
+  reasons?: string[];
   createdAt?: string;
   judgedAt?: string;
 }
@@ -172,6 +173,7 @@ export interface JudgementHistoryItem {
   actualResult: string;
   correct: boolean | null;
   feedbackText: string;
+  reasons: string[];
   judgedAt: string;
 }
 

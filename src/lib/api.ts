@@ -261,6 +261,7 @@ function normalizeHistoryItem(raw: JudgementHistoryItemRaw, index: number): Judg
         : raw.actualDirection ?? ""),
     correct: derivedCorrect,
     feedbackText: raw.feedbackText ?? "",
+    reasons: Array.isArray(raw.reasons) ? raw.reasons.filter((reason): reason is string => typeof reason === "string" && reason.trim().length > 0) : [],
     judgedAt: raw.judgedAt ?? raw.createdAt ?? new Date().toISOString()
   };
 }

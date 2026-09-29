@@ -66,7 +66,7 @@ export function HistoryScreen({ navigation }: Props) {
         {historyError ? <Text style={styles.errorText}>판단 기록을 불러오지 못했어요. 예시 기록은 표시하지 않습니다.</Text> : null}
         {!historyLoading && !historyError && history.length === 0 ? <View style={styles.emptyCard}><Text style={styles.emptyTitle}>아직 판단 기록이 없어요</Text><Text style={styles.emptyText}>뉴스를 읽고 내일 주가 방향을 판단하면 여기에 남아요.</Text></View> : null}
         {!historyLoading && !historyError && history.map((item) => (
-          <HistoryItem key={item.id} item={item} onPress={() => navigation.navigate("NewsDetail", { newsId: item.newsId })} />
+          <HistoryItem key={item.id} item={item} onPress={() => navigation.navigate("JudgementDetail", { item })} />
         ))}
       </ScrollView>
     </SafeAreaView>

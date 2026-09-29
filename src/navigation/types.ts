@@ -1,4 +1,4 @@
-import type { JudgementAck } from "../types/api";
+import type { JudgementAck, JudgementHistoryItem } from "../types/api";
 
 // Routes shared by every tab's stack navigator so that the news detail ->
 // judgement -> feedback flow works no matter which tab it was entered from
@@ -22,6 +22,7 @@ export type ChartStackParamList = NewsFlowParamList & {
 
 export type HistoryStackParamList = NewsFlowParamList & {
   History: undefined;
+  JudgementDetail: { item: JudgementHistoryItem };
 };
 
 export type RootTabParamList = {
