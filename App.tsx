@@ -11,7 +11,9 @@ import { clearAuthSession, loadAuthSession, type AuthSession } from "./src/lib/a
 import { clearOnboardingProfile, loadOnboardingProfile, saveOnboardingProfile } from "./src/lib/onboarding";
 import { syncOnboardingProfile } from "./src/lib/api";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { staleTime: 60_000 } }
+});
 export default function App() {
   const [showIntro, setShowIntro] = useState(true);
   const [onboardingDoneThisRun, setOnboardingDoneThisRun] = useState(false);

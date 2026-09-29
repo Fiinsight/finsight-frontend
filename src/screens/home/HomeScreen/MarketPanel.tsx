@@ -9,10 +9,11 @@ export function MarketPanel() {
     queryKey: ["market-summary"],
     queryFn: getMarketSummary,
     retry: 0,
+    staleTime: 60_000,
     // KOSPI/KOSDAQ move continuously during market hours; without this the
     // query only ever fires once on mount and the panel goes stale while the
     // screen stays open.
-    refetchInterval: 30_000
+    refetchInterval: 60_000
   });
 
   const market = data ?? sampleMarketSummary;

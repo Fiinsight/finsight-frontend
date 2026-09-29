@@ -25,7 +25,7 @@ export function ChartScreen({ route, navigation }: Props) {
     queryKey: ["popular-stocks"],
     queryFn: getPopularStocks,
     retry: 0,
-    refetchInterval: 30_000
+    staleTime: 60_000
   });
   const stocks = popularStocksData && popularStocksData.length > 0 ? popularStocksData : popularStocks;
 
@@ -40,7 +40,8 @@ export function ChartScreen({ route, navigation }: Props) {
   const { data, isError: chartError } = useQuery({
     queryKey: ["chart-data", selectedSymbol, period, minuteInterval],
     queryFn: ({ signal }) => getChartData(selectedSymbol, period, minuteInterval, signal),
-    retry: 0
+    retry: 0,
+    staleTime: 60_000
   });
 
   const chart = data ?? getSampleChartData(selectedSymbol);

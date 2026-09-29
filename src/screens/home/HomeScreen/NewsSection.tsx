@@ -13,7 +13,8 @@ export function NewsSection({ onSelectNews }: NewsSectionProps) {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["today-briefing"],
     queryFn: getTodayBriefing,
-    retry: 0
+    retry: 0,
+    staleTime: 60_000
   });
 
   const [olderNews, setOlderNews] = useState<NewsBrief[]>([]);
