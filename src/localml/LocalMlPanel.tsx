@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Button, StyleSheet, Text, View } from "react-native";
+import { Button, Pressable, StyleSheet, Text, View } from "react-native";
 
 export type LocalMlQuery = {
   query: string;
@@ -16,6 +16,7 @@ export type LocalMlResult = {
   candidateCount?: number;
   results: Array<{
     id: string;
+    url?: string;
     title: string;
     score: number;
     evidence: string;
@@ -31,12 +32,14 @@ export function LocalMlPanel({
   request,
   search,
   enabled = true,
-  title = "관련 자료 검색"
+  title = "관련 자료 검색",
+  onNewsPress
 }: {
   request: LocalMlQuery;
   search: LocalMlTransport;
   enabled?: boolean;
   title?: string;
+  onNewsPress?: (newsId: number) => void;
 }) {
   const [data, setData] = useState<LocalMlResult | null>(null);
   const [error, setError] = useState(false);
@@ -82,16 +85,27 @@ export function LocalMlPanel({
           <Button title="다시 검색" onPress={() => setRetry((value) => value + 1)} />
         </>
       )}
-      {data && <Text>{data.status === "MODEL" ? "E5 로컬 모델 · 의미 검색" : data.status === "RULE_FALLBACK" ? "규칙 대체 검색" : "자료 없음"}</Text>}
-      {data?.results.map((row) => (
-        <View key={row.id} style={styles.row}>
-          <Text style={styles.rowTitle}>{row.title}</Text>
-          <Text>{row.publishedAt || "발행 시각 확인 불가"}</Text>
-          {row.matchReason && <Text style={styles.matchReason}>{row.matchReason}</Text>}
-          <Text numberOfLines={5}>{row.evidence}</Text>
-          <Text>검색 유사도 {row.score.toFixed(3)}</Text>
-        </View>
-      ))}
+      {data?.status === "RULE_FALLBACK" && <Text>로컬 규칙 검색 (fallback) · 의미 유사도를 확인할 수 없음</Text>}
+      {data && <Text>{data.results.length > 0 ? "관련 자료를 찾았어요" : "관련 자료가 없어요"}</Text>}
+      {data?.results.map((row) => {
+        const newsId = /^\d+$/.test(row.id) ? Number(row.id) : NaN;
+        const canOpen = request.kind === "news" && !!onNewsPress && Number.isSafeInteger(newsId) && newsId > 0;
+        const content = (
+          <>
+            <Text style={styles.rowTitle}>{row.title}</Text>
+            <Text>{row.publishedAt || "발행 시각 확인 불가"}</Text>
+            {row.matchReason && <Text style={styles.matchReason}>{row.matchReason}</Text>}
+            <Text numberOfLines={5}>{row.evidence}</Text>
+            {data.status === "MODEL" && <Text>검색 유사도 {row.score.toFixed(3)}</Text>}
+          </>
+        );
+        return canOpen ? (
+          <Pressable key={row.id} style={styles.row} accessibilityRole="button"
+            accessibilityLabel={`${row.title} 기사 상세 보기`} onPress={() => onNewsPress?.(newsId)}>
+            {content}
+          </Pressable>
+        ) : <View key={row.id} style={styles.row}>{content}</View>;
+      })}
       {data && data.results.length === 0 && <Text>조건에 맞는 추가 자료가 없습니다.</Text>}
     </View>
   );

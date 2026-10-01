@@ -13,7 +13,7 @@ export interface LearningPreferences {
   pace: LearningPace;
   focus: LearningFocus;
   dailyGoal: string;
-  source: "onboarding" | "default";
+  source: "onboarding" | "local" | "default";
 }
 
 const DEFAULT_PREFERENCES: LearningPreferences = {

@@ -1,0 +1,59 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { readFileSync } from 'node:fs';
+import vm from 'node:vm';
+import ts from 'typescript';
+
+// Render the actual panel with a completed search; no native runtime is needed.
+function render(kind, id, onNewsPress) {
+  let slot = 0;
+  const react = {
+    createElement: (type, props, ...children) => ({ type, props, children }),
+    useState: () => [slot++ === 0 ? { results: [{ id, title: '기사', evidence: '발췌', score: 1 }] } : false, () => {}],
+    useEffect: () => {}
+  };
+  const exports = {};
+  const source = readFileSync(new URL('../localml/LocalMlPanel.tsx', import.meta.url), 'utf8');
+  vm.runInNewContext(ts.transpileModule(source, { compilerOptions: {
+    module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.React, esModuleInterop: true
+  } }).outputText, { exports, require: (name) => name === 'react' ? react : {
+    Button: 'Button', Pressable: 'Pressable', Text: 'Text', View: 'View', StyleSheet: { create: (s) => s }
+  } });
+  const tree = exports.LocalMlPanel({ request: { kind, query: '기사' }, search: async () => {}, onNewsPress });
+  const visit = (node) => Array.isArray(node) ? node.flatMap(visit) : node && typeof node === 'object'
+    ? [node, ...visit(node.children)] : [];
+  return visit(tree).filter((node) => node.type === 'Pressable');
+}
+
+test('only news rows with a safe news id invoke detail navigation', () => {
+  const opened = [];
+  const press = (id) => opened.push(id);
+  const rows = render('news', '42', press);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].props.accessibilityRole, 'button');
+  rows[0].props.onPress();
+  assert.deepEqual(opened, [42]);
+  for (const kind of ['term', 'case']) assert.equal(render(kind, '42', press).length, 0);
+  for (const id of ['', '0', '-1', '1.5', 'abc', '9007199254740992']) assert.equal(render('news', id, press).length, 0);
+  assert.equal(render('news', '42').length, 0);
+});
+
+test('onboarding fallback belongs to the signed-in account; pending answers need explicit adoption', async () => {
+  let profile = { userId: 1, answers: [], completedAt: '2026-10-01' };
+  let session = { userId: 2 };
+  const exports = {};
+  const source = readFileSync(new URL('./onboarding.ts', import.meta.url), 'utf8');
+  vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText,
+    { exports, require: (name) => name === './auth' ? { loadAuthSession: async () => session }
+      : name === './storage' ? { storageGetItem: async () => JSON.stringify(profile), storageSetItem: async () => {}, storageRemoveItem: async () => {} }
+      : {} });
+  assert.equal(await exports.loadOnboardingProfile(), null);
+  session = { userId: 1 };
+  assert.equal((await exports.loadOnboardingProfile()).userId, 1);
+  delete profile.userId;
+  assert.equal(await exports.loadOnboardingProfile(), null);
+  assert.ok(await exports.loadOnboardingProfile(true));
+  session = null;
+  profile.userId = 1;
+  assert.equal(await exports.loadOnboardingProfile(), null);
+});
