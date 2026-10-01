@@ -75,7 +75,7 @@ export default function App() {
 
   useEffect(() => {
     if (!session) return;
-    void syncOnboardingProfile().catch(() => {
+    void syncOnboardingProfile(onboardingDoneThisRun).catch(() => {
       // The local profile remains available and can be retried on the next launch.
     });
   }, [session]);
