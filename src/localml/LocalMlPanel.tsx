@@ -77,7 +77,7 @@ export function LocalMlPanel({
   return (
     <View style={styles.panel}>
       <Text style={styles.title}>{title}</Text>
-      <Text style={styles.note}>의미가 비슷한 자료입니다. 상승·하락이나 원인을 판정하지 않습니다.</Text>
+      <Text style={styles.note}>관련 자료 검색 결과입니다. 상승·하락이나 원인을 판정하지 않습니다.</Text>
       {busy && <Text accessibilityLiveRegion="polite">로컬 모델 검색 중…</Text>}
       {error && (
         <>

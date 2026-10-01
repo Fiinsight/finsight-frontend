@@ -183,7 +183,7 @@ function normalizeNewsDetail(raw: NewsDetailRaw, fallbackId: number): NewsDetail
     id: raw.id ?? fallbackId,
     title: raw.title ?? "",
     category: raw.category ?? "국내증시",
-    publishedAt: raw.publishedAt ?? raw.createdAt ?? "",
+    publishedAt: raw.publishedAt ?? "",
     summary: derivedSummary,
     rawContent,
     importanceReason: raw.importanceReason ?? "",
