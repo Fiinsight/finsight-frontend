@@ -57,3 +57,26 @@ test('onboarding fallback belongs to the signed-in account; pending answers need
   profile.userId = 1;
   assert.equal(await exports.loadOnboardingProfile(), null);
 });
+
+test('similar news pushes and pops correctly in every stack that registers NewsDetail', async () => {
+  const { StackRouter, StackActions } = await import('@react-navigation/routers');
+  for (const [file, entry] of [['HomeStack.tsx', 'Home'], ['ChartStack.tsx', 'Chart'], ['HistoryStack.tsx', 'History']]) {
+    const source = readFileSync(new URL(`../navigation/${file}`, import.meta.url), 'utf8');
+    const names = [...source.matchAll(/<Stack.Screen name="([^"]+)"/g)].map((match) => match[1]);
+    assert.ok(names.includes('NewsDetail'));
+    const options = { routeNames: names, routeParamList: {}, routeGetIdList: {} };
+    const router = StackRouter({ initialRouteName: entry });
+    let state = router.getInitialState(options);
+    state = router.getStateForAction(state, StackActions.push('NewsDetail', { newsId: 1 }), options);
+    const opened = [];
+    render('news', '42', (id) => {
+      opened.push(id);
+      state = router.getStateForAction(state, StackActions.push('NewsDetail', { newsId: id }), options);
+    })[0].props.onPress();
+    assert.equal(state.routes[state.index].params.newsId, 42);
+    state = router.getStateForAction(state, StackActions.pop(1), options);
+    assert.equal(state.routes[state.index].params.newsId, 1);
+    state = router.getStateForAction(state, StackActions.pop(1), options);
+    assert.equal(state.routes[state.index].name, entry);
+  }
+});
