@@ -18,7 +18,7 @@ export function DetailTopBar({ category, publishedAt, onBack }: DetailTopBarProp
         <View style={styles.categoryPill}>
           <Text style={styles.categoryPillText}>{category}</Text>
         </View>
-        <Text style={styles.timeText}>{toRelativeTimeKorean(publishedAt)}</Text>
+        <Text style={styles.timeText}>{toRelativeTimeKorean(publishedAt) || "발행 시각 확인할 수 없음"}</Text>
       </View>
     </View>
   );
