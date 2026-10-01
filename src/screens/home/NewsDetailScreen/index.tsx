@@ -89,12 +89,14 @@ export function NewsDetailScreen({ route, navigation }: Props) {
           <ArticleBody text={bodyTab === "raw" ? rawExcerpt : levelText} terms={detail.keyTerms} onTermPress={setSelectedTerm} />
         </View>
 
-        <LocalMlPanel
-          title="비슷한 뉴스"
-          onNewsPress={(id) => navigation.push("NewsDetail", { newsId: id })}
-          request={{ kind: "news", query: detail.title, endAt: detail.publishedAt }}
-          search={searchLocalMl}
-        />
+        {bodyTab === "raw" ? (
+          <LocalMlPanel
+            title="비슷한 뉴스"
+            onNewsPress={(id) => navigation.push("NewsDetail", { newsId: id })}
+            request={{ kind: "news", query: detail.title, endAt: detail.publishedAt }}
+            search={searchLocalMl}
+          />
+        ) : null}
 
         {selectedTerm ? (
           <LocalMlPanel
@@ -104,7 +106,7 @@ export function NewsDetailScreen({ route, navigation }: Props) {
           />
         ) : null}
 
-        <ImportanceReasonCard reason={importanceReason} />
+        {bodyTab === "raw" ? <ImportanceReasonCard reason={importanceReason} /> : null}
         <ArticleNotesPanel newsId={newsId} sourceUrl={detail.url} />
       </ScrollView>
 

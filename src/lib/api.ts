@@ -265,7 +265,7 @@ function normalizeHistoryItem(raw: JudgementHistoryItemRaw, index: number): Judg
     correct: derivedCorrect,
     feedbackText: raw.feedbackText ?? "",
     reasons: Array.isArray(raw.reasons) ? raw.reasons.filter((reason): reason is string => typeof reason === "string" && reason.trim().length > 0) : [],
-    judgedAt: raw.judgedAt ?? raw.createdAt ?? new Date().toISOString()
+    judgedAt: raw.judgedAt ?? raw.createdAt ?? ""
   };
 }
 
@@ -361,7 +361,7 @@ export async function getMarketSummary(): Promise<MarketSummary> {
 // ---------------------------------------------------------------------------
 
 function normalizeChartData(raw: ChartDataRaw, symbol: string): ChartData {
-  if (raw.fallback) throw new Error("실제 차트 데이터를 확인할 수 없습니다 (fallback).");
+  if (raw.fallback) throw Object.assign(new Error("실제 차트 데이터를 확인할 수 없습니다 (fallback)."), { name: "ChartFallbackError" });
   const rawPoints: Array<ChartPointRaw | ChartCandleRaw> = raw.points ?? raw.candles ?? [];
 
   const points: ChartPoint[] = rawPoints.filter((point) => {
@@ -434,7 +434,7 @@ function normalizeChartData(raw: ChartDataRaw, symbol: string): ChartData {
 }
 
 export async function getChartData(symbol: string, period: "D" | "W" | "MINUTE" = "D", interval = 5, signal?: AbortSignal): Promise<ChartData> {
-  const { data } = await api.get<ChartDataRaw>(`/charts/${symbol}`, { params: { period, interval }, signal });
+  const { data } = await api.get<ChartDataRaw>(`/charts/${symbol}`, { params: { period, interval }, signal, timeout: 40_000 });
   return normalizeChartData(data, symbol);
 }
 

@@ -10,6 +10,7 @@ import type { HistoryStackParamList } from "../../navigation/types";
 type Props = NativeStackScreenProps<HistoryStackParamList, "JudgementDetail">;
 
 function kstDateKey(value: string) {
+  if (!Number.isFinite(Date.parse(value))) return "";
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "Asia/Seoul",
     year: "numeric",
@@ -24,9 +25,9 @@ function dayTimestamp(date: string) {
   return Date.parse(`${date.slice(0, 10)}T00:00:00+09:00`);
 }
 
-function chartWindow(candles: Array<{ date: string; close: number }>, judgedAt: string) {
-  const sorted = [...candles].filter((candle) => candle.date && Number.isFinite(candle.close)).sort((a, b) => a.date.localeCompare(b.date));
-  if (sorted.length < 2) return null;
+export function chartWindow(candles: Array<{ date: string; close: number }>, judgedAt: string) {
+  const sorted = [...candles].filter((candle) => Number.isFinite(dayTimestamp(candle.date)) && Number.isFinite(candle.close) && candle.close > 0).sort((a, b) => a.date.localeCompare(b.date));
+  if (sorted.length === 0) return null;
 
   const judgementDate = kstDateKey(judgedAt);
   if (!judgementDate) return null;
@@ -42,9 +43,9 @@ function chartWindow(candles: Array<{ date: string; close: number }>, judgedAt: 
   if (distanceDays > 3) return null;
 
   const start = Math.max(0, Math.min(anchorIndex - 5, sorted.length - 12));
-  const end = Math.min(sorted.length, Math.max(anchorIndex + 6, sorted.length));
-  const visible = sorted.slice(start, end);
+  const visible = sorted.slice(start);
   return {
+    waiting: sorted[sorted.length - 1].date.slice(0, 10) <= judgementDate,
     points: visible.map<ChartPoint>((candle) => ({ date: candle.date, value: candle.close })),
     judgementDate: sorted[anchorIndex].date,
     currentDate: sorted[sorted.length - 1].date,
@@ -63,7 +64,7 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
   const symbol = newsQuery.data?.relatedSymbol?.trim() ?? "";
   const chartQuery = useQuery({
     queryKey: ["judgement-chart", symbol],
-    queryFn: () => getChartData(symbol, "D"),
+    queryFn: ({ signal }) => getChartData(symbol, "D", 5, signal),
     enabled: Boolean(symbol),
     retry: 0,
     staleTime: 60_000
@@ -123,16 +124,28 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
 
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>판단 전후 가격 흐름</Text>
-          {!symbol && !newsQuery.isLoading ? (
-            <Text style={styles.muted}>연결된 종목이 없어 가격 흐름을 표시할 수 없습니다.</Text>
-          ) : chartQuery.isLoading || newsQuery.isLoading ? (
+          {newsQuery.isLoading || (symbol && chartQuery.isLoading) ? (
             <Text style={styles.muted}>실제 가격 흐름을 확인하는 중이에요.</Text>
           ) : chartQuery.isError || newsQuery.isError ? (
-            <Text style={styles.muted}>가격 흐름을 확인할 수 없습니다. 저장된 판단과 피드백은 그대로 표시합니다.</Text>
+            <>
+              <Text style={styles.muted}>{chartQuery.error?.name === "ChartFallbackError"
+                ? "실제 시세 데이터가 없습니다 (fallback). 저장된 판단과 피드백은 그대로 표시합니다."
+                : "가격 데이터 조회에 실패했습니다. 다시 시도해 주세요. 저장된 판단과 피드백은 그대로 표시합니다."}</Text>
+              <TouchableOpacity accessibilityRole="button" onPress={() => {
+                if (newsQuery.isError) void newsQuery.refetch();
+                else void chartQuery.refetch();
+              }}>
+                <Text style={styles.back}>다시 시도</Text>
+              </TouchableOpacity>
+            </>
+          ) : !symbol ? (
+            <Text style={styles.muted}>연결된 종목이 없어 가격 흐름을 표시할 수 없습니다.</Text>
           ) : chart?.fallback ? (
-            <Text style={styles.muted}>실제 시세 데이터가 없어 가격 흐름을 표시하지 않습니다.</Text>
+            <Text style={styles.muted}>실제 시세 데이터가 없습니다 (fallback).</Text>
           ) : !window ? (
             <Text style={styles.muted}>판단일 주변의 실제 거래 데이터가 없어 가격 흐름을 표시하지 않습니다.</Text>
+          ) : window.waiting ? (
+            <Text style={styles.muted}>판단 이후의 거래일 데이터가 아직 없어 비교할 데이터가 부족합니다. 다음 거래일 데이터가 들어오면 가격 흐름을 표시합니다.</Text>
           ) : (
             <>
               <Text style={styles.chartNote}>{window.isNearestTradingDay ? "판단일과 가장 가까운 거래일을 기준으로 표시했어요." : "판단일과 현재 시점의 실제 종가 흐름이에요."}</Text>
