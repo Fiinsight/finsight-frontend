@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import Svg, { Circle, Path } from "react-native-svg";
+import Svg, { Circle, Line, Path } from "react-native-svg";
 import { formatPrice, formatShortDate } from "../lib/format";
 import type { ChartPoint } from "../types/api";
 
@@ -12,6 +12,7 @@ interface MiniLineChartProps {
   showAxisLabels?: boolean;
   /** Lets the caller make data points tappable (e.g. the full Chart screen). */
   onPointPress?: (point: ChartPoint) => void;
+  markers?: Array<{ date: string; label: string; color: string }>;
 }
 
 const PADDING_TOP = 34;
@@ -19,7 +20,7 @@ const PADDING_BOTTOM = 8;
 const PADDING_HORIZONTAL = 10;
 const TOOLTIP_WIDTH = 96;
 
-export function MiniLineChart({ points, height = 160, strokeColor = "#175CD3", highlightDate, showAxisLabels = true, onPointPress }: MiniLineChartProps) {
+export function MiniLineChart({ points, height = 160, strokeColor = "#175CD3", highlightDate, showAxisLabels = true, onPointPress, markers = [] }: MiniLineChartProps) {
   const [width, setWidth] = useState(0);
 
   const chart = useMemo(() => {
@@ -47,9 +48,14 @@ export function MiniLineChart({ points, height = 160, strokeColor = "#175CD3", h
     const highlightY = yAt(highlightPoint.value);
 
     const tooltipLeft = Math.min(Math.max(highlightX - TOOLTIP_WIDTH / 2, 0), Math.max(width - TOOLTIP_WIDTH, 0));
+    const markerPositions = markers.flatMap((marker) => {
+      const index = points.findIndex((point) => point.date.slice(0, 10) === marker.date.slice(0, 10));
+      if (index < 0) return [];
+      return [{ ...marker, x: xAt(index), y: yAt(points[index].value) }];
+    });
 
-    return { path, positions, highlightX, highlightY, highlightPoint, tooltipLeft };
-  }, [width, height, points, highlightDate]);
+    return { path, positions, highlightX, highlightY, highlightPoint, tooltipLeft, markerPositions };
+  }, [width, height, points, highlightDate, markers]);
 
   return (
     <View
@@ -65,9 +71,20 @@ export function MiniLineChart({ points, height = 160, strokeColor = "#175CD3", h
             <Text style={styles.tooltipValue}>{formatPrice(chart.highlightPoint.value)}</Text>
           </View>
           <Svg width={width} height={height}>
+            {chart.markerPositions.map((marker) => (
+              <Line key={`${marker.date}-${marker.label}`} x1={marker.x} x2={marker.x} y1={PADDING_TOP} y2={height - PADDING_BOTTOM} stroke={marker.color} strokeWidth={1.5} strokeDasharray="4 4" />
+            ))}
             <Path d={chart.path} stroke={strokeColor} strokeWidth={2.5} fill="none" strokeLinejoin="round" strokeLinecap="round" />
             <Circle cx={chart.highlightX} cy={chart.highlightY} r={5} fill={strokeColor} stroke="#FFFFFF" strokeWidth={2} />
+            {chart.markerPositions.map((marker) => (
+              <Circle key={`${marker.date}-${marker.label}-dot`} cx={marker.x} cy={marker.y} r={4} fill={marker.color} stroke="#FFFFFF" strokeWidth={2} />
+            ))}
           </Svg>
+          {chart.markerPositions.map((marker) => (
+            <View key={`${marker.date}-${marker.label}-label`} pointerEvents="none" style={[styles.markerLabel, { left: Math.max(Math.min(marker.x - 24, width - 48), 0), top: 4 }]}>
+              <Text style={[styles.markerText, { color: marker.color }]}>{marker.label}</Text>
+            </View>
+          ))}
           {onPointPress
             ? chart.positions.map(({ point, x, y }) => (
                 <Pressable
@@ -125,6 +142,15 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 12,
     fontWeight: "700"
+  },
+  markerLabel: {
+    position: "absolute",
+    width: 48,
+    alignItems: "center"
+  },
+  markerText: {
+    fontSize: 10,
+    fontWeight: "800"
   },
   touchTarget: {
     position: "absolute",
