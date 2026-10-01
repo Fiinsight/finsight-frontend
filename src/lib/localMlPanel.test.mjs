@@ -80,3 +80,26 @@ test('similar news pushes and pops correctly in every stack that registers NewsD
     assert.equal(state.routes[state.index].name, entry);
   }
 });
+
+test('market fallback numbers stay hidden and line prices never become fabricated candles', async () => {
+  let payload;
+  const api = { get: async () => ({ data: payload }), interceptors: { request: { use() {} } } };
+  const exports = {};
+  const source = readFileSync(new URL('./api.ts', import.meta.url), 'utf8');
+  vm.runInNewContext(ts.transpileModule(source, { compilerOptions: {
+    module: ts.ModuleKind.CommonJS, esModuleInterop: true
+  } }).outputText, { exports, process: { env: {} }, require: (name) =>
+    name === 'axios' ? { create: () => api } : name === 'expo-constants' ? {} : name === 'expo' ? { getExpoGoProjectConfig: () => ({}) }
+      : name === './format' ? { formatPercent: (n) => `${n}%` } : {} });
+  payload = { kospi: { currentValue: 2650, changePercent: 0, fallback: true },
+    usdKrwRate: { value: 1300, changePercent: 1, fallback: false } };
+  const market = await exports.getMarketSummary();
+  assert.equal(market.kospi.value, '확인할 수 없음');
+  assert.equal(market.kospi.change, 'fallback');
+  assert.equal(market.exchangeRate.value, '1300');
+  assert.equal(market.baseRate.value, '확인할 수 없음');
+  payload = { fallback: false, price: 100, changePercent: 1, points: [{ date: '2026-10-01', value: 100 }] };
+  assert.equal((await exports.getChartData('TEST')).candles.length, 0);
+  payload = { fallback: true, points: [{ date: '2026-10-01', value: 100 }] };
+  await assert.rejects(exports.getChartData('TEST'), /fallback/);
+});

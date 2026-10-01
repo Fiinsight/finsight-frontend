@@ -316,13 +316,9 @@ function normalizeMarketStat(
   raw: MarketStatRaw | undefined,
   changeFormat: ChangeFormat = "percent"
 ): MarketStat {
-  if (!raw) {
-    throw new Error(`${label} 시세 데이터가 없습니다.`);
-  }
-  // finsight-backend's MarketIndexView uses `currentValue`, RateView uses `value`.
-  const rawValue = raw.value ?? raw.currentValue;
-  if (rawValue === undefined) {
-    throw new Error(`${label} 현재값이 없습니다.`);
+  const rawValue = raw?.value ?? raw?.currentValue;
+  if (!raw || raw.fallback || rawValue == null || String(rawValue).trim() === "" || !Number.isFinite(Number(rawValue))) {
+    return { label, value: "확인할 수 없음", change: "fallback", tone: "flat" };
   }
   const value = String(rawValue);
   const changeNumber = typeof raw.changePercent === "number" ? raw.changePercent : undefined;
@@ -361,41 +357,28 @@ export async function getMarketSummary(): Promise<MarketSummary> {
 // Charts
 // ---------------------------------------------------------------------------
 
-function synthesizeCandlesFromPoints(points: ChartPoint[]): ChartCandle[] {
-  // Sample/offline fallback has no real OHLC — approximate a plausible-looking
-  // candle body around each close so the candlestick chart still renders.
-  return points.map((p, i) => {
-    const prevClose = i > 0 ? points[i - 1].value : p.value;
-    const open = prevClose;
-    const close = p.value;
-    return {
-      date: p.date,
-      open,
-      close,
-      high: Math.max(open, close) * 1.004,
-      low: Math.min(open, close) * 0.996
-    };
-  });
-}
-
 function normalizeChartData(raw: ChartDataRaw, symbol: string): ChartData {
+  if (raw.fallback) throw new Error("실제 차트 데이터를 확인할 수 없습니다 (fallback).");
   const rawPoints: Array<ChartPointRaw | ChartCandleRaw> = raw.points ?? raw.candles ?? [];
-  const generatedFallback = rawPoints.length === 0;
-  const points: ChartPoint[] = rawPoints.map((point) => {
+
+  const points: ChartPoint[] = rawPoints.filter((point) => {
+    const p = point as ChartPointRaw & ChartCandleRaw;
+    return !!p.date && Number.isFinite(p.value ?? p.close ?? p.price);
+  }).map((point) => {
     const p = point as ChartPointRaw & ChartCandleRaw;
     return { date: p.date ?? "", value: p.value ?? p.close ?? p.price ?? 0 };
   });
 
   const candles: ChartCandle[] =
     raw.candles && raw.candles.length > 0
-      ? raw.candles.map((c) => ({
+      ? raw.candles.filter((c) => !!c.date && [c.open, c.high, c.low, c.close].every(Number.isFinite)).map((c) => ({
           date: c.date ?? "",
           open: c.open ?? c.close ?? 0,
           high: c.high ?? c.close ?? 0,
           low: c.low ?? c.close ?? 0,
           close: c.close ?? 0
         }))
-      : synthesizeCandlesFromPoints(points);
+      : [];
 
   // finsight-backend's ChartResponse calls this field `newsMarkers`, and each
   // marker only carries {date, newsId, title} — no `source`.
@@ -418,7 +401,7 @@ function normalizeChartData(raw: ChartDataRaw, symbol: string): ChartData {
     changePercent: raw.changePercent ?? 0,
     points,
     candles,
-    minuteCandles: (raw.minuteCandles ?? []).map((c) => ({
+    minuteCandles: (raw.minuteCandles ?? []).filter((c) => !!(c.timestamp ?? c.date) && [c.open, c.high, c.low, c.close].every(Number.isFinite)).map((c) => ({
       date: c.timestamp ?? c.date ?? "",
       open: c.open ?? c.close ?? 0,
       high: c.high ?? c.close ?? 0,
@@ -427,7 +410,7 @@ function normalizeChartData(raw: ChartDataRaw, symbol: string): ChartData {
     })),
     period: raw.period ?? "D",
     intervalMinutes: raw.intervalMinutes ?? null,
-    fallback: raw.fallback ?? generatedFallback,
+    fallback: raw.fallback ?? (points.length === 0 && candles.length === 0),
     moveInsights: (raw.moveInsights ?? []).map((insight) => ({
       timestamp: insight.timestamp ?? "",
       changePercent: insight.changePercent ?? 0,
