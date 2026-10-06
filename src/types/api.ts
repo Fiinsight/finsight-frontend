@@ -26,6 +26,9 @@ export interface NewsBrief {
   relatedSymbol: string;
   category: string;
   sentimentHint: Sentiment;
+  publishedAt?: string | null;
+  source?: string;
+  url?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -160,6 +163,8 @@ export interface JudgementHistoryItemRaw {
   correct?: boolean;
   aligned?: boolean;
   feedbackText?: string;
+  reasons?: string[];
+  reasonText?: string;
   createdAt?: string;
   judgedAt?: string;
 }
@@ -172,6 +177,7 @@ export interface JudgementHistoryItem {
   actualResult: string;
   correct: boolean | null;
   feedbackText: string;
+  reasons: string[];
   judgedAt: string;
 }
 

@@ -294,6 +294,7 @@ export const sampleJudgementHistory: JudgementHistoryItem[] = [
     actualResult: "+1.8%",
     correct: true,
     feedbackText: "예측하신 방향이 실제 결과와 일치했습니다.",
+    reasons: [],
     judgedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
   },
   {
@@ -304,6 +305,7 @@ export const sampleJudgementHistory: JudgementHistoryItem[] = [
     actualResult: "-0.2%",
     correct: true,
     feedbackText: "변동폭이 중립 범위 안에 있어 중립 판단과 일치했습니다.",
+    reasons: [],
     judgedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
   },
   {
@@ -314,6 +316,7 @@ export const sampleJudgementHistory: JudgementHistoryItem[] = [
     actualResult: "-0.6%",
     correct: false,
     feedbackText: "예측하신 방향과 실제 결과가 달랐습니다. 기사에서 놓친 요인을 다시 확인해보세요.",
+    reasons: [],
     judgedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString()
   }
 ];

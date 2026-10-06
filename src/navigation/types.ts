@@ -1,11 +1,12 @@
-import type { JudgementAck } from "../types/api";
+import type { NavigatorScreenParams } from "@react-navigation/native";
+import type { JudgementAck, JudgementHistoryItem, ReadingLevel } from "../types/api";
 
 // Routes shared by every tab's stack navigator so that the news detail ->
 // judgement -> feedback flow works no matter which tab it was entered from
 // (e.g. tapping a related-news row on the Chart tab, or a past judgement on
 // the History tab).
 export type NewsFlowParamList = {
-  NewsDetail: { newsId: number };
+  NewsDetail: { newsId: number; readMode?: "raw" | "level"; readingLevel?: ReadingLevel };
   Judgement: { newsId: number };
   // Only an acknowledgment — the real result isn't known until the next
   // trading day (see FeedbackScreen for why there's no chart/aligned here).
@@ -22,10 +23,11 @@ export type ChartStackParamList = NewsFlowParamList & {
 
 export type HistoryStackParamList = NewsFlowParamList & {
   History: undefined;
+  JudgementDetail: { item: JudgementHistoryItem };
 };
 
 export type RootTabParamList = {
-  HomeTab: undefined;
+  HomeTab: NavigatorScreenParams<HomeStackParamList> | undefined;
   ChartTab: undefined;
   HistoryTab: undefined;
   LearnTab: undefined;

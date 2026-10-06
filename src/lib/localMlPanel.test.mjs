@@ -83,7 +83,8 @@ test('similar news pushes and pops correctly in every stack that registers NewsD
 
 test('market fallback numbers stay hidden and line prices never become fabricated candles', async () => {
   let payload;
-  const api = { get: async () => ({ data: payload }), interceptors: { request: { use() {} } } };
+  let requestOptions;
+  const api = { get: async (_url, options) => { requestOptions = options; return { data: payload }; }, interceptors: { request: { use() {} }, response: { use() {} } } };
   const exports = {};
   const source = readFileSync(new URL('./api.ts', import.meta.url), 'utf8');
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: {
@@ -99,7 +100,10 @@ test('market fallback numbers stay hidden and line prices never become fabricate
   assert.equal(market.exchangeRate.value, '1300');
   assert.equal(market.baseRate.value, '확인할 수 없음');
   payload = { fallback: false, price: 100, changePercent: 1, points: [{ date: '2026-10-01', value: 100 }] };
-  assert.equal((await exports.getChartData('TEST')).candles.length, 0);
+  const signal = new AbortController().signal;
+  assert.equal((await exports.getChartData('TEST', 'D', 5, signal)).candles.length, 0);
+  assert.equal(requestOptions.timeout, 15_000);
+  assert.equal(requestOptions.signal, signal);
   payload = { fallback: true, points: [{ date: '2026-10-01', value: 100 }] };
-  await assert.rejects(exports.getChartData('TEST'), /fallback/);
+  await assert.rejects(exports.getChartData('TEST'), { name: 'ChartFallbackError' });
 });

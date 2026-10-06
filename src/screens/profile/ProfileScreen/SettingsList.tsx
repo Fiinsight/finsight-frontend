@@ -16,7 +16,7 @@ const rows: SettingsRow[] = [
   { icon: "log-out-outline", label: "로그아웃" }
 ];
 
-export function SettingsList({ level, onLogout }: { level: LearningLevel; onLogout: () => void }) {
+export function SettingsList({ level, onLogout, onEditLevel }: { level: LearningLevel; onLogout: () => void; onEditLevel: () => void }) {
   const levelLabel = level === "analyst" ? "분석형" : level === "normal" ? "일반형" : "초보자용";
   const rowsWithLevel = rows.map((row) => row.label === "읽기 수준 기본값" ? { ...row, value: levelLabel } : row);
   return (
@@ -24,10 +24,10 @@ export function SettingsList({ level, onLogout }: { level: LearningLevel; onLogo
       {rowsWithLevel.map((row, index) => (
         <Pressable
           key={row.label}
-          accessibilityRole={row.label === "로그아웃" ? "button" : undefined}
+          accessibilityRole={row.label === "로그아웃" || row.label === "읽기 수준 기본값" ? "button" : undefined}
           accessibilityLabel={row.label === "로그아웃" ? "로그아웃" : undefined}
-          disabled={row.label !== "로그아웃"}
-          onPress={row.label === "로그아웃" ? onLogout : undefined}
+          disabled={row.label !== "로그아웃" && row.label !== "읽기 수준 기본값"}
+          onPress={row.label === "로그아웃" ? onLogout : row.label === "읽기 수준 기본값" ? onEditLevel : undefined}
           style={[styles.row, index === rows.length - 1 && styles.rowLast]}
         >
           <Ionicons name={row.icon} size={18} color="#667085" />

@@ -1,4 +1,5 @@
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { toRelativeTimeKorean } from "../lib/format";
 import type { NewsBrief } from "../types/api";
 
 interface NewsCardProps {
@@ -20,6 +21,7 @@ export function NewsCard({ news, onPress }: NewsCardProps) {
     >
       <View style={styles.cardTop}>
         <Text style={styles.symbol}>{news.category}</Text>
+        <Text style={styles.date}>{news.publishedAt ? toRelativeTimeKorean(news.publishedAt) : "발행시간 확인할 수 없음"}</Text>
       </View>
       <Text style={styles.newsTitle} numberOfLines={2}>{news.title}</Text>
       <Text style={styles.summary} numberOfLines={2}>{news.summary}</Text>
@@ -29,6 +31,7 @@ export function NewsCard({ news, onPress }: NewsCardProps) {
 }
 
 const styles = StyleSheet.create({
+  date: { color: "#667085", fontSize: 12 },
   newsCard: {
     backgroundColor: "#FFFFFF",
     borderColor: "#EAECF0",
