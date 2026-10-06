@@ -40,3 +40,10 @@ test('direction and change remain separate for rise, fall, neutral, unknown and 
     assert.equal(result.correct, correct);
   }
 });
+
+test('legacy unknown feedback cannot claim a mismatch or expose enum codes',()=>{
+  const result=judgementResult({choice:'UP',actualDirection:'UNKNOWN',actualChangePercent:null,feedbackText:'UP 예측은 UNKNOWN과 달랐습니다'});
+  assert.equal(result.correct,null);
+  assert.equal(result.feedbackText,'관련 종목이 없어 결과를 비교하지 않았어요');
+  assert.equal(judgementResult({choice:'UP',actualDirection:'DOWN',actualChangePercent:-1,feedbackText:'UP과 DOWN'}).feedbackText,'상승과 하락');
+});

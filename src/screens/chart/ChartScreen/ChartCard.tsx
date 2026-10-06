@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { CandlestickChart } from "../../../components/CandlestickChart";
-import type { ChartCandle, ChartRelatedNews, MoveInsight } from "../../../types/api";
+import type { ChartCandle, MoveInsight } from "../../../types/api";
 
 type ChartPeriod = "D" | "W" | "MINUTE";
 
@@ -10,16 +10,12 @@ interface ChartCardProps {
   candles: ChartCandle[];
   period: ChartPeriod;
   minuteInterval?: number;
-  relatedNews?: ChartRelatedNews[];
   moveInsights?: MoveInsight[];
   onCandlePress?: (candle: ChartCandle) => void;
 }
 
-export function ChartCard({ candles, period, minuteInterval, relatedNews = [], moveInsights = [], onCandlePress }: ChartCardProps) {
+export function ChartCard({ candles, period, minuteInterval, moveInsights = [], onCandlePress }: ChartCardProps) {
   const [showGuide, setShowGuide] = useState(false);
-  const markers = relatedNews
-    .filter((item) => item.publishedAt)
-    .map((item) => ({ date: item.publishedAt.slice(0, 10), title: item.title }));
   const periodLabel = period === "D" ? "하루" : period === "W" ? "일주일" : `${minuteInterval ?? 5}분`;
 
   return (
@@ -27,8 +23,7 @@ export function ChartCard({ candles, period, minuteInterval, relatedNews = [], m
       <CandlestickChart
         candles={candles}
         height={240}
-        markers={markers}
-        moveMarkers={moveInsights.map((item) => ({ date: item.timestamp.slice(0, 10), changePercent: item.changePercent }))}
+        moveMarkers={moveInsights.map((item) => ({ date: period === "MINUTE" ? item.timestamp : item.timestamp.slice(0, 10), changePercent: item.changePercent, title: item.newsTitle }))}
         onCandlePress={onCandlePress}
         showTimeLabels={period === "MINUTE"}
       />

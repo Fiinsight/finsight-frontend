@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { toRelativeTimeKorean } from "../../../lib/format";
 import type { ChartRelatedNews } from "../../../types/api";
@@ -8,28 +9,28 @@ interface RelatedNewsListProps {
 }
 
 export function RelatedNewsList({ items, onPress }: RelatedNewsListProps) {
-  if (items.length === 0) {
-    return null;
-  }
-
-  return (
-    <View style={styles.group}>
-      <Text style={styles.title}>관련 뉴스</Text>
-      {items.map((item, index) => (
-        <TouchableOpacity key={index} style={styles.row} activeOpacity={0.75} onPress={() => onPress(item)}>
-          <Text style={styles.headline} numberOfLines={2}>
-            {item.title}
-          </Text>
-          <Text style={styles.meta}>
-            {item.source} · {toRelativeTimeKorean(item.publishedAt)}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
+  const [count, setCount] = useState(10);
+  const [marketOpen, setMarketOpen] = useState(false);
+  const direct = items.filter((item) => item.relationType !== "MARKET");
+  const market = items.filter((item) => item.relationType === "MARKET");
+  const rows = (news: ChartRelatedNews[]) => news.slice(0, count).map((item, index) => (
+    <TouchableOpacity accessibilityRole="button" key={`${item.id}-${index}`} style={styles.row} activeOpacity={0.75} onPress={() => onPress(item)}>
+      <Text style={styles.headline} numberOfLines={2}>{item.title}</Text>
+      <Text style={styles.meta}>{item.source} · {toRelativeTimeKorean(item.publishedAt)}</Text>
+    </TouchableOpacity>
+  ));
+  return <View style={styles.group}>
+    <Text style={styles.title}>관련 뉴스</Text>
+    {items.length === 0 ? <Text style={styles.meta}>이 시점에 수집된 관련 뉴스가 없어요</Text> : null}
+    {rows(direct)}
+    {market.length ? <TouchableOpacity accessibilityRole="button" accessibilityState={{expanded: marketOpen}} onPress={() => setMarketOpen(!marketOpen)}><Text style={styles.title}>{`시장 뉴스 ${market.length}건 ${marketOpen ? "접기" : "펼치기"}`}</Text></TouchableOpacity> : null}
+    {marketOpen ? rows(market) : null}
+    {direct.length > count || (marketOpen && market.length > count) ? <TouchableOpacity accessibilityRole="button" onPress={() => setCount(count + 10)}><Text style={styles.link}>뉴스 더 보기</Text></TouchableOpacity> : null}
+  </View>;
 }
 
 const styles = StyleSheet.create({
+  link: { color: "#175CD3", fontSize: 14, fontWeight: "600", paddingVertical: 8 },
   group: {
     gap: 10
   },

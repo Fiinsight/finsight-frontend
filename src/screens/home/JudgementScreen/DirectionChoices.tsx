@@ -17,16 +17,18 @@ const CHOICES: {
 ];
 
 interface DirectionChoicesProps {
+  disabled?: boolean;
   value?: JudgementChoice;
   onChange: (choice: JudgementChoice) => void;
 }
 
-export function DirectionChoices({ value, onChange }: DirectionChoicesProps) {
+export function DirectionChoices({ value, onChange, disabled = false }: DirectionChoicesProps) {
   return (
     <View style={styles.group} accessibilityRole="radiogroup">
       <Text style={styles.sectionTitle}>예상 방향을 선택하세요</Text>
       {CHOICES.map((option) => (
         <ChoiceCard
+          disabled={disabled}
           key={option.key}
           title={option.title}
           subtitle={option.subtitle}

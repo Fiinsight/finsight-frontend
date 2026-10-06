@@ -31,7 +31,7 @@ export function HistoryItem({ item, onPress }: { item: JudgementHistoryItem; onP
           </View>
         ) : null}
       </View>
-      {item.feedbackText ? <Text style={styles.feedback}>{item.feedbackText}</Text> : null}
+      {result.feedbackText ? <Text style={styles.feedback}>{result.feedbackText}</Text> : null}
       <Text style={styles.date}>{toRelativeTimeKorean(item.judgedAt)}</Text>
     </TouchableOpacity>
   );

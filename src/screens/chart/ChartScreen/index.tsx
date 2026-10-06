@@ -42,6 +42,7 @@ export function ChartScreen({ route, navigation }: Props) {
   const [period, setPeriod] = useState<Period>("D");
   const [minuteInterval, setMinuteInterval] = useState<1 | 5 | 15>(5);
   const [selectedInsight, setSelectedInsight] = useState<MoveInsight | null>(null);
+  useEffect(() => setSelectedInsight(null), [selectedSymbol, period, minuteInterval]);
 
   const { data: popularStocksData, isError: stocksError, refetch: refetchStocks } = useQuery({
     queryKey: ["popular-stocks"],
@@ -176,7 +177,6 @@ export function ChartScreen({ route, navigation }: Props) {
           candles={displayCandles}
           period={period}
           minuteInterval={minuteInterval}
-          relatedNews={chart.relatedNews}
           moveInsights={chart.moveInsights}
           onCandlePress={handleCandlePress}
         /> : <View style={styles.emptyCard}><Text style={styles.emptyText}>실제 차트 데이터가 없어 차트를 표시할 수 없습니다.</Text></View>}
@@ -191,8 +191,9 @@ export function ChartScreen({ route, navigation }: Props) {
                 <Text style={[styles.selectedInsightNews, styles.newsLink]}>{selectedInsight.newsTitle}</Text>
               </TouchableOpacity>
             ) : (
-              <Text style={styles.selectedInsightNews}>연결된 뉴스가 없습니다.</Text>
+              <Text style={styles.selectedInsightNews}>{selectedInsight.explanation || "이 시점에 수집된 관련 뉴스가 없어요"}</Text>
             )}
+            <TouchableOpacity accessibilityRole="button" onPress={() => setSelectedInsight(null)}><Text style={styles.newsLink}>전체 관련 뉴스 보기</Text></TouchableOpacity>
             <Text style={styles.selectedInsightExplanation}>
               {selectedInsight.explanation || "해당 시점의 종목 관련 뉴스가 없어 가격 변동만 표시합니다."}
             </Text>
@@ -202,7 +203,7 @@ export function ChartScreen({ route, navigation }: Props) {
           <View style={styles.insightCard}>
             <Text style={styles.insightTitle}>급등락 시점과 관련 뉴스</Text>
             {chart.moveInsights.map((insight, index) => (
-              <View key={`${insight.timestamp ?? "move"}-${index}`} style={styles.insightRow}>
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel={`${formatMoveInsightTime(insight.timestamp, period)} 급등락 관련 뉴스 보기`} onPress={() => setSelectedInsight(insight)} key={`${insight.timestamp ?? "move"}-${index}`} style={styles.insightRow}>
                 <Text style={[styles.insightMove, insight.changePercent && insight.changePercent > 0 ? styles.up : styles.down]}>
                   {insight.changePercent && insight.changePercent > 0 ? "+" : ""}{insight.changePercent?.toFixed(2)}%
                 </Text>
@@ -213,17 +214,17 @@ export function ChartScreen({ route, navigation }: Props) {
                       <Text style={[styles.insightNews, styles.newsLink]}>{insight.newsTitle}</Text>
                     </TouchableOpacity>
                   ) : (
-                    <Text style={styles.insightNews}>해당 시각에 저장된 관련 뉴스가 없습니다.</Text>
+                    <Text style={styles.insightNews}>{insight.explanation || "이 시점에 수집된 관련 뉴스가 없어요"}</Text>
                   )}
                   {insight.explanation ? <Text style={styles.insightExplanation}>{insight.explanation}</Text> : null}
                 </View>
-              </View>
+              </TouchableOpacity>
             ))}
           </View>
         ) : null}
-        {chart ? <RelatedNewsList items={chart.relatedNews} onPress={handleRelatedNewsPress} /> : null}
+        {chart ? <RelatedNewsList key={`${selectedSymbol}:${period}:${selectedInsight?.timestamp ?? "all"}`} items={selectedInsight ? selectedInsight.candidateNews : chart.relatedNews} onPress={handleRelatedNewsPress} /> : null}
         {docentContent ? (
-          <InsightBanner content={docentContent} changePercent={chart?.changePercent ?? 0} relatedNews={chart?.relatedNews ?? []} onNewsPress={handleRelatedNewsPress} />
+          <InsightBanner content={docentContent} changePercent={chart?.changePercent ?? 0} relatedNews={chart?.relatedNews.filter((news) => news.id === chart.docent?.newsId) ?? []} onNewsPress={handleRelatedNewsPress} />
         ) : null}
       </ScrollView>
     </SafeAreaView>

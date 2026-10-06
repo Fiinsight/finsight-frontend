@@ -4,12 +4,8 @@ import Svg, { Line, Polygon, Rect, Text as SvgText } from "react-native-svg";
 import { formatPrice, formatShortDate, formatShortDateTime, formatShortTime } from "../lib/format";
 import type { ChartCandle } from "../types/api";
 
-interface DateMarker {
-  date: string;
-  title: string;
-}
-
 interface MoveMarker {
+  title?: string;
   date: string;
   changePercent: number;
 }
@@ -21,8 +17,6 @@ interface CandlestickChartProps {
   downColor?: string;
   onCandlePress?: (candle: ChartCandle) => void;
   showTimeLabels?: boolean;
-  /** Real news items to ground the biggest-move callout in an actual headline. */
-  markers?: DateMarker[];
   /** Small, non-blocking markers for the largest backend-detected moves. */
   moveMarkers?: MoveMarker[];
 }
@@ -43,7 +37,6 @@ export function CandlestickChart({
   downColor = "#175CD3",
   onCandlePress,
   showTimeLabels = false,
-  markers = [],
   moveMarkers = []
 }: CandlestickChartProps) {
   const [width, setWidth] = useState(0);
@@ -100,24 +93,17 @@ export function CandlestickChart({
       labelCount === 1 ? 0 : Math.round((i * (candles.length - 1)) / (labelCount - 1))
     );
 
-    // 급등락 지점: 캔들 구간 내에서 |전일 대비 변동률|이 가장 큰 지점을 찾아 콜아웃으로 표시.
-    // 실제 관련 뉴스가 같은 날짜에 있으면 그 제목을 근거로 같이 보여주고, 없으면 숫자만 보여줌
-    // (근거 없는 이유를 지어내지 않음).
-    let biggestMove = bars[0];
-    for (const bar of bars) {
-      if (Math.abs(bar.changePercent) > Math.abs(biggestMove.changePercent)) {
-        biggestMove = bar;
-      }
-    }
-    const matchingMarker = markers.find((m) => m.date === biggestMove.candle.date);
     const moveMarkerByDate = new Map(moveMarkers.map((marker) => [marker.date, marker]));
     const visibleMoveMarkers = bars
       .map((bar) => ({ bar, marker: moveMarkerByDate.get(bar.candle.date) }))
       .filter((item): item is { bar: (typeof bars)[number]; marker: MoveMarker } => Boolean(item.marker));
-    const showCallout = Math.abs(biggestMove.changePercent) >= 1 && candles.length > 1;
-    const calloutIsUp = biggestMove.changePercent >= 0;
+    const largest = visibleMoveMarkers.reduce<(typeof visibleMoveMarkers)[number] | undefined>((best, item) =>
+      !best || Math.abs(item.marker.changePercent) > Math.abs(best.marker.changePercent) ? item : best, undefined);
+    const biggestMove = largest?.bar ?? bars[0];
+    const showCallout = Boolean(largest);
+    const calloutIsUp = (largest?.marker.changePercent ?? 0) >= 0;
     const calloutY = calloutIsUp ? biggestMove.wickTop - 10 : biggestMove.wickBottom + 10;
-    const calloutText = `${calloutIsUp ? "+" : ""}${biggestMove.changePercent.toFixed(1)}%${matchingMarker ? ` · ${matchingMarker.title}` : ""}`;
+    const calloutText = largest ? `${calloutIsUp ? "+" : ""}${largest.marker.changePercent.toFixed(2)}%` : "";
 
     const resolvedIndex = selectedIndex !== null && selectedIndex < candles.length ? selectedIndex : candles.length - 1;
     const activeBar = bars[resolvedIndex];
@@ -138,7 +124,7 @@ export function CandlestickChart({
       calloutIsUp,
       visibleMoveMarkers
     };
-  }, [width, height, candles, selectedIndex, upColor, downColor, markers, moveMarkers]);
+  }, [width, height, candles, selectedIndex, upColor, downColor, moveMarkers]);
 
   return (
     <View style={styles.container} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>

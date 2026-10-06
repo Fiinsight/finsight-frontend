@@ -7,17 +7,19 @@ interface ChoiceCardProps {
   iconName: keyof typeof Ionicons.glyphMap;
   accentColor: string;
   accentBackground: string;
+  disabled?: boolean;
   selected: boolean;
   onPress: () => void;
 }
 
-export function ChoiceCard({ title, subtitle, iconName, accentColor, accentBackground, selected, onPress }: ChoiceCardProps) {
+export function ChoiceCard({ title, subtitle, iconName, accentColor, accentBackground, selected, onPress, disabled = false }: ChoiceCardProps) {
   return (
     <TouchableOpacity
+      disabled={disabled}
       accessibilityRole="radio"
       aria-checked={selected}
       accessibilityLabel={title}
-      accessibilityState={{ checked: selected, selected }}
+      accessibilityState={{ checked: selected, selected, disabled }}
       style={[styles.card, selected && { borderColor: accentColor, backgroundColor: accentBackground }]}
       activeOpacity={0.85}
       onPress={onPress}

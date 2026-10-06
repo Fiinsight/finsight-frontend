@@ -160,6 +160,9 @@ export interface JudgementHistoryItemRaw {
   actualResult?: string;
   actualDirection?: string;
   actualChangePercent?: number | null;
+  comparisonDate?: string | null;
+  judgementClose?: number | null;
+  comparisonClose?: number | null;
   correct?: boolean;
   aligned?: boolean;
   feedbackText?: string;
@@ -176,6 +179,9 @@ export interface JudgementHistoryItem {
   choice: JudgementChoice;
   actualDirection: JudgementChoice | "UNKNOWN" | null;
   actualChangePercent: number | null;
+  comparisonDate?: string | null;
+  judgementClose?: number | null;
+  comparisonClose?: number | null;
   correct: boolean | null;
   feedbackText: string;
   reasons: string[];
@@ -255,6 +261,7 @@ export interface ChartPoint {
 }
 
 export interface ChartRelatedNewsRaw {
+  relationType?: "DIRECT" | "MARKET";
   id?: number;
   newsId?: number;
   title?: string;
@@ -265,6 +272,7 @@ export interface ChartRelatedNewsRaw {
 }
 
 export interface ChartRelatedNews {
+  relationType?: "DIRECT" | "MARKET";
   id: number | null;
   title: string;
   source: string;
@@ -293,6 +301,7 @@ export interface ChartMinuteCandleRaw extends ChartCandleRaw {
 }
 
 export interface ChartMoveInsightRaw {
+  candidateNews?: ChartRelatedNewsRaw[];
   timestamp?: string;
   changePercent?: number;
   newsId?: number | null;
@@ -331,6 +340,7 @@ export interface ChartDataRaw {
 }
 
 export interface MoveInsight {
+  candidateNews: ChartRelatedNews[];
   timestamp: string;
   changePercent: number;
   newsId: number | null;

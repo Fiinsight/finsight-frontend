@@ -45,7 +45,7 @@ export function groupRecords<T>(items: T[], date: (item: T) => string, today: st
   return [...groups.values()];
 }
 
-export function judgementResult(item: Pick<JudgementHistoryItem, "choice" | "actualDirection" | "actualChangePercent">) {
+export function judgementResult(item: Pick<JudgementHistoryItem, "choice" | "actualDirection" | "actualChangePercent"> & { feedbackText?: string }) {
   const direction = item.actualDirection;
   const pending = !direction;
   const unavailable = direction === "UNKNOWN";
@@ -53,7 +53,8 @@ export function judgementResult(item: Pick<JudgementHistoryItem, "choice" | "act
   const percent = item.actualChangePercent;
   const change = percent !== null && Number.isFinite(percent) ? ` ${percent > 0 ? "+" : ""}${percent.toFixed(2)}%` : "";
   const label = pending ? "결과 대기" : unavailable ? "비교 불가" : `실제 ${direction === "UP" ? "상승" : direction === "DOWN" ? "하락" : "중립"}${change}`;
-  return { label, correct, pending, unavailable };
+  const feedbackText = unavailable ? "관련 종목이 없어 결과를 비교하지 않았어요" : (item.feedbackText ?? "").replace(/\bUP\b/g, "상승").replace(/\bDOWN\b/g, "하락").replace(/\bNEUTRAL\b/g, "중립").replace(/\bUNKNOWN\b/g, "비교 불가");
+  return { label, correct, pending, unavailable, feedbackText };
 }
 
 export function judgementSummary(items: JudgementHistoryItem[]) {
@@ -64,4 +65,13 @@ export function judgementSummary(items: JudgementHistoryItem[]) {
     pending: results.filter((result) => result.pending).length,
     unavailable: results.filter((result) => result.unavailable).length
   };
+}
+
+export function judgementClosingPoints(item: Pick<JudgementHistoryItem, "judgedAt" | "comparisonDate" | "judgementClose" | "comparisonClose">) {
+  const day = kstDate(item.judgedAt);
+  const comparison = item.comparisonDate;
+  if (!day || !comparison || !/^\d{4}-\d{2}-\d{2}$/.test(comparison) || kstDate(`${comparison}T00:00:00+09:00`) !== comparison || comparison <= day
+      || typeof item.judgementClose !== "number" || !Number.isFinite(item.judgementClose) || item.judgementClose <= 0
+      || typeof item.comparisonClose !== "number" || !Number.isFinite(item.comparisonClose) || item.comparisonClose <= 0) return null;
+  return [{date: day, value: item.judgementClose}, {date: comparison, value: item.comparisonClose}];
 }
