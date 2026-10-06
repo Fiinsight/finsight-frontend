@@ -43,7 +43,7 @@ export function ChartScreen({ route, navigation }: Props) {
   const [minuteInterval, setMinuteInterval] = useState<1 | 5 | 15>(5);
   const [selectedInsight, setSelectedInsight] = useState<MoveInsight | null>(null);
 
-  const { data: popularStocksData, isError: stocksError } = useQuery({
+  const { data: popularStocksData, isError: stocksError, refetch: refetchStocks } = useQuery({
     queryKey: ["popular-stocks"],
     queryFn: getPopularStocks,
     retry: 0,
@@ -67,7 +67,7 @@ export function ChartScreen({ route, navigation }: Props) {
     retry: 0
   });
 
-  const { data, isError: chartError, isFetching } = useQuery({
+  const { data, isError: chartError, isFetching, refetch: refetchChart } = useQuery({
     queryKey: ["chart-data", selectedSymbol, period, minuteInterval],
     queryFn: ({ signal }) => getChartData(selectedSymbol, period, minuteInterval, signal),
     enabled: Boolean(selectedSymbol),
@@ -140,6 +140,7 @@ export function ChartScreen({ route, navigation }: Props) {
         ) : null}
         {stocks.length > 0 ? <PopularStockChips stocks={stocks} selectedSymbol={selectedSymbol} onSelect={(symbol) => selectStock(symbol, stocks.find((stock) => stock.symbol === symbol)?.name ?? chart?.symbolName ?? symbol)} /> : null}
         {chart ? <StockHeader name={selectedStockName ?? stocks.find((stock) => stock.symbol === selectedSymbol)?.name ?? (chart.symbolName !== chart.symbol ? chart.symbolName : "종목명 확인 불가")} symbol={chart.symbol} price={chart.price} changePercent={chart.changePercent} changeLabel={changeLabel} /> : <View style={styles.emptyCard}><Text style={styles.emptyText}>{stocksError ? "인기 종목을 불러오지 못했습니다." : "시세 데이터를 불러오는 중입니다."}</Text></View>}
+        {chartError || stocksError ? <TouchableOpacity accessibilityRole="button" onPress={() => { if (chartError) void refetchChart(); if (stocksError) void refetchStocks(); }}><Text style={styles.refreshText}>차트 다시 시도</Text></TouchableOpacity> : null}
         <View style={styles.periodRow}>
           <TouchableOpacity style={[styles.periodTab, period === "D" && styles.periodTabActive]} onPress={() => setPeriod("D")}>
             <Text style={[styles.periodText, period === "D" && styles.periodTextActive]}>일봉</Text>

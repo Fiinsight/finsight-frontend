@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, InteractionManager, Keyboard, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, InteractionManager, Keyboard, Platform, Pressable, StyleSheet, Text, TextInput, View, ScrollView } from "react-native";
 import * as Linking from "expo-linking";
 import { LinearGradient } from "expo-linear-gradient";
 import { getApiErrorMessage, getKakaoLoginUrl, login, loginWithKakao, signup } from "../../lib/api";
@@ -16,6 +16,7 @@ export function AuthScreen({ onAuthenticated }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isKakaoLoading, setIsKakaoLoading] = useState(false);
   const [kakaoError, setKakaoError] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
   const isBusy = isSubmitting || isKakaoLoading;
 
   useEffect(() => {
@@ -69,8 +70,11 @@ export function AuthScreen({ onAuthenticated }: Props) {
   }, []);
 
   async function submit() {
+    setAuthError(null);
     if (!email.trim() || password.length < 8 || (isSignup && !nickname.trim())) {
-      Alert.alert("입력 확인", isSignup ? "이메일, 8자 이상 비밀번호, 닉네임을 입력해 주세요." : "이메일과 8자 이상 비밀번호를 입력해 주세요.");
+      const message = isSignup ? "이메일, 8자 이상 비밀번호, 닉네임을 입력해 주세요." : "이메일과 8자 이상 비밀번호를 입력해 주세요.";
+      setAuthError(message);
+      if (Platform.OS !== "web") Alert.alert("입력 확인", message);
       return;
     }
     setIsSubmitting(true);
@@ -79,7 +83,8 @@ export function AuthScreen({ onAuthenticated }: Props) {
       await saveAuthSession(session); onAuthenticated();
     } catch (error: any) {
       const message = getApiErrorMessage(error, "로그인 서버에 연결하지 못했습니다.");
-      Alert.alert(isSignup ? "회원가입 실패" : "로그인 실패", message);
+      setAuthError(message);
+      if (Platform.OS !== "web") Alert.alert(isSignup ? "회원가입 실패" : "로그인 실패", message);
     } finally { setIsSubmitting(false); }
   }
 
@@ -111,6 +116,7 @@ export function AuthScreen({ onAuthenticated }: Props) {
 
   return (
     <LinearGradient colors={["#071B4A", "#0B3D91", "#1769D1"]} locations={[0, 0.52, 1]} style={styles.screen}>
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scrollContent}>
       <Text style={styles.logo}>FinSight</Text>
       <View style={styles.card}>
         <Text style={styles.heading}>{isSignup ? "회원가입" : "로그인"}</Text>
@@ -118,9 +124,10 @@ export function AuthScreen({ onAuthenticated }: Props) {
         <TextInput autoCapitalize="none" keyboardType="email-address" placeholder="이메일 아이디 입력" placeholderTextColor="rgba(255,255,255,0.7)" value={email} onChangeText={setEmail} style={styles.input} />
         <TextInput secureTextEntry placeholder="비밀번호 입력" placeholderTextColor="rgba(255,255,255,0.7)" value={password} onChangeText={setPassword} style={styles.input} />
         <Pressable disabled={isBusy} onPress={submit} style={({ pressed }) => [styles.primary, pressed && styles.pressed]}><Text style={styles.primaryText}>{isSubmitting ? "처리 중..." : isSignup ? "회원가입" : "로그인"}</Text></Pressable>
+        {authError ? <Text accessibilityRole="alert" style={styles.kakaoError}>{authError}</Text> : null}
         <View style={styles.links}>
-          {!isSignup && <Pressable style={styles.linkButton}><Text style={styles.link}>비밀번호 찾기</Text></Pressable>}
-          <Pressable style={styles.linkButton} onPress={() => setIsSignup((value) => !value)}><Text style={styles.link}>{isSignup ? "로그인" : "회원가입"}</Text></Pressable>
+          {!isSignup && <Pressable accessibilityRole="button" style={styles.linkButton} onPress={() => setAuthError("비밀번호 재설정은 아직 지원하지 않아요. 로그인할 수 있는 계정이나 카카오 로그인을 이용해 주세요.")}><Text style={styles.link}>비밀번호 찾기</Text></Pressable>}
+          <Pressable style={styles.linkButton} onPress={() => { setAuthError(null); setIsSignup((value) => !value); }}><Text style={styles.link}>{isSignup ? "로그인" : "회원가입"}</Text></Pressable>
         </View>
         <Text style={styles.socialLabel}>간편하게 로그인하세요.</Text>
         {kakaoError && <Text accessibilityRole="alert" style={styles.kakaoError}>{kakaoError}</Text>}
@@ -138,11 +145,13 @@ export function AuthScreen({ onAuthenticated }: Props) {
           <Text style={styles.kakaoText}>카카오로 계속하기</Text>
         </Pressable>
       </View>
+      </ScrollView>
     </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
+  scrollContent: { flexGrow: 1, justifyContent: "center", paddingVertical: 24 },
   screen: { flex: 1, paddingHorizontal: 28, justifyContent: "center" },
   logo: { color: "#FFFFFF", fontFamily: "Avenir Next", fontSize: 32, fontWeight: "700", letterSpacing: -0.4, textAlign: "center", marginBottom: 38 },
   card: { width: "100%", maxWidth: 340, alignSelf: "center" },
@@ -152,7 +161,7 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.82 },
   primaryText: { color: "#0B3D91", fontFamily: "Pretendard", fontSize: 15, fontWeight: "800" },
   links: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 24, marginTop: 18, minHeight: 24 },
-  linkButton: { minHeight: 24, justifyContent: "center", alignItems: "center" },
+  linkButton: { minHeight: 44, justifyContent: "center", alignItems: "center" },
   link: { color: "rgba(255,255,255,0.82)", fontFamily: "Pretendard", fontSize: 12, fontWeight: "700" },
   socialLabel: { color: "rgba(255,255,255,0.82)", fontFamily: "Pretendard", fontSize: 12, textAlign: "center", marginTop: 44, marginBottom: 14 },
   kakaoError: { color: "#FFE1E1", fontFamily: "Pretendard", fontSize: 12, fontWeight: "600", textAlign: "center", marginBottom: 12 },

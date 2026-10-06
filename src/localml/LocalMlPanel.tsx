@@ -78,7 +78,7 @@ export function LocalMlPanel({
     <View style={styles.panel}>
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.note}>관련 자료 검색 결과입니다. 상승·하락이나 원인을 판정하지 않습니다.</Text>
-      {busy && <Text accessibilityLiveRegion="polite">로컬 모델 검색 중…</Text>}
+      {busy && <Text accessibilityLiveRegion="polite">관련 자료를 찾는 중…</Text>}
       {error && (
         <>
           <Text>추가 검색을 사용할 수 없습니다. 기존 화면은 계속 이용할 수 있습니다.</Text>
