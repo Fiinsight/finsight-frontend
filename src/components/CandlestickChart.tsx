@@ -5,6 +5,7 @@ import { formatPrice, formatShortDate, formatShortDateTime, formatShortTime } fr
 import type { ChartCandle } from "../types/api";
 
 interface MoveMarker {
+  color?: string;
   title?: string;
   date: string;
   changePercent: number;
@@ -121,6 +122,7 @@ export function CandlestickChart({
       biggestMove,
       calloutY,
       calloutText,
+      calloutColor: largest?.marker.color ?? biggestMove.color,
       calloutIsUp,
       visibleMoveMarkers
     };
@@ -178,7 +180,7 @@ export function CandlestickChart({
                 <Polygon
                   key={`move-marker-${bar.index}`}
                   points={points}
-                  fill={isUp ? upColor : downColor}
+                  fill={marker.color ?? (isUp ? upColor : downColor)}
                   opacity={0.9}
                 />
               );
@@ -209,7 +211,7 @@ export function CandlestickChart({
                   y={chart.calloutY}
                   fontSize={11}
                   fontWeight="700"
-                  fill={chart.biggestMove.color}
+                  fill={chart.calloutColor}
                   textAnchor="middle"
                 >
                   {chart.calloutText}

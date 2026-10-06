@@ -23,7 +23,7 @@ export function ChartCard({ candles, period, minuteInterval, moveInsights = [], 
       <CandlestickChart
         candles={candles}
         height={240}
-        moveMarkers={moveInsights.map((item) => ({ date: period === "MINUTE" ? item.timestamp : item.timestamp.slice(0, 10), changePercent: item.changePercent, title: item.newsTitle }))}
+        moveMarkers={moveInsights.map((item) => ({ date: period === "MINUTE" ? item.timestamp : item.timestamp.slice(0, 10), changePercent: item.changePercent, title: item.newsTitle, color: item.explanation?.startsWith("뉴스 수집(") ? "#98A2B3" : undefined }))}
         onCandlePress={onCandlePress}
         showTimeLabels={period === "MINUTE"}
       />

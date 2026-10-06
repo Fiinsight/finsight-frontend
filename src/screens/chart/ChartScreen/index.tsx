@@ -191,10 +191,10 @@ export function ChartScreen({ route, navigation }: Props) {
                 <Text style={[styles.selectedInsightNews, styles.newsLink]}>{selectedInsight.newsTitle}</Text>
               </TouchableOpacity>
             ) : (
-              <Text style={styles.selectedInsightNews}>{selectedInsight.explanation || "이 시점에 수집된 관련 뉴스가 없어요"}</Text>
+              <Text style={styles.selectedInsightNews}>관련 뉴스 없음</Text>
             )}
             <TouchableOpacity accessibilityRole="button" onPress={() => setSelectedInsight(null)}><Text style={styles.newsLink}>전체 관련 뉴스 보기</Text></TouchableOpacity>
-            {selectedInsight.newsId !== null && selectedInsight.explanation ? <Text style={styles.selectedInsightExplanation}>{selectedInsight.explanation}</Text> : null}
+            {selectedInsight.explanation ? <Text style={styles.selectedInsightExplanation}>{selectedInsight.explanation}</Text> : null}
           </View>
         ) : null}
         {chart && chart.moveInsights.length > 0 ? (
@@ -212,9 +212,9 @@ export function ChartScreen({ route, navigation }: Props) {
                       <Text style={[styles.insightNews, styles.newsLink]}>{insight.newsTitle}</Text>
                     </TouchableOpacity>
                   ) : (
-                    <Text style={styles.insightNews}>{insight.explanation || "이 시점에 수집된 관련 뉴스가 없어요"}</Text>
+                    <Text style={styles.insightNews}>관련 뉴스 없음</Text>
                   )}
-                  {insight.newsId !== null && insight.explanation ? <Text style={styles.insightExplanation}>{insight.explanation}</Text> : null}
+                  {insight.explanation ? <Text style={styles.insightExplanation}>{insight.explanation}</Text> : null}
                 </View>
               </TouchableOpacity>
             ))}
