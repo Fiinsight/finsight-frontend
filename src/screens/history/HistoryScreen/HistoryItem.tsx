@@ -1,4 +1,5 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { judgementResult } from "../../../lib/historyRecords";
 import { toRelativeTimeKorean } from "../../../lib/format";
 import type { JudgementChoice, JudgementHistoryItem } from "../../../types/api";
 
@@ -15,6 +16,7 @@ const choiceColor: Record<JudgementChoice, string> = {
 };
 
 export function HistoryItem({ item, onPress }: { item: JudgementHistoryItem; onPress: () => void }) {
+  const result = judgementResult(item);
   return (
     <TouchableOpacity accessibilityRole="button" style={styles.card} activeOpacity={0.85} onPress={onPress}>
       <Text style={styles.title} numberOfLines={2}>
@@ -22,10 +24,10 @@ export function HistoryItem({ item, onPress }: { item: JudgementHistoryItem; onP
       </Text>
       <View style={styles.row}>
         <Text style={[styles.choice, { color: choiceColor[item.choice] }]}>{choiceLabel[item.choice]}</Text>
-        {item.actualResult === "UNKNOWN" ? <Text style={styles.result}>실제 시세 확인 불가</Text> : item.actualResult ? <Text style={styles.result}>실제 {item.actualResult === "UP" ? "상승" : item.actualResult === "DOWN" ? "하락" : "중립"}</Text> : <Text style={styles.pending}>내일 결과를 알려드릴게요</Text>}
-        {item.correct !== null && item.actualResult && item.actualResult !== "UNKNOWN" ? (
-          <View style={[styles.badge, { backgroundColor: item.correct ? "#ECFDF3" : "#FEF3F2" }]}>
-            <Text style={[styles.badgeText, { color: item.correct ? "#12B76A" : "#D92D20" }]}>{item.correct ? "적중" : "불일치"}</Text>
+        <Text style={result.pending ? styles.pending : styles.result}>{result.label}</Text>
+        {result.correct !== null ? (
+          <View style={[styles.badge, { backgroundColor: result.correct ? "#ECFDF3" : "#FEF3F2" }]}>
+            <Text style={[styles.badgeText, { color: result.correct ? "#12B76A" : "#D92D20" }]}>{result.correct ? "적중" : "불일치"}</Text>
           </View>
         ) : null}
       </View>

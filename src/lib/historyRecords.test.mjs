@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { kstDate, recentRange, previousRange, attendanceWeek, groupRecords, judgementSummary } from './historyRecords.ts';
+import { kstDate, recentRange, previousRange, attendanceWeek, groupRecords, judgementResult, judgementSummary } from './historyRecords.ts';
 
 test('KST dates, year boundaries and seven-day windows skip empty weeks directly', () => {
   assert.equal(kstDate('2026-10-05T15:00:00Z'), '2026-10-06');
@@ -17,12 +17,26 @@ test('attendance filter uses real Monday dates and disables future weekdays', ()
   assert.equal(week[6].key,'2026-10-11');
 });
 test('groups are newest first, day filter applies and pending never counts as a hit', () => {
-  const rows=[{judgedAt:'2026-09-02T03:00:00Z',correct:false,actualResult:'-2%'},
-    {judgedAt:'2026-10-05T10:00:00Z',correct:true,actualResult:'1%'},
-    {judgedAt:'2026-10-06T03:00:00Z',correct:true,actualResult:''},
-    {judgedAt:'2026-10-06T04:00:00Z',correct:null,actualResult:'UNKNOWN'}];
+  const rows=[{judgedAt:'2026-09-02T03:00:00Z',choice:'UP',actualDirection:'DOWN',actualChangePercent:-2},
+    {judgedAt:'2026-10-05T10:00:00Z',choice:'UP',actualDirection:'UP',actualChangePercent:1},
+    {judgedAt:'2026-10-06T03:00:00Z',choice:'UP',actualDirection:null,actualChangePercent:null},
+    {judgedAt:'2026-10-06T04:00:00Z',choice:'UP',actualDirection:'UNKNOWN',actualChangePercent:null}];
   assert.deepEqual(groupRecords(rows,r=>r.judgedAt,'2026-10-06',null).map(g=>g.label),['오늘','어제','지난 기록']);
   assert.equal(groupRecords(rows,r=>r.judgedAt,'2026-10-06','2026-10-05')[0].items.length,1);
   assert.deepEqual(judgementSummary(rows),{total:4,hits:1,pending:1,unavailable:1});
   assert.deepEqual(groupRecords([],r=>r.createdAt,'2026-10-06',null),[]);
+});
+
+test('direction and change remain separate for rise, fall, neutral, unknown and pending', () => {
+  for (const [direction, percent, label, correct] of [
+    ['UP', 1.2, '실제 상승 +1.20%', true],
+    ['DOWN', -1.2, '실제 하락 -1.20%', false],
+    ['NEUTRAL', 0, '실제 중립 0.00%', false],
+    ['UNKNOWN', 0, '비교 불가', null],
+    [null, 1.2, '결과 대기', null]
+  ]) {
+    const result = judgementResult({choice:'UP', actualDirection:direction, actualChangePercent:percent});
+    assert.equal(result.label, label);
+    assert.equal(result.correct, correct);
+  }
 });

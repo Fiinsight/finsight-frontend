@@ -3,6 +3,7 @@ import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import ts from 'typescript';
+import { judgementResult } from './historyRecords.ts';
 
 const react = {
   createElement: (type, props, ...children) => ({ type, props, children }),
@@ -13,6 +14,7 @@ const exports = {};
 vm.runInNewContext(ts.transpileModule(readFileSync(new URL('../screens/history/JudgementDetailScreen.tsx', import.meta.url), 'utf8'), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.React, esModuleInterop: true }
 }).outputText, { exports, React: react, require: (name) => name === 'react' ? react
+  : name === '../../lib/historyRecords' ? { judgementResult }
   : name === '@tanstack/react-query' ? { useQuery: () => queries.shift() }
   : name === 'react-native' ? { SafeAreaView: 'SafeAreaView', ScrollView: 'ScrollView', Text: 'Text', View: 'View', TouchableOpacity: 'TouchableOpacity', StyleSheet: { create: (s) => s } }
   : { MiniLineChart: 'MiniLineChart' } });

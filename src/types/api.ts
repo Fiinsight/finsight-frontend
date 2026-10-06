@@ -174,7 +174,8 @@ export interface JudgementHistoryItem {
   newsId: number;
   newsTitle: string;
   choice: JudgementChoice;
-  actualResult: string;
+  actualDirection: JudgementChoice | "UNKNOWN" | null;
+  actualChangePercent: number | null;
   correct: boolean | null;
   feedbackText: string;
   reasons: string[];

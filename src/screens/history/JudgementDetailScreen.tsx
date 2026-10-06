@@ -2,6 +2,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { judgementResult } from "../../lib/historyRecords";
 import { MiniLineChart } from "../../components/MiniLineChart";
 import { getChartData, getNewsDetail } from "../../lib/api";
 import type { ChartPoint } from "../../types/api";
@@ -77,12 +78,13 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
     () => chart && !chart.fallback ? chartWindow(chart.candles, item.judgedAt) : null,
     [chart, item.judgedAt]
   );
-  const status = item.correct === true
+  const result = judgementResult(item);
+  const status = result.correct === true
     ? { label: "적중", color: "#12B76A", background: "#ECFDF3" }
-    : item.correct === false
+    : result.correct === false
       ? { label: "불일치", color: "#D92D20", background: "#FEF3F2" }
-      : item.actualResult === "UNKNOWN"
-        ? { label: "확인 불가", color: "#667085", background: "#F2F4F7" }
+      : result.unavailable
+        ? { label: "비교 불가", color: "#667085", background: "#F2F4F7" }
         : { label: "결과 대기", color: "#667085", background: "#F2F4F7" };
 
   return (
@@ -99,7 +101,7 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
             <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
           </View>
           <Text style={styles.choice}>{item.choice === "UP" ? "상승 예측" : item.choice === "DOWN" ? "하락 예측" : "중립 예측"}</Text>
-          {item.actualResult && item.actualResult !== "UNKNOWN" ? <Text style={styles.actual}>실제 {item.actualResult === "UP" ? "상승" : item.actualResult === "DOWN" ? "하락" : "중립"}</Text> : null}
+          <Text style={styles.actual}>{result.label}</Text>
         </View>
 
         <View style={styles.card}>

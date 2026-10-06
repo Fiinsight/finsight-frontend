@@ -45,11 +45,23 @@ export function groupRecords<T>(items: T[], date: (item: T) => string, today: st
   return [...groups.values()];
 }
 
+export function judgementResult(item: Pick<JudgementHistoryItem, "choice" | "actualDirection" | "actualChangePercent">) {
+  const direction = item.actualDirection;
+  const pending = !direction;
+  const unavailable = direction === "UNKNOWN";
+  const correct = pending || unavailable ? null : direction === item.choice;
+  const percent = item.actualChangePercent;
+  const change = percent !== null && Number.isFinite(percent) ? ` ${percent > 0 ? "+" : ""}${percent.toFixed(2)}%` : "";
+  const label = pending ? "결과 대기" : unavailable ? "비교 불가" : `실제 ${direction === "UP" ? "상승" : direction === "DOWN" ? "하락" : "중립"}${change}`;
+  return { label, correct, pending, unavailable };
+}
+
 export function judgementSummary(items: JudgementHistoryItem[]) {
+  const results = items.map(judgementResult);
   return {
     total: items.length,
-    hits: items.filter((item) => item.correct === true && Boolean(item.actualResult) && item.actualResult !== "UNKNOWN").length,
-    pending: items.filter((item) => !item.actualResult).length,
-    unavailable: items.filter((item) => item.actualResult === "UNKNOWN").length
+    hits: results.filter((result) => result.correct === true).length,
+    pending: results.filter((result) => result.pending).length,
+    unavailable: results.filter((result) => result.unavailable).length
   };
 }
