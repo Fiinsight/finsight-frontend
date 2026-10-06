@@ -31,5 +31,5 @@ export type RootTabParamList = {
   ChartTab: undefined;
   HistoryTab: undefined;
   LearnTab: undefined;
-  ProfileTab: undefined;
+  ProfileTab: { openLearningSettings?: boolean } | undefined;
 };

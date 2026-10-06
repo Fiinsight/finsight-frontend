@@ -10,7 +10,7 @@ interface ScreenTopBarProps {
 export function ScreenTopBar({ title, onBack }: ScreenTopBarProps) {
   return (
     <View style={styles.topBar}>
-      <TouchableOpacity onPress={onBack} hitSlop={12} style={styles.side}>
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel="뒤로가기" onPress={onBack} hitSlop={12} style={styles.side}>
         <Ionicons name="chevron-back" size={24} color="#101828" />
       </TouchableOpacity>
       {title ? <Text style={styles.title}>{title}</Text> : <View style={{ flex: 1 }} />}

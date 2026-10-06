@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Modal, Pressable, StyleSheet, Text, TouchableOpacity, View, ScrollView } from "react-native";
 import { useState } from "react";
 import type { LearningFocus, LearningLevel } from "../../../lib/onboarding";
 
@@ -8,19 +8,118 @@ interface GuideItem {
   title: string;
   subtitle: string;
   content: string;
+  example: string;
+  terms: Array<[string, string]>;
 }
 
 const guides: GuideItem[] = [
-  { icon: "book-outline", title: "뉴스 읽는 법", subtitle: "경제 뉴스를 효과적으로 읽는 방법", content: "헤드라인보다 본문에서 사실과 전망을 나눠 읽어보세요. 숫자·기간·주체를 먼저 확인하고, 마지막으로 이 뉴스가 누구의 비용과 기대를 바꾸는지 한 문장으로 정리하면 판단의 근거가 선명해집니다." },
-  { icon: "bulb-outline", title: "핵심 용어 사전", subtitle: "꼭 알아야 할 투자 용어", content: "용어는 사전 뜻만 외우기보다 뉴스 속 역할을 함께 보세요. 금리·환율·실적처럼 같은 단어도 기업의 매출, 비용, 투자심리 중 어디에 영향을 주는지에 따라 해석이 달라집니다." },
-  { icon: "trending-up-outline", title: "실적 이해하기", subtitle: "기업 실적 발표 읽는 법", content: "매출과 영업이익의 방향을 확인한 뒤 시장 기대와 비교해보세요. 숫자가 좋아도 전망이 낮아지면 주가가 약해질 수 있으니, 실적 발표에서는 다음 분기 가이던스까지 함께 읽는 습관이 중요합니다." },
-  { icon: "cash-outline", title: "금리와 주가", subtitle: "금리가 주식에 미치는 영향", content: "금리가 오르면 자금 조달 비용과 할인율이 높아져 성장주에 부담이 될 수 있습니다. 반대로 은행처럼 이자 수익과 연결된 업종은 다른 영향을 받을 수 있으므로 시장 전체와 업종별 반응을 나눠 살펴보세요." },
-  { icon: "stats-chart-outline", title: "차트 기초", subtitle: "주가 차트 보는 법", content: "차트는 미래를 맞히는 도구가 아니라 가격이 어떻게 반응했는지 확인하는 기록입니다. 기간을 먼저 정하고 추세·거래량·뉴스 시점을 함께 비교하면 숫자 변화의 맥락을 더 잘 이해할 수 있습니다." },
-  { icon: "create-outline", title: "기사 메모 복습", subtitle: "내가 남긴 생각을 다시 읽고 연결하기", content: "기록 탭에서 기사 메모를 다시 읽은 뒤 기사 원문으로 돌아가 근거를 확인해보세요. 당시의 생각과 실제로 확인된 내용을 비교하면 나만의 투자 기준을 쌓는 데 도움이 됩니다." }
+  {
+    "icon": "book-outline",
+    "title": "뉴스 읽는 법",
+    "subtitle": "경제 뉴스를 효과적으로 읽는 방법",
+    "content": "제목은 관심을 끄는 요약이므로 본문에서 근거를 확인하세요.\n이미 확인된 사실과 기자·전문가의 전망을 나눠 읽으세요.\n숫자의 기준 시점과 비교 대상이 같은지 확인하세요.\n누가 이익을 얻고 비용을 부담하는지 메모하세요.",
+    "example": "기업이 수출 증가를 발표했다면 실제 증가율과 기간을 확인하고, 주가 상승 전망은 별도로 구분합니다.",
+    "terms": [
+      [
+        "수출",
+        "국내에서 만든 상품이나 서비스를 다른 나라에 판매하는 활동입니다."
+      ],
+      [
+        "매출",
+        "상품이나 서비스를 팔아 얻은 총 수입입니다."
+      ]
+    ]
+  },
+  {
+    "icon": "bulb-outline",
+    "title": "핵심 용어 사전",
+    "subtitle": "꼭 알아야 할 투자 용어",
+    "content": "먼저 문장 안에서 용어가 무엇을 설명하는지 살펴보세요.\n일반적인 뜻을 확인한 뒤 기사 속 대상과 연결하세요.\n금리·환율·실적은 기업에 서로 다른 영향을 줄 수 있어요.\n헷갈리는 개념은 퀴즈와 복습 카드로 다시 확인하세요.",
+    "example": "환율 하락 기사는 수출 기업의 원화 매출과 수입 기업의 비용에 서로 다른 영향을 줄 수 있습니다.",
+    "terms": [
+      [
+        "환율",
+        "서로 다른 두 통화를 교환하는 비율입니다."
+      ],
+      [
+        "금리",
+        "돈을 빌리거나 맡길 때 적용되는 이자의 비율입니다."
+      ]
+    ]
+  },
+  {
+    "icon": "trending-up-outline",
+    "title": "실적 이해하기",
+    "subtitle": "기업 실적 발표 읽는 법",
+    "content": "매출과 영업이익이 각각 얼마나 변했는지 확인하세요.\n전년 같은 기간인지 직전 분기인지 비교 기준을 보세요.\n일회성 이익과 지속적인 사업 성과를 구분하세요.\n실제 수치와 시장 기대, 앞으로의 전망을 따로 정리하세요.",
+    "example": "매출은 증가했지만 영업이익이 감소한 기업 기사라면 원가·인건비와 사업 전망을 함께 확인합니다.",
+    "terms": [
+      [
+        "매출",
+        "상품이나 서비스를 팔아 얻은 총 수입입니다."
+      ],
+      [
+        "영업이익",
+        "본업에서 얻은 매출에서 원가와 판매·관리 비용을 뺀 이익입니다."
+      ]
+    ]
+  },
+  {
+    "icon": "cash-outline",
+    "title": "금리와 주가",
+    "subtitle": "금리가 주식에 미치는 영향",
+    "content": "금리는 자금 조달 비용과 투자 자산 평가에 영향을 줍니다.\n금리 변화의 이유가 물가인지 경기인지 확인하세요.\n대출이 많은 기업과 이자 수익을 얻는 기업을 구분하세요.\n금리만으로 주가 방향을 단정하지 말고 실적·기대를 함께 보세요.",
+    "example": "기준금리 동결 기사라도 시장이 인하를 기대했다면 기업과 투자자의 반응은 다를 수 있습니다.",
+    "terms": [
+      [
+        "금리",
+        "돈을 빌리거나 맡길 때 적용되는 이자의 비율입니다."
+      ],
+      [
+        "물가",
+        "여러 상품과 서비스 가격의 전반적인 수준입니다."
+      ]
+    ]
+  },
+  {
+    "icon": "stats-chart-outline",
+    "title": "차트 기초",
+    "subtitle": "주가 차트 보는 법",
+    "content": "먼저 일봉·주봉처럼 비교할 기간을 정하세요.\n시가·고가·저가·종가가 각각 무엇인지 확인하세요.\n뉴스 발행 시점과 가격 변화를 시간 순서로 살펴보세요.\n함께 움직였다는 사실만으로 뉴스가 원인이라고 단정하지 마세요.",
+    "example": "실적 발표 이후 가격이 올랐더라도 같은 시간의 시장 흐름과 다른 공시를 함께 검토합니다.",
+    "terms": [
+      [
+        "주가",
+        "주식 한 주가 시장에서 거래되는 가격입니다."
+      ],
+      [
+        "거래량",
+        "정해진 기간에 거래된 주식의 수량입니다."
+      ]
+    ]
+  },
+  {
+    "icon": "create-outline",
+    "title": "기사 메모 복습",
+    "subtitle": "내가 남긴 생각을 다시 읽고 연결하기",
+    "content": "기사의 사실과 자신의 예상을 다른 문장으로 기록하세요.\n판단 근거가 된 숫자와 출처 링크를 남기세요.\n결과가 나온 뒤 맞힌 이유와 놓친 변수를 구분하세요.\n한 번의 결과보다 반복되는 판단 습관을 살펴보세요.",
+    "example": "환율을 근거로 상승을 예상했다면 이후 실제 환율·실적 변화를 확인하고 당시 가정을 메모와 비교합니다.",
+    "terms": [
+      [
+        "환율",
+        "서로 다른 두 통화를 교환하는 비율입니다."
+      ],
+      [
+        "영업이익",
+        "본업에서 얻은 매출에서 원가와 판매·관리 비용을 뺀 이익입니다."
+      ]
+    ]
+  }
 ];
 
 export function GuideList({ focus, level }: { focus: LearningFocus; level: LearningLevel }) {
   const [selectedGuide, setSelectedGuide] = useState<GuideItem | null>(null);
+  const [selectedTerm, setSelectedTerm] = useState<[string, string] | null>(null);
   const personalizedGuides = focus === "decision"
     ? [guides[2], guides[0], guides[3], guides[4]]
     : focus === "market"
@@ -37,7 +136,7 @@ export function GuideList({ focus, level }: { focus: LearningFocus; level: Learn
           key={guide.title}
           style={[styles.row, index === visibleGuides.length - 1 && styles.rowLast]}
           activeOpacity={0.7}
-          onPress={() => setSelectedGuide(guide)}
+          onPress={() => { setSelectedGuide(guide); setSelectedTerm(null); }}
         >
           <View style={styles.iconCircle}>
             <Ionicons name={guide.icon} size={18} color="#175CD3" />
@@ -51,12 +150,17 @@ export function GuideList({ focus, level }: { focus: LearningFocus; level: Learn
       ))}
       <Modal visible={selectedGuide !== null} transparent animationType="slide" onRequestClose={() => setSelectedGuide(null)}>
         <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
+          <View style={styles.modalCard}><ScrollView contentContainerStyle={{ gap: 14 }}>
             <Text style={styles.modalTitle}>{selectedGuide?.title}</Text>
             <Text style={styles.modalBody}>{selectedGuide?.content}</Text>
+            <Text style={styles.title}>기사 읽기 예시 · 학습용 가상 상황</Text>
+            <Text style={styles.modalBody}>{selectedGuide?.example}</Text>
+            <Text style={styles.title}>관련 용어 · 눌러서 뜻 확인</Text>
+            {selectedGuide?.terms.map((term) => <Pressable key={term[0]} accessibilityRole="button" onPress={() => setSelectedTerm(term)}><Text style={styles.termLink}>{term[0]} →</Text></Pressable>)}
+            {selectedTerm ? <Text accessibilityLiveRegion="polite" style={styles.modalBody}>{selectedTerm[0]}: {selectedTerm[1]}</Text> : null}
             <Pressable onPress={() => setSelectedGuide(null)} style={styles.closeButton}>
               <Text style={styles.closeButtonText}>확인</Text>
-            </Pressable>
+            </Pressable></ScrollView>
           </View>
         </View>
       </Modal>
@@ -65,6 +169,7 @@ export function GuideList({ focus, level }: { focus: LearningFocus; level: Learn
 }
 
 const styles = StyleSheet.create({
+  termLink: { color: "#175CD3", paddingVertical: 12, fontSize: 14 },
   card: {
     backgroundColor: "#FFFFFF",
     borderColor: "#EAECF0",
@@ -114,7 +219,7 @@ const styles = StyleSheet.create({
     fontSize: 12
   },
   modalBackdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(16,24,40,0.35)" },
-  modalCard: { backgroundColor: "#FFFFFF", borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 24, gap: 14 },
+  modalCard: { maxHeight: "85%", backgroundColor: "#FFFFFF", borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 24, gap: 14 },
   modalTitle: { color: "#101828", fontSize: 20, fontWeight: "800" },
   modalBody: { color: "#344054", fontSize: 15, lineHeight: 23 },
   closeButton: { backgroundColor: "#175CD3", borderRadius: 10, alignItems: "center", paddingVertical: 13 },
