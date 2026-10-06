@@ -71,3 +71,31 @@ test('learning focus callbacks run without invoking hooks inside an effect', () 
   inEffect = true;
   for (const effect of effects) effect();
 });
+
+test('profile updates reading level only after successful server persistence', async () => {
+  const values = ['analyst', true, false, ''];
+  let cursor = 0, fail = true, requested;
+  const react = { createElement: (type, props, ...children) => ({ type, props, children }), useEffect() {}, useState: (initial) => {
+    const index = cursor++;
+    return [values[index] ?? initial, (value) => { values[index] = value; }];
+  } };
+  const screen = compile('../screens/profile/ProfileScreen/index.tsx', { React: react, require: (name) => {
+    if (name === 'react') return react;
+    if (name === 'react-native') return { Pressable: 'Pressable', Text: 'Text', View: 'View', StyleSheet: { create: (s) => s } };
+    if (name.endsWith('/onboarding')) return { getDefaultLearningPreferences: () => ({ level: 'analyst' }) };
+    if (name.endsWith('/api')) return { setDefaultReadingLevel: async (level) => { requested = level; if (fail) throw new Error('offline'); } };
+    return {};
+  } });
+  const render = () => { cursor = 0; return visit(screen.ProfileScreen({ session: {}, onLogout() {} })); };
+  render().find((node) => node.type === 'Pressable').props.onPress();
+  await new Promise(setImmediate);
+  assert.equal(requested, 'beginner');
+  assert.equal(values[0], 'analyst');
+  assert.match(values[3], /저장하지 못했습니다/);
+  fail = false;
+  render().find((node) => node.type === 'Pressable').props.onPress();
+  await new Promise(setImmediate);
+  assert.equal(values[0], 'beginner');
+  assert.equal(values[1], false);
+  assert.match(values[3], /저장했어요/);
+});

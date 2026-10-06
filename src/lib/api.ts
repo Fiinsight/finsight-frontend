@@ -124,6 +124,10 @@ export async function syncOnboardingProfile(includePending = false): Promise<voi
   if (profile.userId == null) await saveOnboardingProfile(profile.answers);
 }
 
+export async function setDefaultReadingLevel(level: ReadingLevel): Promise<void> {
+  await api.put("/profile/learning-level", { level });
+}
+
 export async function getLearningPreferences(): Promise<LearningPreferences> {
   try {
     const { data } = await api.get<{
