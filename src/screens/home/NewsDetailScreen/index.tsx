@@ -51,7 +51,7 @@ export function NewsDetailScreen({ route, navigation }: Props) {
   useEffect(() => {
     // Opening a loaded article counts as reading it; the daily goal is three
     // distinct articles, not a timed dwell requirement.
-    if (!data || !isFocused) return;
+    if (!data?.rawContent.trim() || !isFocused) return;
     void recordArticleRead(newsId);
   }, [data?.id, isFocused, newsId]);
 
