@@ -28,14 +28,12 @@ export function FeedbackScreen({ route, navigation }: Props) {
           <Ionicons name="checkmark" size={32} color="#12B76A" />
         </View>
         <Text style={styles.title}>{choiceLabel[ack.choice] ?? ack.choice} 판단이 기록됐어요</Text>
-        <Text style={styles.message}>{ack.message}</Text>
+        <Text style={styles.message}>뉴스를 읽고 남긴 판단은 기록 탭에서 바로 확인할 수 있어요.</Text>
 
         <View style={styles.noticeCard}>
           <Ionicons name="time-outline" size={18} color="#175CD3" />
           <Text style={styles.noticeText}>
-            실제 시장 결과와 비교한 AI 피드백은 아직 만들어질 수 없어요(시장이 아직 안 움직였으니까요). 다음
-            거래일 장 마감 후 자동으로 계산되고, {"\n"}
-            <Text style={styles.noticeStrong}>'기록' 탭</Text>에서 확인할 수 있어요.
+            다음 거래일 장 마감 후 실제 시세가 확인되면 결과와 피드백을 <Text style={styles.noticeStrong}>기록 탭</Text>에서 볼 수 있어요. 시세를 확인할 수 없으면 결과를 확정하지 않아요.
           </Text>
         </View>
       </View>

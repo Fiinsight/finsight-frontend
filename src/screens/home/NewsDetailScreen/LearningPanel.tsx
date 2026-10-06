@@ -12,14 +12,14 @@ export function LearningPanel({ newsId, level, onTermPress }: { newsId: number; 
     onSuccess: () => { void client.invalidateQueries({ queryKey: ["learning-reviews"] }); }
   });
   if (lesson.isLoading) return <Text>내 수준에 맞는 설명을 불러오는 중이에요.</Text>;
-  if (!lesson.data) return <View style={styles.card}><Text>수준별 설명을 확인할 수 없습니다 (fallback). 원문 링크를 확인하세요.</Text><Pressable accessibilityRole="button" onPress={() => void lesson.refetch()}><Text style={styles.link}>다시 시도</Text></Pressable></View>;
+  if (!lesson.data) return <View style={styles.card}><Text>수준별 설명을 확인할 수 없습니다. 원문 링크를 확인하세요.</Text><Pressable accessibilityRole="button" onPress={() => void lesson.refetch()}><Text style={styles.link}>다시 시도</Text></Pressable></View>;
   const data = lesson.data;
   return (
     <View style={styles.card}>
       <Text style={styles.heading}>내 수준에 맞게 읽기</Text>
-      <Text style={styles.muted}>{data.mode === "RULE_FALLBACK" ? "무료 규칙 기반 설명 (fallback) · 원문 발췌와 쉬운 표현을 사용합니다." : "수준별 설명을 확인할 수 없습니다 (fallback)."}</Text>
+      <Text style={styles.muted}>{data.mode === "RULE_FALLBACK" ? "기사의 핵심 내용을 쉽게 풀어 읽어보세요." : "수준별 설명을 확인할 수 없습니다."}</Text>
       <Text style={styles.guide}>{data.readingGuide}</Text>
-      <ArticleBody text={data.summary} terms={data.glossary.map((g) => g.term)} onTermPress={onTermPress} />
+      <ArticleBody text={data.summary.replace(/\s*\(fallback\)/gi, "")} terms={data.glossary.map((g) => g.term)} onTermPress={onTermPress} />
       <Text style={styles.heading}>알아둘 개념</Text>
       <Text style={styles.muted}>아래는 일반 용어 설명이며 기사에 추가된 사실이 아닙니다.</Text>
       {data.glossary.length ? data.glossary.map((g) => <View key={g.term}><Text style={styles.term}>{g.term}</Text><Text style={styles.body}>{g.definition}</Text></View>) : <Text>이 기사에서 학습할 용어를 확인할 수 없습니다.</Text>}

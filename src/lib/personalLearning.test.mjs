@@ -26,7 +26,7 @@ test('reading panel shows provenance and sends the selected answer to server gra
   });
   const tree = visit(exports.LearningPanel({ newsId: 115, level: 'analyst', onTermPress() {} }));
   const texts = tree.filter((n) => n.type === 'Text').flatMap((n) => n.children).join(' ');
-  assert.match(texts, /fallback/);
+  assert.doesNotMatch(texts, /fallback|무료 규칙 기반/);
   assert.match(texts, /기사에 추가된 사실이 아닙니다/);
   assert.match(texts, /다시 살펴볼까요/);
   tree.find((n) => n.type === 'Pressable').props.onPress();

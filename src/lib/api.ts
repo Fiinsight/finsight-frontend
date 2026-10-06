@@ -383,7 +383,7 @@ export async function getMarketSummary(): Promise<MarketSummary> {
 // ---------------------------------------------------------------------------
 
 function normalizeChartData(raw: ChartDataRaw, symbol: string): ChartData {
-  if (raw.fallback) throw Object.assign(new Error("실제 차트 데이터를 확인할 수 없습니다 (fallback)."), { name: "ChartFallbackError" });
+  if (raw.fallback) throw Object.assign(new Error("실제 차트 데이터를 확인할 수 없습니다."), { name: "ChartFallbackError" });
   const rawPoints: Array<ChartPointRaw | ChartCandleRaw> = raw.points ?? raw.candles ?? [];
 
   const points: ChartPoint[] = rawPoints.filter((point) => {

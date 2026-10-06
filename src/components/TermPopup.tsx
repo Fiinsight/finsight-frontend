@@ -33,7 +33,7 @@ export function TermPopup({ visible, term, newsId, onClose }: TermPopupProps) {
           {data ? <>
             <View style={styles.block}><Text style={styles.blockLabel}>뜻</Text><Text style={styles.blockBody}>{data.definition}</Text></View>
             <View style={styles.block}><Text style={styles.blockLabel}>이 뉴스에서는</Text><Text style={styles.blockBody}>{data.contextExplanation}</Text></View>
-            <View style={styles.block}><Text style={styles.blockLabel}>시장 영향</Text><Text style={styles.blockBody}>{data.marketImpact}</Text></View>
+            <View style={styles.block}><Text style={styles.blockLabel}>시장 영향</Text><Text style={styles.blockBody}>{data.marketImpact.replace(/\bNEUTRAL\b/g, "중립적 영향").replace(/\bPOSITIVE\b/g, "긍정적 영향").replace(/\bNEGATIVE\b/g, "부정적 영향")}</Text></View>
           </> : null}
 
           <TouchableOpacity style={styles.closeButton} onPress={onClose} activeOpacity={0.85}>

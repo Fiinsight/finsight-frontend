@@ -99,7 +99,7 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
             <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
           </View>
           <Text style={styles.choice}>{item.choice === "UP" ? "상승 예측" : item.choice === "DOWN" ? "하락 예측" : "중립 예측"}</Text>
-          {item.actualResult && item.actualResult !== "UNKNOWN" ? <Text style={styles.actual}>실제 {item.actualResult}</Text> : null}
+          {item.actualResult && item.actualResult !== "UNKNOWN" ? <Text style={styles.actual}>실제 {item.actualResult === "UP" ? "상승" : item.actualResult === "DOWN" ? "하락" : "중립"}</Text> : null}
         </View>
 
         <View style={styles.card}>
@@ -131,7 +131,7 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
           ) : chartQuery.isError || newsQuery.isError ? (
             <>
               <Text style={styles.muted}>{chartQuery.error?.name === "ChartFallbackError"
-                ? "실제 시세 데이터가 없습니다 (fallback). 저장된 판단과 피드백은 그대로 표시합니다."
+                ? "실제 시세 데이터가 없습니다. 저장된 판단과 피드백은 그대로 표시합니다."
                 : "가격 데이터 조회에 실패했습니다. 다시 시도해 주세요. 저장된 판단과 피드백은 그대로 표시합니다."}</Text>
               <TouchableOpacity accessibilityRole="button" onPress={() => {
                 if (newsQuery.isError) void newsQuery.refetch();
@@ -143,7 +143,7 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
           ) : !symbol ? (
             <Text style={styles.muted}>연결된 종목이 없어 가격 흐름을 표시할 수 없습니다.</Text>
           ) : chart?.fallback ? (
-            <Text style={styles.muted}>실제 시세 데이터가 없습니다 (fallback).</Text>
+            <Text style={styles.muted}>실제 시세 데이터가 없습니다.</Text>
           ) : !window ? (
             <Text style={styles.muted}>판단일 주변의 실제 거래 데이터가 없어 가격 흐름을 표시하지 않습니다.</Text>
           ) : window.waiting ? (

@@ -43,8 +43,8 @@ export function LearnScreen() {
       <ScrollView contentContainerStyle={styles.container}>
         <TabScreenHeader title="학습" subtitle="지금 읽는 뉴스와 투자 공부에 도움이 되는 자료예요." />
 
-        <Text>{!loaded ? "학습 설정을 확인하고 있어요." : preferences.source === "default" ? "맞춤 학습 설정을 확인할 수 없음 · 기본 학습 가이드 (fallback)" : `${preferences.source === "local" ? "기기 내 저장 설정 (fallback) · " : ""}내 학습 목표: ${preferences.dailyGoal}`}</Text>
-        <Text>{readCount === null ? "오늘 읽은 기사 수 확인할 수 없음" : `오늘 읽은 기사 ${readCount}개 · 이 계정의 기기 내 기록`}</Text>
+        <Text>{!loaded ? "학습 설정을 확인하고 있어요." : preferences.source === "default" ? "학습 설정을 확인할 수 없어 기본 가이드를 보여드려요." : `내 학습 목표: ${preferences.dailyGoal}`}</Text>
+        <Text>{readCount === null ? "오늘 읽은 기사 수 확인할 수 없음" : `오늘 읽은 기사 ${readCount}개`}</Text>
         <View style={styles.reviewCard}>
           <Text style={styles.reviewTitle}>내가 복습할 개념</Text>
           <Text>이해 확인에서 틀린 개념을 다시 읽어보세요. 정답으로 다시 답하면 목록에서 제외돼요.</Text>

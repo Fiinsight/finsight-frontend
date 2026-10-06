@@ -85,7 +85,7 @@ export function LocalMlPanel({
           <Button title="다시 검색" onPress={() => setRetry((value) => value + 1)} />
         </>
       )}
-      {data?.status === "RULE_FALLBACK" && <Text>로컬 규칙 검색 (fallback) · 의미 유사도를 확인할 수 없음</Text>}
+      {data?.status === "RULE_FALLBACK" && <Text>검색어와 관련된 자료예요. 내용이 비슷한 정도는 확인할 수 없습니다.</Text>}
       {data && <Text>{data.results.length > 0 ? "관련 자료를 찾았어요" : "관련 자료가 없어요"}</Text>}
       {data?.results.map((row) => {
         const newsId = /^\d+$/.test(row.id) ? Number(row.id) : NaN;
@@ -96,7 +96,6 @@ export function LocalMlPanel({
             <Text>{row.publishedAt || "발행 시각 확인 불가"}</Text>
             {row.matchReason && <Text style={styles.matchReason}>{row.matchReason}</Text>}
             <Text numberOfLines={5}>{row.evidence}</Text>
-            {data.status === "MODEL" && <Text>검색 유사도 {row.score.toFixed(3)}</Text>}
           </>
         );
         return canOpen ? (
