@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { judgementResult } from "../../lib/historyRecords";
+import { ScreenTopBar } from "../../components/ScreenTopBar";
 import { MiniLineChart } from "../../components/MiniLineChart";
 import { getChartData, getNewsDetail } from "../../lib/api";
 import type { ChartPoint } from "../../types/api";
@@ -63,10 +64,11 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
     staleTime: 10 * 60_000
   });
   const symbol = newsQuery.data?.relatedSymbol?.trim() ?? "";
+  const indexSymbol = symbol === "KOSPI" || symbol === "KOSDAQ";
   const chartQuery = useQuery({
     queryKey: ["chart-data", symbol, "D", 5],
     queryFn: ({ signal }) => getChartData(symbol, "D", 5, signal),
-    enabled: Boolean(symbol),
+    enabled: /^\d{6}$/.test(symbol),
     retry: 0,
     staleTime: 60_000,
     refetchOnWindowFocus: false,
@@ -90,9 +92,7 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
-        <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.75}>
-          <Text style={styles.back}>← 기록으로 돌아가기</Text>
-        </TouchableOpacity>
+        <ScreenTopBar title="판단 기록" onBack={() => navigation.goBack()} />
 
         <Text style={styles.eyebrow}>판단 기록 상세</Text>
         <Text style={styles.title}>{item.newsTitle}</Text>
@@ -128,7 +128,7 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
 
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>판단 전후 가격 흐름</Text>
-          {newsQuery.isLoading || (symbol && chartQuery.isLoading) ? (
+          {newsQuery.isLoading || (!indexSymbol && symbol && chartQuery.isLoading) ? (
             <Text style={styles.muted}>실제 가격 흐름을 확인하는 중이에요.</Text>
           ) : chartQuery.isError || newsQuery.isError ? (
             <>
@@ -144,6 +144,8 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
             </>
           ) : !symbol ? (
             <Text style={styles.muted}>연결된 종목이 없어 가격 흐름을 표시할 수 없습니다.</Text>
+          ) : indexSymbol ? (
+            <Text style={styles.muted}>지수 차트는 준비 중입니다.</Text>
           ) : chart?.fallback ? (
             <Text style={styles.muted}>실제 시세 데이터가 없습니다.</Text>
           ) : !window ? (

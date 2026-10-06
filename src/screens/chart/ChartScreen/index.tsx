@@ -39,7 +39,7 @@ export function ChartScreen({ route, navigation }: Props) {
   const [selectedSymbol, setSelectedSymbol] = useState(route.params?.symbol ?? "005930");
   const [selectedStockName, setSelectedStockName] = useState<string | undefined>();
   const [query, setQuery] = useState("");
-  const [period, setPeriod] = useState<Period>("W");
+  const [period, setPeriod] = useState<Period>("D");
   const [minuteInterval, setMinuteInterval] = useState<1 | 5 | 15>(5);
   const [selectedInsight, setSelectedInsight] = useState<MoveInsight | null>(null);
 
@@ -139,7 +139,7 @@ export function ChartScreen({ route, navigation }: Props) {
           </View>
         ) : null}
         {stocks.length > 0 ? <PopularStockChips stocks={stocks} selectedSymbol={selectedSymbol} onSelect={(symbol) => selectStock(symbol, stocks.find((stock) => stock.symbol === symbol)?.name ?? chart?.symbolName ?? symbol)} /> : null}
-        {chart ? <StockHeader name={selectedStockName ?? stocks.find((stock) => stock.symbol === selectedSymbol)?.name ?? (chart.symbolName !== chart.symbol ? chart.symbolName : "종목명 확인 불가")} symbol={chart.symbol} price={chart.price} changePercent={chart.changePercent} changeLabel={changeLabel} /> : <View style={styles.emptyCard}><Text style={styles.emptyText}>{stocksError ? "인기 종목을 불러오지 못했습니다." : "시세 데이터를 불러오는 중입니다."}</Text></View>}
+        {chart ? <StockHeader name={selectedStockName ?? stocks.find((stock) => stock.symbol === selectedSymbol)?.name ?? (chart.symbolName !== chart.symbol ? chart.symbolName : "")} symbol={chart.symbol} price={chart.price} changePercent={chart.changePercent} changeLabel={changeLabel} /> : <View style={styles.emptyCard}><Text style={styles.emptyText}>{stocksError ? "인기 종목을 불러오지 못했습니다." : "시세 데이터를 불러오는 중입니다."}</Text></View>}
         {chartError || stocksError ? <TouchableOpacity accessibilityRole="button" onPress={() => { if (chartError) void refetchChart(); if (stocksError) void refetchStocks(); }}><Text style={styles.refreshText}>차트 다시 시도</Text></TouchableOpacity> : null}
         <View style={styles.periodRow}>
           <TouchableOpacity style={[styles.periodTab, period === "D" && styles.periodTabActive]} onPress={() => setPeriod("D")}>

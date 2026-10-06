@@ -10,18 +10,20 @@ const react = {
   useMemo: (fn) => fn()
 };
 let queries;
+let queryOptions;
 const exports = {};
 vm.runInNewContext(ts.transpileModule(readFileSync(new URL('../screens/history/JudgementDetailScreen.tsx', import.meta.url), 'utf8'), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.React, esModuleInterop: true }
 }).outputText, { exports, React: react, require: (name) => name === 'react' ? react
   : name === '../../lib/historyRecords' ? { judgementResult }
-  : name === '@tanstack/react-query' ? { useQuery: () => queries.shift() }
+  : name === '@tanstack/react-query' ? { useQuery: (options) => { queryOptions.push(options); return queries.shift(); } }
   : name === 'react-native' ? { SafeAreaView: 'SafeAreaView', ScrollView: 'ScrollView', Text: 'Text', View: 'View', TouchableOpacity: 'TouchableOpacity', StyleSheet: { create: (s) => s } }
   : { MiniLineChart: 'MiniLineChart' } });
 const candles = [{ date: '2026-09-30', close: 100 }, { date: '2026-10-01', close: 101 }];
 const nodes = (node) => Array.isArray(node) ? node.flatMap(nodes) : node && typeof node === 'object' ? [node, ...nodes(node.children)] : [];
 function render(chart, judgedAt = '2026-10-01T01:00:00Z', news = { data: { relatedSymbol: '005930' } }) {
   queries = [news, chart];
+  queryOptions = [];
   return nodes(exports.JudgementDetailScreen({ route: { params: { item: { judgedAt, newsId: 115, reasons: [], feedbackText: '저장된 피드백' } } }, navigation: {} }));
 }
 const text = (tree) => tree.filter((n) => n.type === 'Text').flatMap((n) => n.children).join(' ');
@@ -45,4 +47,10 @@ test('actual judgement screen distinguishes waiting, successful chart, fallback 
   assert.equal(retries, 1);
   assert.match(text(render({ isError: true, error: { name: 'ChartFallbackError' } })), /시세 데이터가 없습니다/);
   assert.match(text(render({}, undefined, { isError: true })), /조회에 실패/);
+});
+
+test('unsupported index charts show guidance without requesting a stock chart', () => {
+  const tree = render({}, undefined, {data:{relatedSymbol:'KOSPI'}});
+  assert.match(text(tree), /지수 차트는 준비 중/);
+  assert.equal(queryOptions[1].enabled, false);
 });
