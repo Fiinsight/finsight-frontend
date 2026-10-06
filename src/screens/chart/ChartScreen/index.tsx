@@ -139,7 +139,7 @@ export function ChartScreen({ route, navigation }: Props) {
           </View>
         ) : null}
         {stocks.length > 0 ? <PopularStockChips stocks={stocks} selectedSymbol={selectedSymbol} onSelect={(symbol) => selectStock(symbol, stocks.find((stock) => stock.symbol === symbol)?.name ?? chart?.symbolName ?? symbol)} /> : null}
-        {chart ? <StockHeader name={selectedStockName ?? chart.symbolName} symbol={chart.symbol} price={chart.price} changePercent={chart.changePercent} changeLabel={changeLabel} /> : <View style={styles.emptyCard}><Text style={styles.emptyText}>{stocksError ? "인기 종목을 불러오지 못했습니다." : "시세 데이터를 불러오는 중입니다."}</Text></View>}
+        {chart ? <StockHeader name={selectedStockName ?? stocks.find((stock) => stock.symbol === selectedSymbol)?.name ?? (chart.symbolName !== chart.symbol ? chart.symbolName : "종목명 확인 불가")} symbol={chart.symbol} price={chart.price} changePercent={chart.changePercent} changeLabel={changeLabel} /> : <View style={styles.emptyCard}><Text style={styles.emptyText}>{stocksError ? "인기 종목을 불러오지 못했습니다." : "시세 데이터를 불러오는 중입니다."}</Text></View>}
         <View style={styles.periodRow}>
           <TouchableOpacity style={[styles.periodTab, period === "D" && styles.periodTabActive]} onPress={() => setPeriod("D")}>
             <Text style={[styles.periodText, period === "D" && styles.periodTextActive]}>일봉</Text>
@@ -168,7 +168,7 @@ export function ChartScreen({ route, navigation }: Props) {
         {chart?.fallback || !data || stocksError || marketClosed ? (
           <View style={styles.warningCard}>
             <Text style={styles.warningTitle}>{marketClosed ? "현재 장외시간입니다" : "시세 상태 안내"}</Text>
-            <Text style={styles.warningText}>{marketClosed ? "분봉은 최근 거래일 장중 데이터가 있을 때만 새로 갱신됩니다." : chartError || stocksError ? "실시간 시세 연결에 실패했습니다. 잠시 후 다시 시도해 주세요." : "현재 이 차트는 백엔드가 제공한 fallback 데이터입니다."}</Text>
+            <Text style={styles.warningText}>{marketClosed ? "분봉은 최근 거래일 장중 데이터가 있을 때만 새로 갱신됩니다." : chartError || stocksError ? "실시간 시세 연결에 실패했습니다. 잠시 후 다시 시도해 주세요." : "현재 시세 데이터를 확인할 수 없습니다."}</Text>
           </View>
         ) : null}
         {chart ? <ChartCard

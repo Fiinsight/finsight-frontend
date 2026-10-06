@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, Text } from "react-native";
 import { BottomActionBar } from "../../../components/BottomActionBar";
@@ -16,6 +16,7 @@ type Props = NativeStackScreenProps<NewsFlowParamList, "Judgement">;
 
 export function JudgementScreen({ route, navigation }: Props) {
   const { newsId } = route.params;
+  const queryClient = useQueryClient();
   const choice = useAppStore((state) => state.judgementDraftByNewsId[newsId]?.choice);
   const reason = useAppStore((state) => state.judgementDraftByNewsId[newsId]?.reason ?? "");
   const setJudgementChoice = useAppStore((state) => state.setJudgementChoice);
@@ -30,7 +31,9 @@ export function JudgementScreen({ route, navigation }: Props) {
     staleTime: 60_000
   });
 
-  const symbolLabel = data?.relatedSymbolName || data?.relatedSymbol || "관련 종목";
+  const symbol = data?.relatedSymbol;
+  const marketLabel = symbol === "KOSPI" ? "관련 시장(코스피)" : symbol === "KOSDAQ" ? "관련 시장(코스닥)" : null;
+  const symbolLabel = marketLabel ?? (data?.relatedSymbolName && data.relatedSymbolName !== symbol ? `${data.relatedSymbolName} 주가` : symbol ? `관련 종목(${symbol}) 주가` : "관련 기업이나 시장");
 
   const mutation = useMutation({
     mutationFn: () => submitJudgement({ newsId, choice: choice as JudgementChoice, reason: reason || undefined })
@@ -43,6 +46,7 @@ export function JudgementScreen({ route, navigation }: Props) {
     setSubmitError(false);
     try {
       const ack = await mutation.mutateAsync();
+      await queryClient.invalidateQueries({ queryKey: ["judgement-history"] });
       clearJudgementDraft(newsId);
       navigation.navigate("Feedback", { newsId, ack });
     } catch {
@@ -60,7 +64,7 @@ export function JudgementScreen({ route, navigation }: Props) {
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView contentContainerStyle={styles.container}>
-          <Text style={styles.question}>{`이 뉴스가 내일 ${symbolLabel} 주가에 미칠 영향은?`}</Text>
+          <Text style={styles.question}>{`이 뉴스가 내일 ${symbolLabel}에 미칠 영향은?`}</Text>
           <Text style={styles.subtitle}>뉴스 내용을 바탕으로 주가 방향을 예측해보세요</Text>
 
           {isLoading ? <Text style={styles.errorText}>뉴스를 불러오는 중이에요.</Text> : null}

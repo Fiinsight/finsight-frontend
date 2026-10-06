@@ -41,6 +41,6 @@ test('actual judgement screen distinguishes waiting, successful chart, fallback 
   assert.doesNotMatch(text(failed), /데이터가 부족/);
   failed.find((n) => n.props?.accessibilityRole === 'button').props.onPress();
   assert.equal(retries, 1);
-  assert.match(text(render({ isError: true, error: { name: 'ChartFallbackError' } })), /fallback/);
+  assert.match(text(render({ isError: true, error: { name: 'ChartFallbackError' } })), /시세 데이터가 없습니다/);
   assert.match(text(render({}, undefined, { isError: true })), /조회에 실패/);
 });
