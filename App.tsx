@@ -7,7 +7,7 @@ import { StyleSheet, Text } from "react-native";
 import { RootNavigator } from "./src/navigation/RootNavigator";
 import { OnboardingScreen } from "./src/screens/onboarding/OnboardingScreen";
 import { AuthScreen } from "./src/screens/auth/AuthScreen";
-import { clearAuthSession, loadAuthSession, saveAuthSession, type AuthSession } from "./src/lib/auth";
+import { clearAuthSession, loadAuthSession, saveAuthSession, setAuthFailureHandler, type AuthSession } from "./src/lib/auth";
 import { clearOnboardingProfile, loadOnboardingProfile, saveOnboardingProfile } from "./src/lib/onboarding";
 import { getCurrentUser, syncOnboardingProfile } from "./src/lib/api";
 import { useAppStore } from "./src/store/useAppStore";
@@ -24,6 +24,7 @@ export default function App() {
   const [showIntro, setShowIntro] = useState(true);
   const [onboardingDoneThisRun, setOnboardingDoneThisRun] = useState(false);
   const [session, setSession] = useState<AuthSession | null>(null);
+  const [authExpired, setAuthExpired] = useState(false);
   const [sessionLoaded, setSessionLoaded] = useState(false);
 
   const handleLogout = async () => {
@@ -37,13 +38,17 @@ export default function App() {
   };
 
   useEffect(() => {
+    setAuthFailureHandler(() => { setAuthExpired(true); void handleLogout(); });
+    return () => setAuthFailureHandler(null);
+  }, []);
+
+  useEffect(() => {
     const timer = setTimeout(() => setShowIntro(false), 900);
     Promise.all([loadAuthSession(), loadOnboardingProfile()])
       .then(async ([storedSession, onboardingProfile]) => {
-        // Older Kakao sessions stored a synthetic local email. Refresh them
-        // once from the backend so newly consented profile data is reflected.
-        const needsKakaoProfileRefresh = storedSession?.email.endsWith("@kakao.local") ?? false;
-        if (needsKakaoProfileRefresh) {
+        // Validate every restored session; expired email sessions otherwise
+        // reach the home screen and appear to be news retrieval failures.
+        if (storedSession) {
           try {
             const refreshedSession = await getCurrentUser();
             // A user may decline optional Kakao profile scopes. That is not an
@@ -93,7 +98,7 @@ export default function App() {
   // should go straight to the app. A guest sees onboarding on each fresh app
   // launch until they sign in, so dismissing onboarding is never treated as
   // permanent account completion.
-  if (!session && !onboardingDoneThisRun) {
+  if (!session && !onboardingDoneThisRun && !authExpired) {
     return (
       <OnboardingScreen
         onComplete={(answers) => {
@@ -105,7 +110,10 @@ export default function App() {
   }
 
   if (!session) {
-    return <AuthScreen onAuthenticated={() => void loadAuthSession().then(setSession)} />;
+    return <>
+      {authExpired ? <Text accessibilityRole="alert" style={styles.authNotice}>로그인이 만료됐거나 인증이 거절됐어요. 다시 로그인해 주세요.</Text> : null}
+      <AuthScreen onAuthenticated={() => void loadAuthSession().then((value) => { setSession(value); setAuthExpired(false); })} />
+    </>;
   }
 
   return (
@@ -122,6 +130,7 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
+  authNotice: { padding: 16, backgroundColor: "#FFF7ED", color: "#9A3412", fontSize: 14 },
   intro: {
     flex: 1,
     alignItems: "center",

@@ -11,6 +11,15 @@ export interface AuthSession {
   nickname: string;
 }
 
+let authFailureHandler: (() => void) | null = null;
+export function setAuthFailureHandler(handler: (() => void) | null): void { authFailureHandler = handler; }
+export function notifyAuthFailure(status: number | undefined, requestToken: string | undefined): void {
+  if ((status === 401 || status === 403) && activeAccessToken && requestToken === `Bearer ${activeAccessToken}`) {
+    activeAccessToken = null;
+    authFailureHandler?.();
+  }
+}
+
 export function getActiveAccessToken(): string | null {
   return activeAccessToken;
 }

@@ -34,7 +34,7 @@ import type {
   Tone
 } from "../types/api";
 import { formatPercent } from "./format";
-import { getActiveAccessToken, loadAuthSession } from "./auth";
+import { getActiveAccessToken, loadAuthSession, notifyAuthFailure } from "./auth";
 import { loadOnboardingProfile, saveOnboardingProfile, mapOnboardingToLearningPreferences, type LearningPreferences } from "./onboarding";
 import { KEY_TERM_DICTIONARY } from "./sampleData";
 
@@ -78,6 +78,11 @@ api.interceptors.request.use(async (config) => {
   const token = getActiveAccessToken() ?? (await loadAuthSession())?.accessToken;
   if (token) config.headers.set("Authorization", `Bearer ${token}`);
   return config;
+});
+
+api.interceptors.response.use((response) => response, (error) => {
+  notifyAuthFailure(error.response?.status, error.config?.headers?.get?.("Authorization"));
+  return Promise.reject(error);
 });
 
 export interface AuthResponse {
@@ -264,7 +269,7 @@ function normalizeHistoryItem(raw: JudgementHistoryItemRaw, index: number): Judg
         : raw.actualDirection ?? ""),
     correct: derivedCorrect,
     feedbackText: raw.feedbackText ?? "",
-    reasons: Array.isArray(raw.reasons) ? raw.reasons.filter((reason): reason is string => typeof reason === "string" && reason.trim().length > 0) : [],
+    reasons: Array.isArray(raw.reasons) ? raw.reasons.filter((reason): reason is string => typeof reason === "string" && reason.trim().length > 0) : (raw.reasonText?.split(/\n+/).map((reason) => reason.trim()).filter(Boolean) ?? []),
     judgedAt: raw.judgedAt ?? raw.createdAt ?? ""
   };
 }
@@ -434,7 +439,7 @@ function normalizeChartData(raw: ChartDataRaw, symbol: string): ChartData {
 }
 
 export async function getChartData(symbol: string, period: "D" | "W" | "MINUTE" = "D", interval = 5, signal?: AbortSignal): Promise<ChartData> {
-  const { data } = await api.get<ChartDataRaw>(`/charts/${symbol}`, { params: { period, interval }, signal, timeout: 40_000 });
+  const { data } = await api.get<ChartDataRaw>(`/charts/${symbol}`, { params: { period, interval }, signal, timeout: 15_000 });
   return normalizeChartData(data, symbol);
 }
 
@@ -454,3 +459,24 @@ export async function searchStocks(query: string): Promise<StockSearchResult[]> 
 }
 
 export type { ReadingLevel, JudgementChoice };
+
+export interface NewsLesson {
+  newsId: number;
+  level: ReadingLevel;
+  summary: string;
+  readingGuide: string;
+  mode: "RULE_FALLBACK" | "UNAVAILABLE";
+  glossary: Array<{ term: string; definition: string }>;
+  question: { term: string; prompt: string; options: string[] } | null;
+}
+export interface LearningAnswer { correct: boolean; definition: string; message: string }
+export interface LearningReview { newsId: number; title: string; term: string; definition: string; level: ReadingLevel; answeredAt: string }
+export async function getNewsLesson(newsId: number, level: ReadingLevel): Promise<NewsLesson> {
+  return (await api.get<NewsLesson>(`/learning/news/${newsId}`, { params: { level } })).data;
+}
+export async function answerLearningQuestion(newsId: number, level: ReadingLevel, term: string, answerIndex: number): Promise<LearningAnswer> {
+  return (await api.post<LearningAnswer>(`/learning/news/${newsId}/answers`, { level, term, answerIndex })).data;
+}
+export async function getLearningReviews(): Promise<LearningReview[]> {
+  return (await api.get<LearningReview[]>("/learning/reviews")).data;
+}

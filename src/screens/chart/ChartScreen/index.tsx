@@ -36,7 +36,7 @@ function formatMoveInsightTime(timestamp: string, period: Period) {
 }
 
 export function ChartScreen({ route, navigation }: Props) {
-  const [selectedSymbol, setSelectedSymbol] = useState(route.params?.symbol ?? "");
+  const [selectedSymbol, setSelectedSymbol] = useState(route.params?.symbol ?? "005930");
   const [selectedStockName, setSelectedStockName] = useState<string | undefined>();
   const [query, setQuery] = useState("");
   const [period, setPeriod] = useState<Period>("W");
@@ -73,10 +73,12 @@ export function ChartScreen({ route, navigation }: Props) {
     enabled: Boolean(selectedSymbol),
     retry: 0,
     staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
     placeholderData: keepPreviousData
   });
 
-  const chart = data;
+  const chart = data?.symbol === selectedSymbol && data.period === period && (period !== "MINUTE" || data.intervalMinutes === minuteInterval) ? data : undefined;
   const displayCandles = chart && period === "MINUTE" && chart.minuteCandles.length > 0 ? chart.minuteCandles : chart?.candles ?? [];
 
   // Only build a docent banner when there's a real, symbol-tagged news

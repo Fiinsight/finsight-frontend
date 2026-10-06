@@ -63,11 +63,13 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
   });
   const symbol = newsQuery.data?.relatedSymbol?.trim() ?? "";
   const chartQuery = useQuery({
-    queryKey: ["judgement-chart", symbol],
+    queryKey: ["chart-data", symbol, "D", 5],
     queryFn: ({ signal }) => getChartData(symbol, "D", 5, signal),
     enabled: Boolean(symbol),
     retry: 0,
-    staleTime: 60_000
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false
   });
 
   const chart = chartQuery.data;

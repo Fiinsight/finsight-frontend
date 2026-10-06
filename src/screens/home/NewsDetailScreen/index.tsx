@@ -10,6 +10,7 @@ import { getLearningPreferences, getNewsDetail } from "../../../lib/api";
 import type { NewsFlowParamList } from "../../../navigation/types";
 import { useAppStore } from "../../../store/useAppStore";
 import type { NewsDetail, ReadingLevel } from "../../../types/api";
+import { LearningPanel } from "./LearningPanel";
 import { ArticleBody } from "./ArticleBody";
 import { BodyTabs, type BodyTab } from "./BodyTabs";
 import { DetailTopBar } from "./DetailTopBar";
@@ -26,7 +27,8 @@ const MAX_IN_APP_EXCERPT_LENGTH = 1200;
 export function NewsDetailScreen({ route, navigation }: Props) {
   const { newsId } = route.params;
   const isFocused = useIsFocused();
-  const [bodyTab, setBodyTab] = useState<BodyTab>("raw");
+  const [bodyTab, setBodyTab] = useState<BodyTab>(route.params.readMode ?? "raw");
+  useEffect(() => { if (route.params.readMode) setBodyTab(route.params.readMode); }, [newsId, route.params.readMode]);
   const [selectedTerm, setSelectedTerm] = useState<string | null>(null);
 
   const storedReadingLevel = useAppStore((state) => state.readingLevelByNewsId[newsId]);
@@ -37,7 +39,7 @@ export function NewsDetailScreen({ route, navigation }: Props) {
     void getLearningPreferences().then((preferences) => setPreferredLevel(preferences.level));
   }, []);
 
-  const readingLevel = storedReadingLevel ?? preferredLevel;
+  const readingLevel = storedReadingLevel ?? route.params.readingLevel ?? preferredLevel;
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["news-detail", newsId],
@@ -67,7 +69,6 @@ export function NewsDetailScreen({ route, navigation }: Props) {
   }
 
   const detail: NewsDetail = data;
-  const levelText = detail.levels[readingLevel] || detail.summary;
   const importanceReason = detail.importanceReasons?.[readingLevel] || detail.importanceReason;
   const rawExcerpt = detail.rawContent.length > MAX_IN_APP_EXCERPT_LENGTH
     ? `${detail.rawContent.slice(0, MAX_IN_APP_EXCERPT_LENGTH).trim()}\n\n전체 원문은 위 출처 링크에서 확인하세요.`
@@ -85,9 +86,9 @@ export function NewsDetailScreen({ route, navigation }: Props) {
 
         {bodyTab === "level" ? <LevelTabs value={readingLevel} onChange={(level: ReadingLevel) => setReadingLevel(newsId, level)} /> : null}
 
-        <View style={styles.bodyCard}>
-          <ArticleBody text={bodyTab === "raw" ? rawExcerpt : levelText} terms={detail.keyTerms} onTermPress={setSelectedTerm} />
-        </View>
+        {bodyTab === "raw" ? <View style={styles.bodyCard}>
+          <ArticleBody text={rawExcerpt} terms={detail.keyTerms} onTermPress={setSelectedTerm} />
+        </View> : <LearningPanel key={`${newsId}-${readingLevel}`} newsId={newsId} level={readingLevel} onTermPress={setSelectedTerm} />}
 
         {bodyTab === "raw" ? (
           <LocalMlPanel
