@@ -36,7 +36,7 @@ import type {
 } from "../types/api";
 import { formatPercent } from "./format";
 import { getActiveAccessToken, loadAuthSession, notifyAuthFailure } from "./auth";
-import { loadOnboardingProfile, saveOnboardingProfile, mapOnboardingToLearningPreferences, type LearningPreferences } from "./onboarding";
+import { loadOnboardingProfile, saveOnboardingProfile, mapOnboardingToLearningPreferences, type LearningPreferences, type OnboardingAnswer } from "./onboarding";
 import { KEY_TERM_DICTIONARY } from "./sampleData";
 
 export function getApiErrorMessage(error: any, fallback: string): string {
@@ -125,6 +125,11 @@ export async function syncOnboardingProfile(includePending = false): Promise<voi
   if (profile.userId == null) await saveOnboardingProfile(profile.answers);
 }
 
+export async function saveLearningSettings(answers: OnboardingAnswer[]): Promise<void> {
+  await api.put("/profile/onboarding", { answers });
+  await saveOnboardingProfile(answers);
+}
+
 export async function setDefaultReadingLevel(level: ReadingLevel): Promise<void> {
   await api.put("/profile/learning-level", { level });
 }
@@ -136,11 +141,12 @@ export async function getLearningPreferences(): Promise<LearningPreferences> {
       learningPace?: string;
       learningFocus?: string;
       dailyGoal?: string;
+      completedAt?: string;
     }>("/profile/onboarding");
     const level = data.learningLevel === "analyst" || data.learningLevel === "normal" ? data.learningLevel : "beginner";
     const pace = data.learningPace === "deep" ? "deep" : data.learningPace === "flexible" ? "on-demand" : "micro";
     const focus = data.learningFocus === "judgement" ? "decision" : data.learningFocus === "market" ? "market" : data.learningFocus === "routine" ? "reflection" : "news";
-    return { level, pace, focus, dailyGoal: data.dailyGoal || "뉴스 하나 읽기", source: data.learningLevel ? "onboarding" : "default" };
+    return { level, pace, focus, dailyGoal: data.dailyGoal || "뉴스 하나 읽기", source: data.completedAt ? "onboarding" : "default" };
   } catch {
     const local = await loadOnboardingProfile();
     return local ? { ...mapOnboardingToLearningPreferences(local.answers), source: "local" } : { level: "beginner", pace: "micro", focus: "news", dailyGoal: "뉴스 하나 읽기", source: "default" };

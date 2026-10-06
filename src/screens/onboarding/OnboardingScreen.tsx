@@ -58,9 +58,9 @@ const steps: Array<{ id: string; title: string; options: Option[] }> = [
   },
 ];
 
-type Props = { onComplete: (answers: OnboardingAnswer[]) => void };
+type Props = { onComplete: (answers: OnboardingAnswer[]) => void; allowSkip?: boolean; saving?: boolean };
 
-export function OnboardingScreen({ onComplete }: Props) {
+export function OnboardingScreen({ onComplete, allowSkip = true, saving = false }: Props) {
   const { width } = useWindowDimensions();
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<number[]>([]);
@@ -149,17 +149,17 @@ export function OnboardingScreen({ onComplete }: Props) {
             <Pressable
               accessibilityRole="button"
               accessibilityState={{ disabled: isQuestionUnanswered }}
-              disabled={isQuestionUnanswered}
+              disabled={isQuestionUnanswered || saving}
               onPress={next}
               style={[styles.primaryButton, isQuestionUnanswered && styles.primaryButtonDisabled]}
             >
               <Text style={[styles.primaryButtonText, isQuestionUnanswered && styles.primaryButtonTextDisabled]}>
-                {isWelcome ? "시작하기" : isLast ? "시작하기" : "다음"}
+                {saving ? "저장 중…" : isWelcome ? "시작하기" : isLast ? (allowSkip ? "시작하기" : "설정 저장") : "다음"}
               </Text>
             </Pressable>
-            <Pressable accessibilityRole="button" onPress={() => onComplete(buildAnswers())} style={styles.skipButton}>
+            {allowSkip ? <Pressable accessibilityRole="button" onPress={() => onComplete(buildAnswers())} style={styles.skipButton}>
               <Text style={styles.skipText}>{isWelcome ? "이미 계정이 있어요" : "건너뛰기"}</Text>
-            </Pressable>
+            </Pressable> : null}
           </View>
         </View>
       </LinearGradient>

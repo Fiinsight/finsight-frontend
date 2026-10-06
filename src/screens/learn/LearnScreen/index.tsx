@@ -45,6 +45,7 @@ export function LearnScreen() {
 
         <Text>{!loaded ? "학습 설정을 확인하고 있어요." : preferences.source === "default" ? "학습 설정을 확인할 수 없어 기본 가이드를 보여드려요." : `내 학습 목표: ${preferences.dailyGoal}`}</Text>
         <Text>{readCount === null ? "오늘 읽은 기사 수 확인할 수 없음" : `오늘 읽은 기사 ${readCount}개`}</Text>
+        {loaded && preferences.source === "default" ? <Pressable accessibilityRole="button" onPress={() => navigation.navigate("ProfileTab", { openLearningSettings: true })}><Text style={styles.reviewLink}>학습 설정을 하면 더 맞춤화돼요 →</Text></Pressable> : null}
         <View style={styles.reviewCard}>
           <Text style={styles.reviewTitle}>내가 복습할 개념</Text>
           <Text>이해 확인에서 틀린 개념을 다시 읽어보세요. 정답으로 다시 답하면 목록에서 제외돼요.</Text>
