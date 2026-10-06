@@ -96,9 +96,13 @@ test('market fallback numbers stay hidden and line prices never become fabricate
     usdKrwRate: { value: 1300, changePercent: 1, fallback: false } };
   const market = await exports.getMarketSummary();
   assert.equal(market.kospi.value, '확인할 수 없음');
-  assert.equal(market.kospi.change, 'fallback');
+  assert.equal(market.kospi.change, '변동 정보 없음');
   assert.equal(market.exchangeRate.value, '1300');
   assert.equal(market.baseRate.value, '확인할 수 없음');
+  payload = { baseRate: { value: 2.5, changePercent: 0, fallback: false } };
+  const rates = await exports.getMarketSummary();
+  assert.equal(rates.baseRate.value, '2.50%');
+  assert.equal(rates.baseRate.change, '동결');
   payload = { fallback: false, price: 100, changePercent: 1, points: [{ date: '2026-10-01', value: 100 }] };
   const signal = new AbortController().signal;
   assert.equal((await exports.getChartData('TEST', 'D', 5, signal)).candles.length, 0);

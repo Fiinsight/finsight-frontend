@@ -14,6 +14,10 @@ interface ChoiceCardProps {
 export function ChoiceCard({ title, subtitle, iconName, accentColor, accentBackground, selected, onPress }: ChoiceCardProps) {
   return (
     <TouchableOpacity
+      accessibilityRole="radio"
+      aria-checked={selected}
+      accessibilityLabel={title}
+      accessibilityState={{ checked: selected, selected }}
       style={[styles.card, selected && { borderColor: accentColor, backgroundColor: accentBackground }]}
       activeOpacity={0.85}
       onPress={onPress}

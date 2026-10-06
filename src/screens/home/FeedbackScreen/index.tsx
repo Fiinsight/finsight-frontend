@@ -30,6 +30,7 @@ export function FeedbackScreen({ route, navigation }: Props) {
         <Text style={styles.title}>{choiceLabel[ack.choice] ?? ack.choice} 판단이 기록됐어요</Text>
         <Text style={styles.message}>뉴스를 읽고 남긴 판단은 기록 탭에서 바로 확인할 수 있어요.</Text>
 
+        <Text style={styles.message}>학습용 서비스이며 투자 권유가 아닙니다.</Text>
         <View style={styles.noticeCard}>
           <Ionicons name="time-outline" size={18} color="#175CD3" />
           <Text style={styles.noticeText}>

@@ -10,7 +10,7 @@ interface NewsSectionProps {
 }
 
 export function NewsSection({ onSelectNews }: NewsSectionProps) {
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["today-briefing"],
     queryFn: getTodayBriefing,
     retry: 0,
@@ -20,6 +20,7 @@ export function NewsSection({ onSelectNews }: NewsSectionProps) {
   const [olderNews, setOlderNews] = useState<NewsBrief[]>([]);
   const [nextPage, setNextPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
+  const [moreError, setMoreError] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
 
   const news = data ?? [];
@@ -30,6 +31,7 @@ export function NewsSection({ onSelectNews }: NewsSectionProps) {
   const handleLoadMore = async () => {
     if (!isRealData || loadingMore || !hasMore) return;
     setLoadingMore(true);
+    setMoreError(false);
     try {
       const more = await getMoreBriefing(nextPage);
       if (more.length === 0) {
@@ -42,7 +44,7 @@ export function NewsSection({ onSelectNews }: NewsSectionProps) {
         }
       }
     } catch {
-      setHasMore(false);
+      setMoreError(true);
     } finally {
       setLoadingMore(false);
     }
@@ -60,7 +62,8 @@ export function NewsSection({ onSelectNews }: NewsSectionProps) {
       )) : (
         <View style={styles.emptyState}>
           <Text style={styles.emptyTitle}>{isError ? "뉴스를 불러오지 못했어요" : "오늘의 뉴스를 준비하고 있어요"}</Text>
-          <Text style={styles.emptyBody}>{isError ? "백엔드와 뉴스 수집 상태를 확인한 뒤 다시 시도해 주세요." : "잠시 후 실제 수집된 뉴스가 이곳에 표시됩니다."}</Text>
+          {isError ? <Pressable accessibilityRole="button" onPress={() => void refetch()} style={styles.moreButton}><Text style={styles.moreButtonText}>다시 시도</Text></Pressable> : null}
+          <Text style={styles.emptyBody}>{isError ? "연결을 확인하고 다시 시도해 주세요." : "잠시 후 실제 수집된 뉴스가 이곳에 표시됩니다."}</Text>
         </View>
       )}
 
@@ -68,9 +71,10 @@ export function NewsSection({ onSelectNews }: NewsSectionProps) {
         <NewsCard key={item.id} news={item} onPress={() => onSelectNews(item.id)} />
       ))}
 
+      {moreError ? <Text accessibilityRole="alert" style={styles.emptyBody}>추가 뉴스를 불러오지 못했어요. 이미 불러온 뉴스는 유지합니다.</Text> : null}
       {isRealData && hasMore ? (
-        <Pressable style={styles.moreButton} onPress={() => void handleLoadMore()} disabled={loadingMore}>
-          {loadingMore ? <ActivityIndicator size="small" color="#175CD3" /> : <Text style={styles.moreButtonText}>더 많은 뉴스 보기</Text>}
+        <Pressable accessibilityRole="button" style={styles.moreButton} onPress={() => void handleLoadMore()} disabled={loadingMore}>
+          {loadingMore ? <ActivityIndicator size="small" color="#175CD3" /> : <Text style={styles.moreButtonText}>{moreError ? "다시 불러오기" : "더 많은 뉴스 보기"}</Text>}
         </Pressable>
       ) : null}
     </View>

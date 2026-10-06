@@ -23,7 +23,7 @@ interface DirectionChoicesProps {
 
 export function DirectionChoices({ value, onChange }: DirectionChoicesProps) {
   return (
-    <View style={styles.group}>
+    <View style={styles.group} accessibilityRole="radiogroup">
       <Text style={styles.sectionTitle}>예상 방향을 선택하세요</Text>
       {CHOICES.map((option) => (
         <ChoiceCard

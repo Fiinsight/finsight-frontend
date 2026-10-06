@@ -349,9 +349,9 @@ function normalizeMarketStat(
 ): MarketStat {
   const rawValue = raw?.value ?? raw?.currentValue;
   if (!raw || raw.fallback || rawValue == null || String(rawValue).trim() === "" || !Number.isFinite(Number(rawValue))) {
-    return { label, value: "확인할 수 없음", change: "fallback", tone: "flat" };
+    return { label, value: "확인할 수 없음", change: "변동 정보 없음", tone: "flat" };
   }
-  const value = String(rawValue);
+  const value = changeFormat === "point" ? `${Number(rawValue).toFixed(2)}%` : String(rawValue);
   const changeNumber = typeof raw.changePercent === "number" ? raw.changePercent : undefined;
 
   let change: string;
