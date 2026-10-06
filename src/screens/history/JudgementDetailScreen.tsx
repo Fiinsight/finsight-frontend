@@ -1,10 +1,10 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useQuery } from "@tanstack/react-query";
 import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { judgementClosingPoints, judgementResult } from "../../lib/historyRecords";
+import { judgementClosingPoints, judgementResult, kstDate } from "../../lib/historyRecords";
 import { ScreenTopBar } from "../../components/ScreenTopBar";
 import { MiniLineChart } from "../../components/MiniLineChart";
-import { getNewsDetail } from "../../lib/api";
+import { getChartData, getNewsDetail, searchStocks } from "../../lib/api";
 import type { HistoryStackParamList } from "../../navigation/types";
 
 type Props = NativeStackScreenProps<HistoryStackParamList, "JudgementDetail">;
@@ -20,6 +20,25 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
   const symbol = newsQuery.data?.relatedSymbol?.trim() ?? "";
   const indexSymbol = symbol === "KOSPI" || symbol === "KOSDAQ";
   const points = judgementClosingPoints(item);
+  const chartQuery = useQuery({
+    queryKey: ["chart", symbol, "D"],
+    queryFn: ({ signal }) => getChartData(symbol, "D", 5, signal),
+    enabled: /^\d{6}$/.test(symbol),
+    staleTime: 60_000,
+    retry: 0,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false
+  });
+  const stockQuery = useQuery({
+    queryKey: ["stock-search", symbol],
+    queryFn: () => searchStocks(symbol),
+    enabled: /^\d{6}$/.test(symbol) && (!newsQuery.data?.relatedSymbolName || newsQuery.data.relatedSymbolName === symbol),
+    staleTime: 10 * 60_000,
+    retry: 0
+  });
+  const stockName = newsQuery.data?.relatedSymbolName !== symbol ? newsQuery.data?.relatedSymbolName : stockQuery.data?.find(stock => stock.symbol === symbol)?.name;
+  const chartPoints = chartQuery.data?.points ?? [];
+  const judgementDate = kstDate(item.judgedAt);
   const result = judgementResult(item);
   const status = result.correct === true
     ? { label: "적중", color: "#12B76A", background: "#ECFDF3" }
@@ -68,20 +87,24 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
 
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>판단 전후 가격 흐름</Text>
-          {symbol ? <Text style={styles.choice}>{newsQuery.data?.relatedSymbolName && newsQuery.data.relatedSymbolName !== symbol ? `${newsQuery.data.relatedSymbolName} ${symbol}` : symbol}</Text> : null}
+          {symbol ? <Text style={styles.choice}>{stockName ? `${stockName} ${symbol}` : symbol}</Text> : null}
           {points ? <Text style={styles.chartNote}>{`판단일 기준 종가 ${points[0].value.toLocaleString("ko-KR")} · 비교일 종가 ${points[1].value.toLocaleString("ko-KR")} (${item.actualChangePercent != null ? `${item.actualChangePercent > 0 ? "+" : ""}${item.actualChangePercent.toFixed(2)}%` : "등락률 확인 불가"})`}</Text> : null}
           {newsQuery.isLoading ? <Text style={styles.muted}>관련 종목을 확인하는 중이에요.</Text>
           : newsQuery.isError ? <><Text style={styles.muted}>관련 종목 조회에 실패했습니다.</Text><TouchableOpacity accessibilityRole="button" onPress={() => void newsQuery.refetch()}><Text style={styles.back}>다시 시도</Text></TouchableOpacity></>
           : !symbol ? <Text style={styles.muted}>연결된 종목이 없어 가격 흐름을 표시할 수 없습니다.</Text>
           : indexSymbol ? <Text style={styles.muted}>지수 차트는 준비 중입니다.</Text>
-          : !points ? <Text style={styles.muted}>{result.pending ? "판단 직후라 아직 비교할 데이터가 부족합니다. 다음 거래일 종가가 확인되면 표시합니다." : "이 기록에는 비교 종가가 저장되어 있지 않아요."}</Text>
+          : chartQuery.isLoading ? <Text style={styles.muted}>가격 차트를 불러오는 중이에요.</Text>
+          : chartQuery.isError || chartPoints.length === 0 ? <>
+              <Text style={styles.muted}>가격 차트를 불러오지 못했어요</Text>
+              <TouchableOpacity accessibilityRole="button" onPress={() => void chartQuery.refetch()}><Text style={styles.back}>다시 시도</Text></TouchableOpacity>
+            </>
           : <>
-              <Text style={styles.chartNote}>판단일 기준 종가와 다음 거래일 종가를 비교해요. 휴장일 판단은 직전 거래일 종가가 기준이에요.</Text>
-              <MiniLineChart points={points} height={180} highlightDate={points[0].date} markers={[
-                {date: points[0].date, label: "판단일", color: "#F79009"},
-                {date: points[1].date, label: "비교일", color: "#175CD3"}
+              <MiniLineChart points={chartPoints} height={180} highlightDate={judgementDate} markers={[
+                {date: judgementDate, label: "판단일", color: "#F79009"},
+                ...(points ? [{date: points[1].date, label: "비교일", color: "#175CD3"}] : [])
               ]} />
             </>}
+          {!points && /^\d{6}$/.test(symbol) ? <Text style={styles.chartNote}>결과 비교 종가는 다음 판정 때 저장돼요</Text> : null}
 
         </View>
       </ScrollView>

@@ -49,9 +49,21 @@ export function MiniLineChart({ points, height = 160, strokeColor = "#175CD3", h
 
     const tooltipLeft = Math.min(Math.max(highlightX - TOOLTIP_WIDTH / 2, 0), Math.max(width - TOOLTIP_WIDTH, 0));
     const markerPositions = markers.flatMap((marker) => {
-      const index = points.findIndex((point) => point.date.slice(0, 10) === marker.date.slice(0, 10));
-      if (index < 0) return [];
-      return [{ ...marker, x: xAt(index), y: yAt(points[index].value) }];
+      const day = marker.date.slice(0, 10);
+      const index = points.findIndex((point) => point.date.slice(0, 10) === day);
+      if (index >= 0) return [{ ...marker, x: xAt(index), y: yAt(points[index].value) as number | undefined }];
+      const time = Date.parse(day);
+      if (!Number.isFinite(time)) return [];
+      // Non-trading days lie between candle dates; do not invent a closing price.
+      const next = points.findIndex(point => point.date.slice(0, 10) > day);
+      const outside = day < points[0].date.slice(0, 10) || day > points[points.length - 1].date.slice(0, 10);
+      let x = xAt(next === 0 ? 0 : points.length - 1);
+      if (next > 0) {
+        const previousTime = Date.parse(points[next - 1].date.slice(0, 10));
+        const nextTime = Date.parse(points[next].date.slice(0, 10));
+        x = xAt(next - 1) + (xAt(next) - xAt(next - 1)) * (time - previousTime) / (nextTime - previousTime);
+      }
+      return [{ ...marker, label: outside ? `${marker.label}(범위 밖)` : marker.label, x, y: undefined }];
     });
 
     return { path, positions, highlightX, highlightY, highlightPoint, tooltipLeft, markerPositions };
@@ -76,7 +88,7 @@ export function MiniLineChart({ points, height = 160, strokeColor = "#175CD3", h
             ))}
             <Path d={chart.path} stroke={strokeColor} strokeWidth={2.5} fill="none" strokeLinejoin="round" strokeLinecap="round" />
             <Circle cx={chart.highlightX} cy={chart.highlightY} r={5} fill={strokeColor} stroke="#FFFFFF" strokeWidth={2} />
-            {chart.markerPositions.map((marker) => (
+            {chart.markerPositions.filter(marker => marker.y !== undefined).map((marker) => (
               <Circle key={`${marker.date}-${marker.label}-dot`} cx={marker.x} cy={marker.y} r={4} fill={marker.color} stroke="#FFFFFF" strokeWidth={2} />
             ))}
           </Svg>

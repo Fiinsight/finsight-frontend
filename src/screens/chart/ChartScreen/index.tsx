@@ -69,7 +69,7 @@ export function ChartScreen({ route, navigation }: Props) {
   });
 
   const { data, isError: chartError, isFetching, refetch: refetchChart } = useQuery({
-    queryKey: ["chart-data", selectedSymbol, period, minuteInterval],
+    queryKey: period === "MINUTE" ? ["chart", selectedSymbol, period, minuteInterval] : ["chart", selectedSymbol, period],
     queryFn: ({ signal }) => getChartData(selectedSymbol, period, minuteInterval, signal),
     enabled: Boolean(selectedSymbol),
     retry: 0,
