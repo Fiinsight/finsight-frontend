@@ -492,7 +492,7 @@ export interface NewsLesson {
   glossary: Array<{ term: string; definition: string }>;
   question: { term: string; prompt: string; options: string[] } | null;
 }
-export interface LearningAnswer { correct: boolean; definition: string; message: string }
+export interface LearningAnswer { correct: boolean; definition: string; message: string; correctIndex: number }
 export interface LearningReview { newsId: number; title: string; term: string; definition: string; level: ReadingLevel; answeredAt: string }
 export async function getNewsLesson(newsId: number, level: ReadingLevel): Promise<NewsLesson> {
   return (await api.get<NewsLesson>(`/learning/news/${newsId}`, { params: { level } })).data;
