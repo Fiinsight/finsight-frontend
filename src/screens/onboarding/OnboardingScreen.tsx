@@ -146,6 +146,7 @@ export function OnboardingScreen({ onComplete, allowSkip = true, saving = false 
           )}
 
           <View style={styles.footer}>
+            {!isWelcome ? <Pressable accessibilityRole="button" disabled={saving} onPress={() => setStep((current) => current - 1)} style={[styles.skipButton, { minHeight: 44, justifyContent: "center" }]}><Text style={styles.skipText}>이전</Text></Pressable> : null}
             <Pressable
               accessibilityRole="button"
               accessibilityState={{ disabled: isQuestionUnanswered }}

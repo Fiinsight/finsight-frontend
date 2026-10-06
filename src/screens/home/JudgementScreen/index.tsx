@@ -47,6 +47,7 @@ export function JudgementScreen({ route, navigation }: Props) {
     try {
       const ack = await mutation.mutateAsync();
       await queryClient.invalidateQueries({ queryKey: ["judgement-history"] });
+      void queryClient.invalidateQueries({ queryKey: ["learning-progress"] });
       clearJudgementDraft(newsId);
       navigation.navigate("Feedback", { newsId, ack });
     } catch {

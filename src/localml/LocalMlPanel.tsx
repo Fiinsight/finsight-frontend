@@ -89,7 +89,7 @@ export function LocalMlPanel({
           <Button title="다시 검색" onPress={() => setRetry((value) => value + 1)} />
         </>
       )}
-      {!empty && data?.status === "RULE_FALLBACK" && <Text>검색어와 관련된 자료예요. 내용이 비슷한 정도는 확인할 수 없습니다.</Text>}
+      {!empty && data?.status === "RULE_FALLBACK" && <Text>같은 종목이나 주제를 다룬 자료예요. 내용의 유사도는 확인할 수 없어요.</Text>}
       {empty && <Text>{request.kind === "news" ? "비슷한 뉴스가 아직 없어요" : "관련 자료가 아직 없어요"}</Text>}
       {rows.map((row) => {
         const newsId = /^\d+$/.test(row.id) ? Number(row.id) : NaN;

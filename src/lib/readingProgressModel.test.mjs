@@ -28,3 +28,8 @@ test("reading date keys match attendance KST regardless of device timezone", () 
   assert.equal(localDateKey(new Date("2026-09-25T15:01:00Z")), "2026-09-26");
   assert.equal(localDateKey(new Date("2026-09-25T14:59:00Z")), "2026-09-25");
 });
+
+ test("resume learning uses recent unique readings and excludes completed quizzes", () => {
+  assert.deepEqual(Array.from(exports.resumeLearningIds({"2026-10-05":[1,2],"2026-10-06":[2,3,4]},[3])),[4,2]);
+  assert.deepEqual(Array.from(exports.resumeLearningIds({},[])),[]);
+ });

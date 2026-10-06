@@ -15,6 +15,7 @@ export function LearningPanel({ newsId, level, onTermPress }: { newsId: number; 
     mutationFn: (index: number) => answerLearningQuestion(newsId, level, lesson.data!.question!.term, index),
     onSuccess: (result) => {
       void client.invalidateQueries({ queryKey: ["learning-reviews"] });
+      void client.invalidateQueries({ queryKey: ["learning-progress"] });
       const animation = result.correct
         ? Animated.sequence([Animated.timing(scale, { toValue: 1.035, duration: 130, useNativeDriver: true }), Animated.timing(scale, { toValue: 1, duration: 130, useNativeDriver: true })])
         : Animated.sequence([6, -6, 5, -5, 0].map((value) => Animated.timing(shake, { toValue: value, duration: 65, useNativeDriver: true })));

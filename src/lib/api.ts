@@ -503,3 +503,15 @@ export async function answerLearningQuestion(newsId: number, level: ReadingLevel
 export async function getLearningReviews(): Promise<LearningReview[]> {
   return (await api.get<LearningReview[]>("/learning/reviews")).data;
 }
+
+export interface LearningProgressSummary {
+  today: { answeredCount: number; correctCount: number; accuracy: number | null };
+  week: { from: string; to: string; answeredCount: number; correctCount: number; accuracy: number | null };
+  activityStreakDays: number;
+  completedNewsIds: number[];
+  totalDecidedCount: number;
+  weakAreas: Array<{ category: string; decidedCount: number; hitCount: number; recentNewsIds: number[] }>;
+}
+export async function getLearningProgress(): Promise<LearningProgressSummary> {
+  return (await api.get<LearningProgressSummary>("/learning/progress")).data;
+}
