@@ -1,4 +1,5 @@
 import axios from "axios";
+import { previousRange, type RecordRange } from "./historyRecords";
 import Constants from "expo-constants";
 import { getExpoGoProjectConfig } from "expo";
 import type {
@@ -281,6 +282,18 @@ function normalizeHistoryItem(raw: JudgementHistoryItemRaw, index: number): Judg
 export async function getJudgementHistory(): Promise<JudgementHistoryItem[]> {
   const { data } = await api.get<JudgementHistoryItemRaw[]>("/judgements/history");
   return data.map(normalizeHistoryItem);
+}
+
+export interface RecordPage<T> { items: T[]; nextRange?: RecordRange }
+
+export async function getJudgementHistoryRange(range: RecordRange, signal?: AbortSignal): Promise<RecordPage<JudgementHistoryItem>> {
+  const response = await api.get<JudgementHistoryItemRaw[]>("/judgements/history", { params: range, signal });
+  return { items: response.data.map(normalizeHistoryItem), nextRange: previousRange(response.headers["x-previous-record-date"] ?? "", range.from) };
+}
+
+export async function getArticleNotesRange(range: RecordRange, signal?: AbortSignal): Promise<RecordPage<ArticleNote>> {
+  const response = await api.get<ArticleNote[]>("/article-notes", { params: range, signal });
+  return { items: response.data, nextRange: previousRange(response.headers["x-previous-record-date"] ?? "", range.from) };
 }
 
 export async function getDailyNotes(): Promise<DailyNote[]> {

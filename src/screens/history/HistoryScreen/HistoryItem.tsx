@@ -16,14 +16,14 @@ const choiceColor: Record<JudgementChoice, string> = {
 
 export function HistoryItem({ item, onPress }: { item: JudgementHistoryItem; onPress: () => void }) {
   return (
-    <TouchableOpacity style={styles.card} activeOpacity={0.85} onPress={onPress}>
+    <TouchableOpacity accessibilityRole="button" style={styles.card} activeOpacity={0.85} onPress={onPress}>
       <Text style={styles.title} numberOfLines={2}>
         {item.newsTitle}
       </Text>
       <View style={styles.row}>
         <Text style={[styles.choice, { color: choiceColor[item.choice] }]}>{choiceLabel[item.choice]}</Text>
         {item.actualResult === "UNKNOWN" ? <Text style={styles.result}>실제 시세 확인 불가</Text> : item.actualResult ? <Text style={styles.result}>실제 {item.actualResult}</Text> : <Text style={styles.pending}>내일 결과를 알려드릴게요</Text>}
-        {item.correct !== null ? (
+        {item.correct !== null && item.actualResult && item.actualResult !== "UNKNOWN" ? (
           <View style={[styles.badge, { backgroundColor: item.correct ? "#ECFDF3" : "#FEF3F2" }]}>
             <Text style={[styles.badgeText, { color: item.correct ? "#12B76A" : "#D92D20" }]}>{item.correct ? "적중" : "불일치"}</Text>
           </View>
@@ -53,7 +53,8 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10
+    gap: 10,
+    flexWrap: "wrap"
   },
   choice: {
     fontSize: 13,
