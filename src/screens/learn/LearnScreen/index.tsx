@@ -51,7 +51,7 @@ export function LearnScreen() {
 
         <Text>{!loaded ? "학습 설정을 확인하고 있어요." : preferences.source === "default" ? "학습 설정을 확인할 수 없어 기본 가이드를 보여드려요." : `내 학습 목표: ${preferences.dailyGoal}`}</Text>
         <Text>{readCount === null ? "오늘 읽은 기사 수 확인할 수 없음" : `오늘 읽은 기사 ${readCount}개`}</Text>
-        {loaded && preferences.source === "default" ? <Pressable accessibilityRole="button" onPress={() => navigation.navigate("ProfileTab", { openLearningSettings: true })}><Text style={styles.reviewLink}>학습 설정을 하면 더 맞춤화돼요 →</Text></Pressable> : null}
+        {loaded && preferences.source === "default" ? <Pressable accessibilityRole="button" onPress={() => navigation.navigate("ProfileTab", { openLearningSettings: true })} style={styles.settingsButton}><Text style={styles.settingsButtonText}>학습 설정을 하면 더 맞춤화돼요</Text></Pressable> : null}
         <View style={styles.reviewCard}>
           <Text style={styles.reviewTitle}>나의 학습 진행도</Text>
           {progress.isPending ? <Text>진행도를 확인하고 있어요.</Text> : progress.isError ? <Pressable accessibilityRole="button" onPress={() => void progress.refetch()}><Text>진행도를 확인할 수 없습니다 · 다시 시도</Text></Pressable> : progress.data ? <>
@@ -72,7 +72,7 @@ export function LearnScreen() {
           {!progress.data ? <Text>판단 기록을 확인하고 있어요.</Text> : progress.data.totalDecidedCount < 3 ? <Text>판단이 쌓이면 보여드려요.</Text> : !progress.data.weakAreas.length ? <Text>분야별 비교 가능한 판단이 더 쌓이면 추천해드려요.</Text> : progress.data.weakAreas.map((area) => <View key={area.category} style={styles.reviewRow}>
             <Text>{area.category} · 확정 판단 {area.decidedCount}건 · 적중 {area.hitCount}건</Text>
             <Text>아래 학습 가이드에서 근거와 비교 기준을 다시 확인해보세요.</Text>
-            {area.recentNewsIds.map((newsId) => <Pressable key={newsId} accessibilityRole="button" onPress={() => navigation.navigate("HomeTab", { screen: "NewsDetail", params: { newsId, readMode: "level" } })}><Text style={styles.reviewLink}>이 분야의 판단 기사 돌아보기 →</Text></Pressable>)}
+            {area.recentNewsIds.map((newsId) => <Pressable key={newsId} accessibilityRole="button" onPress={() => navigation.navigate("HomeTab", { screen: "NewsDetail", params: { newsId, readMode: "level" } })}><Text style={styles.reviewLink}>이 분야의 판단 기사 돌아보기</Text></Pressable>)}
           </View>)}
         </View>
         <View style={styles.reviewCard}>
@@ -92,10 +92,12 @@ export function LearnScreen() {
 }
 
 const styles = StyleSheet.create({
+  settingsButton: { backgroundColor: "#175CD3", borderRadius: 8, minHeight: 48, paddingHorizontal: 16, paddingVertical: 12, alignItems: "center" },
+  settingsButtonText: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
   reviewCard: { padding: 16, gap: 12, backgroundColor: "#FFFFFF", borderRadius: 12 },
   reviewRow: { gap: 6, paddingVertical: 12, borderTopWidth: 1, borderTopColor: "#EAECF0" },
   reviewTitle: { fontSize: 16, fontWeight: "700", color: "#101828" },
-  reviewLink: { color: "#175CD3", fontSize: 13, lineHeight: 20 },
+  reviewLink: { color: "#175CD3", fontSize: 14, fontWeight: "600", lineHeight: 20 },
   safeArea: {
     flex: 1,
     backgroundColor: "#F8FAFC"

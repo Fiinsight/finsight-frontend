@@ -8,9 +8,9 @@ export function ProfileHeader({ session }: { session: AuthSession }) {
       <View style={styles.avatar}>
         <Ionicons name="person" size={28} color="#98A2B3" />
       </View>
-      <View>
+      <View style={{ flex: 1, minWidth: 0 }}>
         <Text style={styles.name}>{session.nickname || "핀사이트 사용자"}</Text>
-        <Text style={styles.hint}>{session.email || "이메일 정보 미제공"}</Text>
+        {session.email && session.email !== "이메일 정보 미제공" ? <Text numberOfLines={1} style={styles.hint}>{session.email}</Text> : null}
       </View>
     </View>
   );
