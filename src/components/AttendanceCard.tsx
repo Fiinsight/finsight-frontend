@@ -1,22 +1,16 @@
 import { useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useCallback, useState } from "react";
-import { Image, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { attendanceWeek, kstDate } from "../lib/historyRecords";
 import { loadAuthSession } from "../lib/auth";
 import { getReadingLog } from "../lib/readingProgress";
-import { countDailyReads, isAttendanceComplete, localDateKey, type DailyReadLog } from "../lib/readingProgressModel";
+import { countDailyReads, isAttendanceComplete, type DailyReadLog } from "../lib/readingProgressModel";
 
-const WEEKDAYS = ["월", "화", "수", "목", "금", "토", "일"];
-
-function mondayOffset(date: Date) {
-  return (date.getDay() + 6) % 7;
-}
-
-export function AttendanceCard() {
+export function AttendanceCard({ selectedDate, onSelectDate }: { selectedDate?: string | null; onSelectDate?: (date: string) => void } = {}) {
   const [readingLog, setReadingLog] = useState<DailyReadLog>({});
   const [today, setToday] = useState(() => new Date());
-  const todayKey = localDateKey(today);
-  const offset = mondayOffset(today);
+  const todayKey = kstDate(today);
 
   useFocusEffect(useCallback(() => {
     let cancelled = false;
@@ -28,11 +22,7 @@ export function AttendanceCard() {
     return () => { cancelled = true; };
   }, []));
 
-  const week = WEEKDAYS.map((label, index) => {
-    const day = new Date(today);
-    day.setDate(today.getDate() - offset + index);
-    return { label, key: localDateKey(day), isToday: index === offset };
-  });
+  const week = attendanceWeek(todayKey);
   const completed = week.filter((day) => isAttendanceComplete(readingLog, day.key)).length;
   const todayReadCount = Math.min(countDailyReads(readingLog, todayKey), 3);
   const checkedIn = isAttendanceComplete(readingLog, todayKey);
@@ -55,12 +45,16 @@ export function AttendanceCard() {
         {week.map((day) => {
           const done = isAttendanceComplete(readingLog, day.key);
           return (
-            <View key={day.key} style={styles.dayItem}>
-              <View style={[styles.dayStamp, day.isToday && styles.dayToday]}>
+            <Pressable key={day.key} style={[styles.dayItem, day.future && styles.futureDay]}
+              accessibilityRole="button" accessibilityLabel={`${day.key} ${day.label}요일 기록 필터`}
+              accessibilityState={{ selected: selectedDate === day.key, disabled: day.future || !onSelectDate }}
+              disabled={day.future || !onSelectDate} onPress={() => onSelectDate?.(day.key)}>
+
+              <View style={[styles.dayStamp, day.isToday && styles.dayToday, selectedDate === day.key && styles.daySelected]}>
                 {done ? <Image source={require("../../assets/finsight-mascot-face.png")} style={styles.stampImage} resizeMode="contain" /> : <Text style={styles.dayMark}>·</Text>}
               </View>
               <Text style={[styles.dayLabel, day.isToday && styles.dayLabelToday]}>{day.label}</Text>
-            </View>
+            </Pressable>
           );
         })}
       </View>
@@ -81,7 +75,9 @@ const styles = StyleSheet.create({
   readProgressLabel: { color: "#D5E1FF", fontSize: 12, fontWeight: "600" },
   readProgressCount: { color: "#86F2DA", fontSize: 13, fontWeight: "800" },
   days: { flexDirection: "row", justifyContent: "space-between", marginTop: 17, marginBottom: 2 },
-  dayItem: { alignItems: "center", gap: 6 },
+  dayItem: { flex: 1, minHeight: 48, alignItems: "center", gap: 6 },
+  daySelected: { borderColor: "#86F2DA", borderWidth: 3, backgroundColor: "#175CD3" },
+  futureDay: { opacity: 0.4 },
   dayStamp: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: "rgba(255,255,255,0.45)", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(8,24,76,0.3)" },
   dayToday: { borderColor: "#FFFFFF", borderWidth: 2 },
   stampImage: { width: 32, height: 32, borderRadius: 16 },
