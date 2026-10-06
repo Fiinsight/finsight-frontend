@@ -33,13 +33,15 @@ export function LocalMlPanel({
   search,
   enabled = true,
   title = "관련 자료 검색",
-  onNewsPress
+  onNewsPress,
+  excludeNewsId
 }: {
   request: LocalMlQuery;
   search: LocalMlTransport;
   enabled?: boolean;
   title?: string;
   onNewsPress?: (newsId: number) => void;
+  excludeNewsId?: number;
 }) {
   const [data, setData] = useState<LocalMlResult | null>(null);
   const [error, setError] = useState(false);
@@ -74,10 +76,12 @@ export function LocalMlPanel({
   }, [key, search, enabled, retry]);
 
   if (!enabled) return null;
+  const rows = data?.results.filter((row) => request.kind !== "news" || Number(row.id) !== excludeNewsId) ?? [];
+  const empty = !!data && rows.length === 0;
   return (
     <View style={styles.panel}>
       <Text style={styles.title}>{title}</Text>
-      <Text style={styles.note}>관련 자료 검색 결과입니다. 상승·하락이나 원인을 판정하지 않습니다.</Text>
+      {!empty && <Text style={styles.note}>관련 자료 검색 결과입니다. 상승·하락이나 원인을 판정하지 않습니다.</Text>}
       {busy && <Text accessibilityLiveRegion="polite">관련 자료를 찾는 중…</Text>}
       {error && (
         <>
@@ -85,9 +89,9 @@ export function LocalMlPanel({
           <Button title="다시 검색" onPress={() => setRetry((value) => value + 1)} />
         </>
       )}
-      {data?.status === "RULE_FALLBACK" && <Text>검색어와 관련된 자료예요. 내용이 비슷한 정도는 확인할 수 없습니다.</Text>}
-      {data && <Text>{data.results.length > 0 ? "관련 자료를 찾았어요" : "관련 자료가 없어요"}</Text>}
-      {data?.results.map((row) => {
+      {!empty && data?.status === "RULE_FALLBACK" && <Text>검색어와 관련된 자료예요. 내용이 비슷한 정도는 확인할 수 없습니다.</Text>}
+      {empty && <Text>{request.kind === "news" ? "비슷한 뉴스가 아직 없어요" : "관련 자료가 아직 없어요"}</Text>}
+      {rows.map((row) => {
         const newsId = /^\d+$/.test(row.id) ? Number(row.id) : NaN;
         const canOpen = request.kind === "news" && !!onNewsPress && Number.isSafeInteger(newsId) && newsId > 0;
         const content = (
@@ -105,7 +109,6 @@ export function LocalMlPanel({
           </Pressable>
         ) : <View key={row.id} style={styles.row}>{content}</View>;
       })}
-      {data && data.results.length === 0 && <Text>조건에 맞는 추가 자료가 없습니다.</Text>}
     </View>
   );
 }

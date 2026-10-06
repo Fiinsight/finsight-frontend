@@ -93,8 +93,9 @@ export function NewsDetailScreen({ route, navigation }: Props) {
         {bodyTab === "raw" ? (
           <LocalMlPanel
             title="비슷한 뉴스"
+            excludeNewsId={newsId}
             onNewsPress={(id) => navigation.push("NewsDetail", { newsId: id })}
-            request={{ kind: "news", query: detail.title, endAt: detail.publishedAt }}
+            request={{ kind: "news", query: detail.title }}
             search={searchLocalMl}
           />
         ) : null}
