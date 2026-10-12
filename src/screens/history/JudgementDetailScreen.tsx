@@ -1,5 +1,8 @@
+import { useEffect } from "react";
+import { useIsFocused } from "@react-navigation/native";
+import { recordJudgementView } from "../../lib/readingProgress";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { judgementClosingPoints, judgementResult, kstDate } from "../../lib/historyRecords";
 import { ScreenTopBar } from "../../components/ScreenTopBar";
@@ -11,6 +14,11 @@ type Props = NativeStackScreenProps<HistoryStackParamList, "JudgementDetail">;
 
 export function JudgementDetailScreen({ route, navigation }: Props) {
   const { item } = route.params;
+  const focused = useIsFocused();
+  const client = useQueryClient();
+  useEffect(() => {
+    if (focused) void recordJudgementView(item.id).then(() => client.invalidateQueries({ queryKey: ["learning-progress"] }));
+  }, [focused, item.id, client]);
   const newsQuery = useQuery({
     queryKey: ["news-detail", item.newsId],
     queryFn: () => getNewsDetail(item.newsId),
@@ -40,7 +48,7 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
   const chartPoints = chartQuery.data?.points ?? [];
   const judgementDate = kstDate(item.judgedAt);
   const result = judgementResult(item);
-  const status = result.correct === true
+  const status = result.legacy ? { label: "이전 방식", color: "#667085", background: "#F2F4F7" } : result.correct === true
     ? { label: "적중", color: "#12B76A", background: "#ECFDF3" }
     : result.correct === false
       ? { label: "불일치", color: "#D92D20", background: "#FEF3F2" }
@@ -63,6 +71,7 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
           <Text style={styles.actual}>{result.label}</Text>
         </View>
 
+        {result.legacy ? <Text style={styles.chartNote}>이전 방식으로 채점된 기록이에요(당일 비교)</Text> : null}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>판단 근거</Text>
           {item.reasons.length > 0 ? item.reasons.map((reason, index) => (
@@ -81,7 +90,7 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
         ) : (
           <View style={styles.feedbackCard}>
             <Text style={styles.sectionTitle}>피드백</Text>
-            <Text style={styles.muted}>다음 거래일 이후 실제 결과가 확인되면 피드백이 표시됩니다.</Text>
+            <Text style={styles.muted}>{result.legacy ? "이 기록의 피드백을 확인할 수 없어요." : "다음 거래일 이후 실제 결과가 확인되면 피드백이 표시됩니다."}</Text>
           </View>
         )}
 
@@ -104,7 +113,7 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
                 ...(points ? [{date: points[1].date, label: "비교일", color: "#175CD3"}] : [])
               ]} />
             </>}
-          {!points && /^\d{6}$/.test(symbol) ? <Text style={styles.chartNote}>결과 비교 종가는 다음 판정 때 저장돼요</Text> : null}
+          {!points && !result.legacy && /^\d{6}$/.test(symbol) ? <Text style={styles.chartNote}>결과 비교 종가는 다음 판정 때 저장돼요</Text> : null}
 
         </View>
       </ScrollView>

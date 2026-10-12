@@ -1,6 +1,9 @@
+import { useEffect, useState } from "react";
+import { getLearningPreferences } from "../../../lib/api";
+import { CommonActions } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { SafeAreaView, StyleSheet, Text, View } from "react-native";
+import { Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
 import { BottomActionBar } from "../../../components/BottomActionBar";
 import { ScreenTopBar } from "../../../components/ScreenTopBar";
 import type { NewsFlowParamList } from "../../../navigation/types";
@@ -17,11 +20,14 @@ const choiceLabel: Record<string, string> = {
 // 시장이 아직 움직이지 않은 시점이라 진짜 결과 자체가 존재하지 않음. 실제
 // 결과는 다음 거래일 장마감 후 스케줄러가 계산해서 '기록' 탭에 채워짐.
 export function FeedbackScreen({ route, navigation }: Props) {
+  const [promptMemo, setPromptMemo] = useState(false);
+  useEffect(() => { void getLearningPreferences().then(value => setPromptMemo(value.painPoint === "reflection")); }, []);
   const { ack } = route.params;
+  const finish = () => navigation.getParent()?.dispatch(CommonActions.reset({ index: 0, routes: [{ name: "HomeTab", state: { index: 0, routes: [{ name: "Home" }] } }] }));
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScreenTopBar title="판단 완료" onBack={() => navigation.goBack()} />
+      <ScreenTopBar title="판단 완료" onBack={finish} />
 
       <View style={styles.container}>
         <View style={styles.iconCircle}>
@@ -30,6 +36,7 @@ export function FeedbackScreen({ route, navigation }: Props) {
         <Text style={styles.title}>{ack.message === "판단을 수정했어요" ? "판단을 수정했어요" : `${choiceLabel[ack.choice] ?? ""} 판단이 기록됐어요`}</Text>
         <Text style={styles.message}>뉴스를 읽고 남긴 판단은 기록 탭에서 바로 확인할 수 있어요.</Text>
 
+        {promptMemo ? <Pressable style={{ minHeight: 44, justifyContent: "center" }} accessibilityRole="button" accessibilityLabel="이 기사에 메모 남기기" onPress={() => navigation.navigate("NewsDetail", { newsId: route.params.newsId, openNotes: true })}><Text style={styles.noticeStrong}>메모 남기기</Text></Pressable> : null}
         <Text style={styles.message}>학습용 서비스이며 투자 권유가 아닙니다.</Text>
         <View style={styles.noticeCard}>
           <Ionicons name="time-outline" size={18} color="#175CD3" />
@@ -39,7 +46,7 @@ export function FeedbackScreen({ route, navigation }: Props) {
         </View>
       </View>
 
-      <BottomActionBar label="완료" onPress={() => navigation.popToTop()} />
+      <BottomActionBar label="완료" onPress={finish} />
     </SafeAreaView>
   );
 }

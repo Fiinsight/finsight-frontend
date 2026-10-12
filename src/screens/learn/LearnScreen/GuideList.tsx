@@ -160,7 +160,7 @@ export function GuideList({ focus, level }: { focus: LearningFocus; level: Learn
             <Text style={styles.modalBody}>{selectedGuide?.example}</Text>
             <Text style={styles.title}>관련 용어 · 눌러서 뜻 확인</Text>
             {selectedGuide?.terms.map((term) => <Pressable key={term[0]} accessibilityRole="button" accessibilityLabel={`${term[0]} 용어 뜻 보기`} onPress={() => setSelectedTerm(term)}><Text style={styles.termLink}>{term[0]}</Text></Pressable>)}
-            <TermPopup visible={!!selectedTerm} term={selectedTerm?.[0] ?? null} onClose={() => setSelectedTerm(null)} />
+            <TermPopup level={level} visible={!!selectedTerm} term={selectedTerm?.[0] ?? null} onClose={() => setSelectedTerm(null)} />
             <Pressable accessibilityRole="button" accessibilityLabel="학습 가이드 닫기" onPress={() => setSelectedGuide(null)} style={styles.closeButton}>
               <Text style={styles.closeButtonText}>확인</Text>
             </Pressable></ScrollView>

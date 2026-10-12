@@ -28,7 +28,7 @@ export function LearningPanel({ newsId, level, onTermPress }: { newsId: number; 
   return (
     <View style={styles.card}>
       <Text style={styles.heading}>내 수준에 맞게 읽기</Text>
-      <Text style={styles.muted}>{data.mode === "RULE_FALLBACK" ? "기사의 핵심 내용을 쉽게 풀어 읽어보세요." : "수준별 설명을 확인할 수 없습니다."}</Text>
+      <Text style={styles.muted}>{data.mode === "EXCERPT" ? "원문에서 핵심 문장을 골라 보여드려요" : data.mode === "REWRITTEN" ? ({ beginner: "핵심 사실을 쉬운 말로 읽어보세요.", normal: "핵심 사실과 비교 기준을 확인해보세요.", analyst: "기사의 근거·수치·리스크를 나눠 살펴보세요." })[level] : "수준별 설명을 확인할 수 없습니다."}</Text>
       <Text style={styles.guide}>{data.readingGuide}</Text>
       <ArticleBody text={data.summary.replace(/\s*\(fallback\)/gi, "")} terms={data.glossary.map((g) => g.term)} onTermPress={onTermPress} />
       <Text style={styles.heading}>알아둘 개념</Text>
@@ -39,7 +39,7 @@ export function LearningPanel({ newsId, level, onTermPress }: { newsId: number; 
         <Text style={styles.body}>Q. {data.question.prompt}</Text>
         {data.question.options.map((option, index) => {
           const chosen = selected === index;
-          const correct = !!answer.data && index === answer.data.correctIndex;
+          const correct = !!answer.data && option === answer.data.definition;
           const wrong = !!answer.data && chosen && !answer.data.correct;
           return <Animated.View key={option} style={chosen ? { transform: [{ scale }, { translateX: shake }] } : undefined}>
             <Pressable accessibilityRole="button" accessibilityState={{ disabled: answer.isPending || !!answer.data, selected: chosen }}

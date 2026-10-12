@@ -18,11 +18,12 @@ const CHOICES: {
 
 interface DirectionChoicesProps {
   disabled?: boolean;
+  isIndex?: boolean;
   value?: JudgementChoice;
   onChange: (choice: JudgementChoice) => void;
 }
 
-export function DirectionChoices({ value, onChange, disabled = false }: DirectionChoicesProps) {
+export function DirectionChoices({ value, onChange, disabled = false, isIndex = false }: DirectionChoicesProps) {
   return (
     <View style={styles.group} accessibilityRole="radiogroup">
       <Text style={styles.sectionTitle}>예상 방향을 선택하세요</Text>
@@ -31,7 +32,7 @@ export function DirectionChoices({ value, onChange, disabled = false }: Directio
           disabled={disabled}
           key={option.key}
           title={option.title}
-          subtitle={option.subtitle}
+          subtitle={isIndex ? option.subtitle.replace("주가", "지수") : option.subtitle}
           iconName={option.icon}
           accentColor={option.color}
           accentBackground={option.background}

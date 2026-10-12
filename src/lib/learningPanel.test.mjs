@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import ts from 'typescript';
 
-function render(correct) {
+function render(correct, mode = 'EXCERPT') {
   const create = (type, props) => ({ type, props, children: props?.children });
   const Value = class { setValue() {} };
   let reset = false;
@@ -15,8 +15,8 @@ function render(correct) {
       : name === 'react' ? { useRef: value => ({ current: value }), useState: () => [1, () => {}] }
       : name === 'react-native' ? { Animated: { Value, View: 'AnimatedView' }, Pressable: 'Pressable', Text: 'Text', View: 'View', StyleSheet: { create: s => s } }
       : name === '@tanstack/react-query' ? {
-        useQueryClient: () => ({}), useQuery: () => ({ data: { mode: 'RULE_FALLBACK', glossary: [], summary: '', question: { prompt: '질문', options: ['정답', '오답', '다른 오답'] } } }),
-        useMutation: () => ({ data: { correct, correctIndex: correct ? 1 : 0, definition: '정의', message: '저장' }, reset: () => { reset = true; } })
+        useQueryClient: () => ({}), useQuery: () => ({ data: { mode, glossary: [], summary: '', question: { prompt: '질문', options: ['정답', '오답', '다른 오답'] } } }),
+        useMutation: () => ({ data: { correct, definition: correct ? '오답' : '정답', message: '저장' }, reset: () => { reset = true; } })
       } : {}
   });
   const tree = exports.LearningPanel({ newsId: 1, level: 'normal', onTermPress() {} });
@@ -40,4 +40,11 @@ test('quiz locks answered options and marks chosen right/wrong plus the correct 
     buttons[3].props.onPress();
     assert(rendered.reset());
   }
+});
+
+test('excerpt disclosure is visible only for excerpts', () => {
+  const labels = mode => render(true, mode).nodes.filter(node => node.type === 'Text').flatMap(node => node.children ?? []);
+  assert(labels('EXCERPT').includes('원문에서 핵심 문장을 골라 보여드려요'));
+  assert(!labels('REWRITTEN').includes('원문에서 핵심 문장을 골라 보여드려요'));
+  assert(labels('REWRITTEN').includes('핵심 사실과 비교 기준을 확인해보세요.'));
 });

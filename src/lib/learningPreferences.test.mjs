@@ -43,3 +43,13 @@ test("goal can select decision practice while difficulty cannot override experie
   assert.equal(result.level, "beginner");
   assert.equal(result.focus, "decision");
 });
+
+for (const [label, expected] of [["용어가 어려워요","terms"],["정보가 너무 많아요","overload"],["판단할 근거가 부족해요","evidence"],["기록하고 돌아보기 어려워요","reflection"]]) {
+  test(`difficulty maps to ${expected} without changing level or focus`, () => {
+    const preferences=mapOnboardingToLearningPreferences([answer("experience","투자 여정","직접 투자하고 있어요"),answer("interest","알고 싶은 것","시장 흐름"),answer("difficulty","어려운 점",label)]);
+    assert.equal(preferences.painPoint,expected); assert.equal(preferences.level,"analyst"); assert.equal(preferences.focus,"market");
+  });
+}
+for (const [label, expected] of [["뉴스 하나 읽기","read1"],["기사 메모 남기고 복습하기","memo"],["투자 판단 돌아보기","reviewJudgement"],["매일 5분 이어가기","minutes5"]]) {
+ test(`daily goal maps to ${expected}`, () => assert.equal(mapOnboardingToLearningPreferences([answer("goal","습관",label)]).goalType,expected));
+}

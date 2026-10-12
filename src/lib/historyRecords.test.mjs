@@ -17,13 +17,13 @@ test('attendance filter uses real Monday dates and disables future weekdays', ()
   assert.equal(week[6].key,'2026-10-11');
 });
 test('groups are newest first, day filter applies and pending never counts as a hit', () => {
-  const rows=[{judgedAt:'2026-09-02T03:00:00Z',choice:'UP',actualDirection:'DOWN',actualChangePercent:-2},
-    {judgedAt:'2026-10-05T10:00:00Z',choice:'UP',actualDirection:'UP',actualChangePercent:1},
+  const rows=[{judgedAt:'2026-09-02T03:00:00Z',choice:'UP',comparisonDate:'2026-09-03',actualDirection:'DOWN',actualChangePercent:-2},
+    {judgedAt:'2026-10-05T10:00:00Z',choice:'UP',comparisonDate:'2026-10-06',actualDirection:'UP',actualChangePercent:1},
     {judgedAt:'2026-10-06T03:00:00Z',choice:'UP',actualDirection:null,actualChangePercent:null},
     {judgedAt:'2026-10-06T04:00:00Z',choice:'UP',actualDirection:'UNKNOWN',actualChangePercent:null}];
   assert.deepEqual(groupRecords(rows,r=>r.judgedAt,'2026-10-06',null).map(g=>g.label),['오늘','어제','지난 기록']);
   assert.equal(groupRecords(rows,r=>r.judgedAt,'2026-10-06','2026-10-05')[0].items.length,1);
-  assert.deepEqual(judgementSummary(rows),{total:4,hits:1,pending:1,unavailable:1});
+  assert.deepEqual(judgementSummary(rows),{total:4,hits:1,pending:1,unavailable:1,legacy:0});
   assert.deepEqual(groupRecords([],r=>r.createdAt,'2026-10-06',null),[]);
 });
 
@@ -35,7 +35,7 @@ test('direction and change remain separate for rise, fall, neutral, unknown and 
     ['UNKNOWN', 0, '비교 불가', null],
     [null, 1.2, '결과 대기', null]
   ]) {
-    const result = judgementResult({choice:'UP', actualDirection:direction, actualChangePercent:percent});
+    const result = judgementResult({choice:'UP', actualDirection:direction, actualChangePercent:percent,comparisonDate:'2026-10-07'});
     assert.equal(result.label, label);
     assert.equal(result.correct, correct);
   }
@@ -46,4 +46,12 @@ test('legacy unknown feedback cannot claim a mismatch or expose enum codes',()=>
   assert.equal(result.correct,null);
   assert.equal(result.feedbackText,'관련 종목이 없어 결과를 비교하지 않았어요');
   assert.equal(judgementResult({choice:'UP',actualDirection:'DOWN',actualChangePercent:-1,feedbackText:'UP과 DOWN'}).feedbackText,'상승과 하락');
+});
+
+test('old confirmed outcomes without comparison date never count as hits', () => {
+  const legacy = { choice: 'UP', actualDirection: 'UP', actualChangePercent: 1, comparisonDate: null };
+  const current = { ...legacy, comparisonDate: '2026-10-07' };
+  assert.equal(judgementResult(legacy).legacy, true);
+  assert.equal(judgementResult(legacy).correct, null);
+  assert.deepEqual(judgementSummary([legacy, current]), { total: 2, hits: 1, pending: 0, unavailable: 0, legacy: 1 });
 });

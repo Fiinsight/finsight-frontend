@@ -4,14 +4,15 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import ts from 'typescript';
 import { judgementClosingPoints, judgementResult, kstDate } from './historyRecords.ts';
-const react = {createElement:(type,props,...children)=>({type,props,children})};
+const react = {useEffect() {}, createElement:(type,props,...children)=>({type,props,children})};
 let news, chartResponse, queries=[];
 const exports={};
 vm.runInNewContext(ts.transpileModule(readFileSync(new URL('../screens/history/JudgementDetailScreen.tsx',import.meta.url),'utf8'),{
   compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.React,esModuleInterop:true}
 }).outputText,{exports,React:react,require:name=>name==='react'?react:
   name==='../../lib/historyRecords'?{judgementClosingPoints,judgementResult,kstDate}:
-  name==='@tanstack/react-query'?{useQuery:options=>{queries.push(options);return options.queryKey[0]==='news-detail'?news:options.queryKey[0]==='chart'?chartResponse:{data:[]};}}:
+  name==='@react-navigation/native'?{useIsFocused:()=>true}:
+  name==='@tanstack/react-query'?{useQueryClient:()=>({invalidateQueries(){}}),useQuery:options=>{queries.push(options);return options.queryKey[0]==='news-detail'?news:options.queryKey[0]==='chart'?chartResponse:{data:[]};}}:
   name==='react-native'?{SafeAreaView:'SafeAreaView',ScrollView:'ScrollView',Text:'Text',View:'View',TouchableOpacity:'TouchableOpacity',StyleSheet:{create:s=>s}}:
   name==='../../lib/api'?{getNewsDetail:()=>{},getChartData:(...args)=>args,searchStocks:()=>[]}:
   {MiniLineChart:'MiniLineChart',ScreenTopBar:'ScreenTopBar'}});
@@ -42,4 +43,11 @@ test('non-trading judgement day gets a vertical marker without fabricated price'
   vm.runInNewContext(ts.transpileModule(readFileSync(new URL('../components/MiniLineChart.tsx',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.React,esModuleInterop:true}}).outputText,{exports:component,React:react,require:name=>name==='react'?hooks:name==='react-native'?{View:'View',Text:'Text',Pressable:'Pressable',StyleSheet:{create:s=>s}}:name==='react-native-svg'?{default:'Svg',Circle:'Circle',Line:'Line',Path:'Path'}:{formatPrice:String,formatShortDate:String}});
   const tree=nodes(component.MiniLineChart({points:daily,markers:[{date:'2026-10-05',label:'판단일',color:'#F79009'}]}));
   const line=tree.find(n=>n.type==='Line');assert(line.props.x1>150&&line.props.x1<290);assert.match(text(tree),/판단일/);assert.equal(tree.filter(n=>n.type==='Circle').length,1);
+});
+
+test('legacy confirmed result shows prior method and hides future-closing message', () => {
+  const rendered = text(render({ ...base, comparisonDate: null, judgementClose: null, comparisonClose: null }));
+  assert.match(rendered, /이전 방식으로 채점된 기록이에요\(당일 비교\)/);
+  assert(!rendered.includes('결과 비교 종가는 다음 판정 때 저장돼요'));
+  assert(!rendered.includes('적중'));
 });

@@ -1,11 +1,12 @@
+import { evidenceCandidates } from "../../../lib/learningPreferences";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, Text, Pressable } from "react-native";
 import { BottomActionBar } from "../../../components/BottomActionBar";
 import { ScreenTopBar } from "../../../components/ScreenTopBar";
 import axios from "axios";
-import { getJudgementHistory, getNewsDetail, submitJudgement } from "../../../lib/api";
+import { getLearningPreferences, getJudgementHistory, getNewsDetail, submitJudgement } from "../../../lib/api";
 import type { NewsFlowParamList } from "../../../navigation/types";
 import { useAppStore } from "../../../store/useAppStore";
 import type { JudgementChoice } from "../../../types/api";
@@ -27,6 +28,8 @@ export function JudgementScreen({ route, navigation }: Props) {
   const setJudgementChoice = useAppStore((state) => state.setJudgementChoice);
   const setJudgementReason = useAppStore((state) => state.setJudgementReason);
   const clearJudgementDraft = useAppStore((state) => state.clearJudgementDraft);
+  const [recommendEvidence, setRecommendEvidence] = useState(false);
+  useEffect(() => { void getLearningPreferences().then(value => setRecommendEvidence(value.painPoint === "evidence")); }, []);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const { data, isError, isLoading, refetch } = useQuery({
@@ -71,7 +74,7 @@ export function JudgementScreen({ route, navigation }: Props) {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView contentContainerStyle={styles.container}>
           <Text style={styles.question}>{`이 뉴스가 다음 거래일 ${symbolLabel}에 미칠 영향은?`}</Text>
-          <Text style={styles.subtitle}>뉴스 내용을 바탕으로 주가 방향을 예측해보세요</Text>
+          <Text style={styles.subtitle}>{marketLabel ? "뉴스 내용을 바탕으로 지수 방향을 예측해보세요" : "뉴스 내용을 바탕으로 주가 방향을 예측해보세요"}</Text>
 
           {isLoading ? <Text style={styles.errorText}>뉴스를 불러오는 중이에요.</Text> : null}
           {isError || (!isLoading && !data) ? <Text style={styles.errorText}>실제 뉴스를 확인할 수 없어 판단을 저장할 수 없어요. 이전 화면에서 다시 시도해주세요.</Text> : null}
@@ -80,8 +83,9 @@ export function JudgementScreen({ route, navigation }: Props) {
           {data ? <NewsSummaryCard summary={data.summary} /> : null}
           {history.isError ? <Pressable accessibilityRole="button" onPress={() => void history.refetch()}><Text style={styles.errorText}>기존 판단을 확인하지 못했어요. 다시 시도</Text></Pressable> : null}
           {confirmed ? <Text style={styles.errorText}>이미 결과가 나온 판단이에요</Text> : existing ? <Text style={styles.subtitle}>저장된 판단을 수정할 수 있어요.</Text> : null}
-          {data ? <DirectionChoices disabled={confirmed} value={choice} onChange={(next) => { if (!confirmed) { setJudgementReason(newsId, reason); setJudgementChoice(newsId, next); } }} /> : null}
-          {data ? <ReasonInput editable={!confirmed} value={reason} onChange={(text) => setJudgementReason(newsId, text)} /> : null}
+          <Text style={styles.subtitle}>다음 거래일 종가의 변화가 ±0.5% 이내면 중립으로 비교해요.</Text>
+          {data ? <DirectionChoices isIndex={!!marketLabel} disabled={confirmed} value={choice} onChange={(next) => { if (!confirmed) { setJudgementReason(newsId, reason); setJudgementChoice(newsId, next); } }} /> : null}
+          {data ? <ReasonInput recommended={recommendEvidence} candidates={evidenceCandidates(data.summary)} editable={!confirmed} value={reason} onChange={(text) => setJudgementReason(newsId, text)} /> : null}
 
           {submitError ? <Text style={styles.errorText}>{submitError}</Text> : null}
         </ScrollView>
@@ -99,7 +103,7 @@ const styles = StyleSheet.create({
   },
   container: {
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 120,
     gap: 16
   },
   question: {

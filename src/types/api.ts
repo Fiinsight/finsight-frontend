@@ -93,8 +93,9 @@ export interface NewsDetail {
 // ---------------------------------------------------------------------------
 
 export interface TermExplainRequest {
+  level?: ReadingLevel;
   term: string;
-  newsId: number;
+  newsId?: number;
 }
 
 export interface TermExplainResponseRaw {
