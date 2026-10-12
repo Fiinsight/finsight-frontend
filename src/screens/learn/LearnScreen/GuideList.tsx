@@ -1,3 +1,4 @@
+import { TermPopup } from "../../../components/TermPopup";
 import { Ionicons } from "@expo/vector-icons";
 import { Modal, Pressable, StyleSheet, Text, TouchableOpacity, View, ScrollView } from "react-native";
 import { useState } from "react";
@@ -130,10 +131,12 @@ export function GuideList({ focus, level }: { focus: LearningFocus; level: Learn
   const visibleGuides = level === "beginner" ? personalizedGuides.slice(0, 4) : personalizedGuides;
   return (
     <View style={styles.card}>
-      <Text style={styles.sectionTitle}>나에게 맞는 학습 가이드</Text>
+      <Text accessibilityRole="header" style={styles.sectionTitle}>나에게 맞는 학습 가이드</Text>
       {visibleGuides.map((guide, index) => (
         <TouchableOpacity
           key={guide.title}
+          accessibilityRole="button"
+          accessibilityLabel={`${guide.title} 학습 가이드 열기`}
           style={[styles.row, index === visibleGuides.length - 1 && styles.rowLast]}
           activeOpacity={0.7}
           onPress={() => { setSelectedGuide(guide); setSelectedTerm(null); }}
@@ -156,9 +159,9 @@ export function GuideList({ focus, level }: { focus: LearningFocus; level: Learn
             <Text style={styles.title}>기사 읽기 예시 · 학습용 가상 상황</Text>
             <Text style={styles.modalBody}>{selectedGuide?.example}</Text>
             <Text style={styles.title}>관련 용어 · 눌러서 뜻 확인</Text>
-            {selectedGuide?.terms.map((term) => <Pressable key={term[0]} accessibilityRole="button" onPress={() => setSelectedTerm(term)}><Text style={styles.termLink}>{term[0]}</Text></Pressable>)}
-            {selectedTerm ? <Text accessibilityLiveRegion="polite" style={styles.modalBody}>{selectedTerm[0]}: {selectedTerm[1]}</Text> : null}
-            <Pressable onPress={() => setSelectedGuide(null)} style={styles.closeButton}>
+            {selectedGuide?.terms.map((term) => <Pressable key={term[0]} accessibilityRole="button" accessibilityLabel={`${term[0]} 용어 뜻 보기`} onPress={() => setSelectedTerm(term)}><Text style={styles.termLink}>{term[0]}</Text></Pressable>)}
+            <TermPopup visible={!!selectedTerm} term={selectedTerm?.[0] ?? null} onClose={() => setSelectedTerm(null)} />
+            <Pressable accessibilityRole="button" accessibilityLabel="학습 가이드 닫기" onPress={() => setSelectedGuide(null)} style={styles.closeButton}>
               <Text style={styles.closeButtonText}>확인</Text>
             </Pressable></ScrollView>
           </View>
@@ -169,28 +172,28 @@ export function GuideList({ focus, level }: { focus: LearningFocus; level: Learn
 }
 
 const styles = StyleSheet.create({
-  termLink: { color: "#175CD3", paddingVertical: 12, fontSize: 14, fontWeight: "600", lineHeight: 20 },
+  termLink: { color: "#175CD3", paddingVertical: 6, fontSize: 14, fontWeight: "600", lineHeight: 20 },
   card: {
     backgroundColor: "#FFFFFF",
     borderColor: "#EAECF0",
     borderWidth: 1,
-    borderRadius: 8,
-    padding: 8
+    borderRadius: 16,
+    padding: 20
   },
   sectionTitle: {
     color: "#101828",
-    fontSize: 16,
-    fontWeight: "800",
-    paddingHorizontal: 12,
-    paddingTop: 8,
+    fontSize: 18,
+    fontWeight: "700",
+    paddingHorizontal: 0,
+    paddingTop: 0,
     paddingBottom: 4
   },
   row: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    paddingHorizontal: 0,
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: "#F2F4F7"
   },
@@ -211,12 +214,14 @@ const styles = StyleSheet.create({
   },
   title: {
     color: "#101828",
-    fontSize: 14,
+    fontSize: 15,
+    lineHeight: 22,
     fontWeight: "700"
   },
   subtitle: {
     color: "#667085",
-    fontSize: 12
+    fontSize: 13,
+    lineHeight: 20
   },
   modalBackdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(16,24,40,0.35)" },
   modalCard: { maxHeight: "85%", backgroundColor: "#FFFFFF", borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 24, gap: 14 },
