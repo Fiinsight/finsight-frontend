@@ -37,7 +37,7 @@ function formatMoveInsightTime(timestamp: string, period: Period) {
 
 export function ChartScreen({ route, navigation }: Props) {
   const [selectedSymbol, setSelectedSymbol] = useState(route.params?.symbol ?? "005930");
-  const [selectedStockName, setSelectedStockName] = useState<string | undefined>();
+  const [selectedStockName, setSelectedStockName] = useState<string | undefined>(route.params?.symbol && route.params.symbol !== "005930" ? undefined : "삼성전자");
   const [query, setQuery] = useState("");
   const [period, setPeriod] = useState<Period>("D");
   const [minuteInterval, setMinuteInterval] = useState<1 | 5 | 15>(5);
@@ -112,11 +112,8 @@ export function ChartScreen({ route, navigation }: Props) {
   };
 
   const marketClosed = period === "MINUTE" && !isKoreanMarketOpen();
-  const changeLabel = period === "D"
-    ? "전일 종가 대비"
-    : period === "W"
-      ? "전주 종가 대비"
-      : `직전 ${minuteInterval}분봉 대비`;
+  const headerQuote = stocks.find((stock) => stock.symbol === selectedSymbol);
+  const changeLabel = "전일 종가 대비";
   const selectStock = (symbol: string, name: string) => {
     setSelectedSymbol(symbol);
     setSelectedStockName(name);
@@ -139,24 +136,24 @@ export function ChartScreen({ route, navigation }: Props) {
             ))}
           </View>
         ) : null}
-        {stocks.length > 0 ? <PopularStockChips stocks={stocks} selectedSymbol={selectedSymbol} onSelect={(symbol) => selectStock(symbol, stocks.find((stock) => stock.symbol === symbol)?.name ?? chart?.symbolName ?? symbol)} /> : null}
-        {chart ? <StockHeader name={selectedStockName ?? stocks.find((stock) => stock.symbol === selectedSymbol)?.name ?? (chart.symbolName !== chart.symbol ? chart.symbolName : "")} symbol={chart.symbol} price={chart.price} changePercent={chart.changePercent} changeLabel={changeLabel} /> : <View style={styles.emptyCard}><Text style={styles.emptyText}>{stocksError ? "인기 종목을 불러오지 못했습니다." : "시세 데이터를 불러오는 중입니다."}</Text></View>}
+        {stocks.length > 0 ? <PopularStockChips stocks={stocks} selectedSymbol={selectedSymbol} onSelect={(symbol) => selectStock(symbol, stocks.find((stock) => stock.symbol === symbol)?.name ?? chart?.symbolName ?? symbol)} /> : <View style={{ height: 64, backgroundColor: "#EAECF0", borderRadius: 12 }} accessibilityLabel="인기 종목 로딩 중" />}
+        <StockHeader name={selectedStockName ?? stocks.find((stock) => stock.symbol === selectedSymbol)?.name ?? chart?.symbolName ?? selectedSymbol} symbol={selectedSymbol} price={headerQuote?.fallback ? 0 : headerQuote?.price ?? chart?.price ?? 0} changePercent={headerQuote?.changePercent ?? chart?.changePercent ?? 0} changeLabel={changeLabel} />
         {chartError || stocksError ? <TouchableOpacity accessibilityRole="button" onPress={() => { if (chartError) void refetchChart(); if (stocksError) void refetchStocks(); }}><Text style={styles.refreshText}>차트 다시 시도</Text></TouchableOpacity> : null}
         <View style={styles.periodRow}>
-          <TouchableOpacity style={[styles.periodTab, period === "D" && styles.periodTabActive]} onPress={() => setPeriod("D")}>
+          <TouchableOpacity accessibilityRole="tab" accessibilityLabel="일봉" accessibilityState={{ selected: period === "D" }} style={[styles.periodTab, period === "D" && styles.periodTabActive]} onPress={() => setPeriod("D")}>
             <Text style={[styles.periodText, period === "D" && styles.periodTextActive]}>일봉</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.periodTab, period === "W" && styles.periodTabActive]} onPress={() => setPeriod("W")}>
+          <TouchableOpacity accessibilityRole="tab" accessibilityLabel="주봉" accessibilityState={{ selected: period === "W" }} style={[styles.periodTab, period === "W" && styles.periodTabActive]} onPress={() => setPeriod("W")}>
             <Text style={[styles.periodText, period === "W" && styles.periodTextActive]}>주봉</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.periodTab, period === "MINUTE" && styles.periodTabActive]} onPress={() => setPeriod("MINUTE")}>
+          <TouchableOpacity accessibilityRole="tab" accessibilityLabel="분봉" accessibilityState={{ selected: period === "MINUTE" }} style={[styles.periodTab, period === "MINUTE" && styles.periodTabActive]} onPress={() => setPeriod("MINUTE")}>
             <Text style={[styles.periodText, period === "MINUTE" && styles.periodTextActive]}>분봉</Text>
           </TouchableOpacity>
         </View>
         {period === "MINUTE" ? (
           <View style={styles.intervalRow}>
             {([1, 5, 15] as const).map((value) => (
-              <TouchableOpacity key={value} style={[styles.intervalTab, minuteInterval === value && styles.intervalTabActive]} onPress={() => setMinuteInterval(value)}>
+              <TouchableOpacity key={value} accessibilityRole="tab" accessibilityLabel={`${value}분봉`} accessibilityState={{ selected: minuteInterval === value }} style={[styles.intervalTab, minuteInterval === value && styles.intervalTabActive]} onPress={() => setMinuteInterval(value)}>
                 <Text style={[styles.intervalText, minuteInterval === value && styles.intervalTextActive]}>{value}분</Text>
               </TouchableOpacity>
             ))}

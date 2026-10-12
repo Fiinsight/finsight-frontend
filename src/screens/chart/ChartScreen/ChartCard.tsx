@@ -39,6 +39,7 @@ export function ChartCard({ candles, period, minuteInterval, moveInsights = [], 
             <View style={styles.sheetHeader}>
               <View>
                 <Text style={styles.sheetTitle}>차트 읽는 법</Text>
+                <Text>▲▼는 급등락 지점이고 ±%는 이전 캔들 종가와 비교한 변화예요.</Text>
                 <Text style={styles.sheetSubtitle}>현재 {periodLabel} 캔들 기준으로 설명해요.</Text>
               </View>
               <TouchableOpacity onPress={() => setShowGuide(false)} hitSlop={10}>

@@ -17,8 +17,8 @@ export function StockHeader({ name, symbol, price, changePercent, changeLabel }:
         <Text style={styles.symbol}>{symbol}</Text>
       </View>
       <View style={styles.priceGroup}>
-        <Text style={styles.price}>{formatPrice(price)}</Text>
-        <Text style={[styles.change, { color: changePercent >= 0 ? "#D92D20" : "#175CD3" }]}>{formatPercent(changePercent)}</Text>
+        <Text style={styles.price}>{price > 0 ? formatPrice(price) : "확인 불가"}</Text>
+        <Text style={[styles.change, { color: changePercent >= 0 ? "#D92D20" : "#175CD3" }]}>{price > 0 ? formatPercent(changePercent) : "-"}</Text>
         <Text style={styles.changeLabel}>{changeLabel}</Text>
       </View>
     </View>

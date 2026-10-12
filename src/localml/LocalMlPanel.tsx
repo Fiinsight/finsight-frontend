@@ -1,3 +1,4 @@
+import { toRelativeTimeKorean } from "../lib/format";
 import React, { useEffect, useState } from "react";
 import { Button, Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -81,7 +82,7 @@ export function LocalMlPanel({
   return (
     <View style={styles.panel}>
       <Text style={styles.title}>{title}</Text>
-      {!empty && <Text style={styles.note}>관련 자료 검색 결과입니다. 상승·하락이나 원인을 판정하지 않습니다.</Text>}
+      {!empty && <Text style={styles.note}>같은 종목·주제를 다룬 기사예요. 원인 판단은 직접 해보세요.</Text>}
       {busy && <Text accessibilityLiveRegion="polite">관련 자료를 찾는 중…</Text>}
       {error && (
         <>
@@ -89,7 +90,6 @@ export function LocalMlPanel({
           <Button title="다시 검색" onPress={() => setRetry((value) => value + 1)} />
         </>
       )}
-      {!empty && data?.status === "RULE_FALLBACK" && <Text>같은 종목이나 주제를 다룬 자료예요. 내용의 유사도는 확인할 수 없어요.</Text>}
       {empty && <Text>{request.kind === "news" ? "비슷한 뉴스가 아직 없어요" : "관련 자료가 아직 없어요"}</Text>}
       {rows.map((row) => {
         const newsId = /^\d+$/.test(row.id) ? Number(row.id) : NaN;
@@ -97,9 +97,9 @@ export function LocalMlPanel({
         const content = (
           <>
             <Text style={styles.rowTitle}>{row.title}</Text>
-            <Text>{row.publishedAt || "발행 시각 확인 불가"}</Text>
+            {row.publishedAt ? <Text>{toRelativeTimeKorean(row.publishedAt)}</Text> : null}
             {row.matchReason && <Text style={styles.matchReason}>{row.matchReason}</Text>}
-            <Text numberOfLines={5}>{row.evidence}</Text>
+            <Text numberOfLines={2}>{row.evidence}</Text>
           </>
         );
         return canOpen ? (
