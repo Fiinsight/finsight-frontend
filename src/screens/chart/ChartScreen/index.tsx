@@ -1,12 +1,13 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { getChartData, getPopularStocks, searchStocks } from "../../../lib/api";
 import type { ChartStackParamList } from "../../../navigation/types";
 import type { ChartRelatedNews, MoveInsight } from "../../../types/api";
 import { ChartCard } from "./ChartCard";
-import { InsightBanner } from "./InsightBanner";
+import { ChartDocentPanel } from "./ChartDocentPanel";
+import { strongestMove, movesByDate, moveDate } from "../../../lib/chartDocent";
 import { RelatedNewsList } from "./RelatedNewsList";
 import { PopularStockChips } from "./PopularStockChips";
 import { StockHeader } from "./StockHeader";
@@ -82,17 +83,15 @@ export function ChartScreen({ route, navigation }: Props) {
   const chart = data?.symbol === selectedSymbol && data.period === period && (period !== "MINUTE" || data.intervalMinutes === minuteInterval) ? data : undefined;
   const displayCandles = chart && period === "MINUTE" && chart.minuteCandles.length > 0 ? chart.minuteCandles : chart?.candles ?? [];
 
-  // Only build a docent banner when there's a real, symbol-tagged news
-  // article backing it — no more falling back to fixed sample copy that
-  // has nothing to do with the actual chart being shown.
-  const docentContent = chart?.docent
-    ? {
-        insightTitle: chart.docent.newsTitle,
-        whatHappened: chart.docent.whatHappened,
-        whyItMoved: chart.docent.whyItMoved,
-        marketImpact: chart.docent.source ? `${chart.docent.source} 보도를 근거로 한 설명입니다.` : "관련 뉴스를 근거로 한 설명입니다."
-      }
-    : null;
+  const scroll = useRef<ScrollView>(null);
+  const docentY = useRef(0);
+  const moves = movesByDate(chart?.moveInsights ?? []);
+  const selected = moves.find(item => item.timestamp === selectedInsight?.timestamp) ?? strongestMove(moves);
+  const selectedPosition = moves.findIndex(item => item.timestamp === selected?.timestamp);
+  const selectMove = (insight: MoveInsight) => {
+    setSelectedInsight(insight);
+    scroll.current?.scrollTo({ y: docentY.current, animated: true });
+  };
 
   const handleRelatedNewsPress = (item: ChartRelatedNews) => {
     if (item.id !== null && item.id !== undefined) {
@@ -100,15 +99,9 @@ export function ChartScreen({ route, navigation }: Props) {
     }
   };
 
-  const handleMoveNewsPress = (newsId: number | null) => {
-    if (newsId !== null) {
-      navigation.navigate("NewsDetail", { newsId });
-    }
-  };
-
   const handleCandlePress = (candle: { date: string }) => {
-    const day = candle.date.slice(0, 10);
-    setSelectedInsight(chart?.moveInsights.find((item) => item.timestamp.slice(0, 10) === day) ?? null);
+    const insight = moves.find(item => moveDate(item.timestamp, period) === moveDate(candle.date, period));
+    if (insight) selectMove(insight);
   };
 
   const marketClosed = period === "MINUTE" && !isKoreanMarketOpen();
@@ -122,7 +115,7 @@ export function ChartScreen({ route, navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView ref={scroll} contentContainerStyle={styles.container}>
         <StockSearchBar value={query} onChange={setQuery} />
         {searchTerm ? (
           <View style={styles.searchResults}>
@@ -175,52 +168,33 @@ export function ChartScreen({ route, navigation }: Props) {
           period={period}
           minuteInterval={minuteInterval}
           moveInsights={chart.moveInsights}
+          selectedDate={selected ? moveDate(selected.timestamp, period) : undefined}
           onCandlePress={handleCandlePress}
         /> : <View style={styles.emptyCard}><Text style={styles.emptyText}>실제 차트 데이터가 없어 차트를 표시할 수 없습니다.</Text></View>}
-        {chart && selectedInsight ? (
-          <View style={styles.selectedInsight}>
-            <Text style={styles.selectedInsightTitle}>선택한 급등락 지점</Text>
-            <Text style={styles.selectedInsightMove}>
-              {selectedInsight.changePercent > 0 ? "+" : ""}{selectedInsight.changePercent.toFixed(2)}%
-            </Text>
-            {selectedInsight.newsId !== null ? (
-              <TouchableOpacity activeOpacity={0.75} onPress={() => handleMoveNewsPress(selectedInsight.newsId)}>
-                <Text style={[styles.selectedInsightNews, styles.newsLink]}>{selectedInsight.newsTitle}</Text>
-              </TouchableOpacity>
-            ) : (
-              <Text style={styles.selectedInsightNews}>관련 뉴스 없음</Text>
-            )}
-            <TouchableOpacity accessibilityRole="button" onPress={() => setSelectedInsight(null)}><Text style={styles.newsLink}>전체 관련 뉴스 보기</Text></TouchableOpacity>
-            {selectedInsight.explanation ? <Text style={styles.selectedInsightExplanation}>{selectedInsight.explanation}</Text> : null}
-          </View>
-        ) : null}
+        {chart && selected ? <View onLayout={event => { docentY.current = event.nativeEvent.layout.y; }}>
+          <ChartDocentPanel insight={selected} period={period} onNewsPress={newsId => navigation.navigate("NewsDetail", { newsId })}
+            hasPrevious={selectedPosition < moves.length - 1} hasNext={selectedPosition > 0}
+            onPrevious={() => selectMove(moves[selectedPosition + 1])} onNext={() => selectMove(moves[selectedPosition - 1])} />
+        </View> : null}
+        {chart ? <RelatedNewsList key={`${selectedSymbol}:${period}:${selected?.timestamp ?? "all"}`} expandMarket={Boolean(selected)} items={selected ? selected.candidateNews : chart.relatedNews} onPress={handleRelatedNewsPress} /> : null}
         {chart && chart.moveInsights.length > 0 ? (
           <View style={styles.insightCard}>
             <Text style={styles.insightTitle}>급등락 시점과 관련 뉴스</Text>
-            {chart.moveInsights.map((insight, index) => (
-              <TouchableOpacity accessibilityRole="button" accessibilityLabel={`${formatMoveInsightTime(insight.timestamp, period)} 급등락 관련 뉴스 보기`} onPress={() => setSelectedInsight(insight)} key={`${insight.timestamp ?? "move"}-${index}`} style={styles.insightRow}>
+            {moves.map((insight, index) => (
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel={`${formatMoveInsightTime(insight.timestamp, period)} 급등락 관련 뉴스 보기`} accessibilityState={{ selected: selected?.timestamp === insight.timestamp }} onPress={() => selectMove(insight)} key={`${insight.timestamp ?? "move"}-${index}`} style={styles.insightRow}>
                 <Text style={[styles.insightMove, insight.changePercent && insight.changePercent > 0 ? styles.up : styles.down]}>
                   {insight.changePercent && insight.changePercent > 0 ? "+" : ""}{insight.changePercent?.toFixed(2)}%
                 </Text>
                 <View style={styles.insightCopy}>
                   <Text style={styles.insightTime}>{formatMoveInsightTime(insight.timestamp, period)}</Text>
-                  {insight.newsId !== null ? (
-                    <TouchableOpacity activeOpacity={0.75} onPress={() => handleMoveNewsPress(insight.newsId)}>
-                      <Text style={[styles.insightNews, styles.newsLink]}>{insight.newsTitle}</Text>
-                    </TouchableOpacity>
-                  ) : (
-                    <Text style={styles.insightNews}>관련 뉴스 없음</Text>
-                  )}
+                  <Text style={styles.insightNews} numberOfLines={2}>{insight.newsTitle || "관련 뉴스 없음"}</Text>
                   {insight.explanation ? <Text style={styles.insightExplanation}>{insight.explanation}</Text> : null}
                 </View>
               </TouchableOpacity>
             ))}
           </View>
         ) : null}
-        {chart ? <RelatedNewsList key={`${selectedSymbol}:${period}:${selectedInsight?.timestamp ?? "all"}`} items={selectedInsight ? selectedInsight.candidateNews : chart.relatedNews} onPress={handleRelatedNewsPress} /> : null}
-        {docentContent ? (
-          <InsightBanner content={docentContent} changePercent={chart?.changePercent ?? 0} relatedNews={chart?.relatedNews.filter((news) => news.id === chart.docent?.newsId) ?? []} onNewsPress={handleRelatedNewsPress} />
-        ) : null}
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -392,34 +366,5 @@ const styles = StyleSheet.create({
     color: "#667085",
     fontSize: 12,
     lineHeight: 17
-  },
-  selectedInsight: {
-    backgroundColor: "#F0F9FF",
-    borderColor: "#B9E6FE",
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 14,
-    gap: 5
-  },
-  selectedInsightTitle: {
-    color: "#026AA2",
-    fontSize: 13,
-    fontWeight: "800"
-  },
-  selectedInsightMove: {
-    color: "#101828",
-    fontSize: 18,
-    fontWeight: "900"
-  },
-  selectedInsightNews: {
-    color: "#344054",
-    fontSize: 14,
-    fontWeight: "700",
-    lineHeight: 20
-  },
-  selectedInsightExplanation: {
-    color: "#475467",
-    fontSize: 12,
-    lineHeight: 18
   }
 });

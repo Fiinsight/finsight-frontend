@@ -425,15 +425,14 @@ function normalizeChartData(raw: ChartDataRaw, symbol: string): ChartData {
   // marker only carries {date, newsId, title} — no `source`.
   const relatedNewsRaw = raw.relatedNews ?? raw.markers ?? raw.newsMarkers ?? [];
 
-  const docent: ChartDocent | null = raw.docent
-    ? {
-        newsId: raw.docent.newsId ?? null,
-        newsTitle: raw.docent.newsTitle ?? "",
-        source: raw.docent.source ?? "",
-        whatHappened: raw.docent.whatHappened ?? "",
-        whyItMoved: raw.docent.whyItMoved ?? ""
-      }
-    : null;
+  const normalizeDocent = (value: ChartDataRaw["docent"]): ChartDocent | null => value ? {
+    newsId: value.newsId ?? null, newsTitle: value.newsTitle ?? "", source: value.source ?? "",
+    relation: value.relation ?? (value.newsId ? "DIRECT" : "NONE"),
+    whatHappened: value.whatHappened ?? "", possibleReason: value.possibleReason ?? value.whyItMoved ?? "",
+    whyItMoved: value.possibleReason ?? value.whyItMoved ?? "", marketImpact: value.marketImpact ?? "",
+    mode: value.mode ?? "RULE"
+  } : null;
+  const docent = normalizeDocent(raw.docent);
 
   return {
     symbol: raw.symbol ?? symbol,
@@ -460,7 +459,8 @@ function normalizeChartData(raw: ChartDataRaw, symbol: string): ChartData {
       newsSource: insight.newsSource ?? "",
       explanation: insight.explanation ?? "",
       causeScore: insight.causeScore ?? 0,
-      candidateNews: (insight.candidateNews ?? []).map(normalizeChartNews)
+      candidateNews: (insight.candidateNews ?? []).map(normalizeChartNews),
+      docent: normalizeDocent(insight.docent)
     })),
     relatedNews: relatedNewsRaw.map(normalizeChartNews),
     docent
@@ -468,7 +468,7 @@ function normalizeChartData(raw: ChartDataRaw, symbol: string): ChartData {
 }
 
 export async function getChartData(symbol: string, period: "D" | "W" | "MINUTE" = "D", interval = 5, signal?: AbortSignal): Promise<ChartData> {
-  const { data } = await api.get<ChartDataRaw>(`/charts/${symbol}`, { params: { period, ...(period === "MINUTE" ? { interval } : {}) }, signal, timeout: period === "MINUTE" ? 90_000 : 15_000 });
+  const { data } = await api.get<ChartDataRaw>(`/charts/${symbol}`, { params: { period, ...(period === "MINUTE" ? { interval } : {}) }, signal, timeout: period === "MINUTE" ? 90_000 : 180_000 });
   return normalizeChartData(data, symbol);
 }
 

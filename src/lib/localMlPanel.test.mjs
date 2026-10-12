@@ -106,8 +106,16 @@ test('market fallback numbers stay hidden and line prices never become fabricate
   payload = { fallback: false, price: 100, changePercent: 1, points: [{ date: '2026-10-01', value: 100 }] };
   const signal = new AbortController().signal;
   assert.equal((await exports.getChartData('TEST', 'D', 5, signal)).candles.length, 0);
-  assert.equal(requestOptions.timeout, 15_000);
+  assert.equal(requestOptions.timeout, 180_000);
   assert.equal(requestOptions.signal, signal);
+  const docent = { relation: 'MARKET', whatHappened: '코스피 소식', possibleReason: '시장 흐름의 영향일 수 있어요.', marketImpact: '시장 흐름을 확인해요.', newsId: 1, mode: 'RULE' };
+  payload = { fallback: false, moveInsights: [{ timestamp: '2026-10-07T00:00:00', changePercent: -3, docent }], docent };
+  const chart = await exports.getChartData('005930');
+  assert.equal(chart.moveInsights[0].docent.relation, 'MARKET');
+  assert.equal(chart.moveInsights[0].docent.possibleReason, docent.possibleReason);
+  assert.equal(chart.docent.whyItMoved, docent.possibleReason);
+  payload = { fallback: false, docent: { newsId: 2, whyItMoved: '기존 설명' } };
+  assert.equal((await exports.getChartData('005930')).docent.possibleReason, '기존 설명');
   payload = { fallback: true, points: [{ date: '2026-10-01', value: 100 }] };
   await assert.rejects(exports.getChartData('TEST'), { name: 'ChartFallbackError' });
 });
