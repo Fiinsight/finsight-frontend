@@ -2,7 +2,7 @@
 
 ## 변경 / 검증
 
-- AI: 규칙/LLM 공통 판정·헤드라인·요약·근거·다음 팁. 기사/사용자/시장 출처를 구분하고 무근거 칭찬과 새 숫자를 방지합니다. `pytest` 80개 통과(LLM mock).
+- AI: 규칙/LLM 공통 판정·헤드라인·요약·근거·다음 팁. 기사/사용자/시장 출처를 구분하고 무근거 칭찬과 새 숫자를 방지합니다. `pytest` 81개 통과(LLM mock).
 - 백엔드: DTO, 두 nullable 컬럼(V9), 조건부 원자적 확정, 사용자 전용 상세 API, 목록/상세 매핑. 기존 데이터 재생성 없음. `./gradlew test` 150개 통과.
 - 프런트: JudgementDetailScreen의 세 상태·근거 목록·다음 팁·대기/레거시/비교 불가, MiniLineChart의 판단선/결과점/구간 강조, 고정 완료, HistoryItem의 결과 도착, feedbackSeen의 사용자별 확인 기록. API/types에서 사용자 근거와 피드백 근거를 분리합니다.
 - `npm run typecheck && npm test`: 성공, 61개 통과. CORRECT/WRONG/PARTIAL UI 스냅샷, null 문단 대체, 대기/무근거/비교 불가, 상세 갱신, 필드 매핑, 사용자별 동시 확인 기록, 차트 구간/마커 검증.
