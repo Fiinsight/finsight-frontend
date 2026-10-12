@@ -1,3 +1,5 @@
+import { getDefaultLearningPreferences, goalTypeFor, type GoalType, type LearningPainPoint } from "./learningPreferences";
+import { getJudgementViewLog, getReadingLog } from "./readingProgress";
 import axios from "axios";
 import { judgementResult, previousRange, type RecordRange } from "./historyRecords";
 import Constants from "expo-constants";
@@ -145,6 +147,8 @@ export async function setDefaultReadingLevel(level: ReadingLevel): Promise<void>
 export async function getLearningPreferences(): Promise<LearningPreferences> {
   try {
     const { data } = await api.get<{
+      learningPainPoint?: LearningPainPoint;
+      goalType?: GoalType;
       learningLevel?: string;
       learningPace?: string;
       learningFocus?: string;
@@ -154,10 +158,10 @@ export async function getLearningPreferences(): Promise<LearningPreferences> {
     const level = data.learningLevel === "analyst" || data.learningLevel === "normal" ? data.learningLevel : "beginner";
     const pace = data.learningPace === "deep" ? "deep" : data.learningPace === "flexible" ? "on-demand" : "micro";
     const focus = data.learningFocus === "judgement" ? "decision" : data.learningFocus === "market" ? "market" : data.learningFocus === "routine" ? "reflection" : "news";
-    return { level, pace, focus, dailyGoal: data.dailyGoal || "뉴스 하나 읽기", source: data.completedAt ? "onboarding" : "default" };
+    return { level, pace, focus, painPoint: data.learningPainPoint ?? "terms", goalType: data.goalType ?? goalTypeFor(data.dailyGoal ?? ""), dailyGoal: data.dailyGoal || "뉴스 하나 읽기", source: data.completedAt ? "onboarding" : "default" };
   } catch {
     const local = await loadOnboardingProfile();
-    return local ? { ...mapOnboardingToLearningPreferences(local.answers), source: "local" } : { level: "beginner", pace: "micro", focus: "news", dailyGoal: "뉴스 하나 읽기", source: "default" };
+    return local ? { ...mapOnboardingToLearningPreferences(local.answers), source: "local" } : getDefaultLearningPreferences();
   }
 }
 
@@ -287,6 +291,11 @@ export async function getJudgementHistory(): Promise<JudgementHistoryItem[]> {
 }
 
 export interface RecordPage<T> { items: T[]; nextRange?: RecordRange }
+
+export async function getJudgementHistoryPage(page: number, signal?: AbortSignal) {
+  const { data } = await api.get<{ content: JudgementHistoryItemRaw[]; number: number; last: boolean }>("/judgements/history/page", { params: { page, size: 20 }, signal });
+  return { items: data.content.map(normalizeHistoryItem), nextPage: data.last ? undefined : data.number + 1 };
+}
 
 export async function getJudgementHistoryRange(range: RecordRange, signal?: AbortSignal): Promise<RecordPage<JudgementHistoryItem>> {
   const response = await api.get<JudgementHistoryItemRaw[]>("/judgements/history", { params: range, signal });
@@ -486,11 +495,11 @@ export interface NewsLesson {
   level: ReadingLevel;
   summary: string;
   readingGuide: string;
-  mode: "RULE_FALLBACK" | "UNAVAILABLE";
+  mode: "REWRITTEN" | "EXCERPT" | "UNAVAILABLE";
   glossary: Array<{ term: string; definition: string }>;
   question: { term: string; prompt: string; options: string[] } | null;
 }
-export interface LearningAnswer { correct: boolean; definition: string; message: string; correctIndex: number }
+export interface LearningAnswer { correct: boolean; definition: string; message: string }
 export interface LearningReview { newsId: number; title: string; term: string; definition: string; level: ReadingLevel; answeredAt: string }
 export async function getNewsLesson(newsId: number, level: ReadingLevel): Promise<NewsLesson> {
   return (await api.get<NewsLesson>(`/learning/news/${newsId}`, { params: { level } })).data;
@@ -508,8 +517,19 @@ export interface LearningProgressSummary {
   activityStreakDays: number;
   completedNewsIds: number[];
   totalDecidedCount: number;
-  weakAreas: Array<{ category: string; decidedCount: number; hitCount: number; recentNewsIds: number[] }>;
+  goal: { type: GoalType; achievedToday: boolean; streakDays: number };
+  levelSuggestion: "normal" | "analyst" | null;
+  weakAreas: Array<{ sampleSize: number; category: string; decidedCount: number; hitCount: number; recentNewsIds: number[] }>;
 }
 export async function getLearningProgress(): Promise<LearningProgressSummary> {
-  return (await api.get<LearningProgressSummary>("/learning/progress")).data;
+  const session = await loadAuthSession();
+  const log = session ? await getReadingLog(session.userId) : {};
+  const views = session ? await getJudgementViewLog(session.userId) : {};
+  const reviewDays = Object.entries(views).filter(([, ids]) => Array.isArray(ids) && ids.length > 0).map(([day]) => day).sort().slice(-366);
+  const readDays = Object.entries(log).filter(([, ids]) => Array.isArray(ids) && ids.length > 0).map(([day]) => day).sort().slice(-366);
+  return (await api.get<LearningProgressSummary>("/learning/progress", { params: { readDays: readDays.join(","), reviewDays: reviewDays.join(",") } })).data;
+}
+
+export async function getDailyLearningTerms(): Promise<Array<{ term: string; definition: string }>> {
+  return (await api.get<Array<{ term: string; definition: string }>>("/learning/terms/today")).data;
 }

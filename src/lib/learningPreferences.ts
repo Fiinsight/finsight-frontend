@@ -8,7 +8,13 @@ export type LearningLevel = "beginner" | "normal" | "analyst";
 export type LearningPace = "micro" | "deep" | "on-demand";
 export type LearningFocus = "news" | "decision" | "market" | "reflection";
 
+export type LearningPainPoint = "terms" | "overload" | "evidence" | "reflection";
+export type GoalType = "read1" | "memo" | "reviewJudgement" | "minutes5";
+export const goalTypeFor = (goal: string): GoalType => goal.includes("메모") ? "memo" : goal.includes("판단") ? "reviewJudgement" : goal.includes("5분") ? "minutes5" : "read1";
+
 export interface LearningPreferences {
+  painPoint: LearningPainPoint;
+  goalType: GoalType;
   level: LearningLevel;
   pace: LearningPace;
   focus: LearningFocus;
@@ -17,6 +23,8 @@ export interface LearningPreferences {
 }
 
 const DEFAULT_PREFERENCES: LearningPreferences = {
+  painPoint: "terms",
+  goalType: "read1",
   level: "beginner",
   pace: "micro",
   focus: "news",
@@ -33,6 +41,8 @@ export function mapOnboardingToLearningPreferences(answers: OnboardingAnswer[]):
   const experience = find("experience", "투자 여정");
   const interest = find("interest", "알고 싶은");
   const paceAnswer = find("pace", "공부 방식");
+  const difficulty = find("difficulty", "어려운 점");
+  const painPoint: LearningPainPoint = difficulty.includes("정보") ? "overload" : difficulty.includes("근거") ? "evidence" : difficulty.includes("기록") ? "reflection" : "terms";
   const goal = find("goal", "습관");
 
   const level: LearningLevel = experience.includes("직접 투자")
@@ -53,9 +63,14 @@ export function mapOnboardingToLearningPreferences(answers: OnboardingAnswer[]):
         ? "reflection"
         : "news";
 
-  return { level, pace, focus, dailyGoal: goal || DEFAULT_PREFERENCES.dailyGoal, source: "onboarding" };
+  return { level, pace, focus, painPoint, goalType: goalTypeFor(goal), dailyGoal: goal || DEFAULT_PREFERENCES.dailyGoal, source: "onboarding" };
 }
 
 export function getDefaultLearningPreferences(): LearningPreferences {
   return DEFAULT_PREFERENCES;
 }
+
+export function evidenceCandidates(summary: string): string[] {
+  return [...new Set(summary.split(/(?<=[.!?。])\s+|\n+/).map(value => value.trim()).filter(Boolean))].slice(0, 2);
+}
+export const focusHint = { news: "핵심 내용을 하나씩 읽어보세요", decision: "판단해볼 만한 근거가 있어요", market: "시장 지표와 함께 보세요", reflection: "지난 판단과 비교해보세요" };

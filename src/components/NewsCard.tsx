@@ -25,7 +25,7 @@ export function NewsCard({ news, onPress }: NewsCardProps) {
       </View>
       <Text style={styles.newsTitle} numberOfLines={2}>{news.title}</Text>
       <Text style={styles.summary} numberOfLines={2}>{news.summary}</Text>
-      <Text style={styles.reason} numberOfLines={2}>투자 포인트: {news.importanceReason}</Text>
+      {news.importanceReason ? <Text style={styles.reason} numberOfLines={2}>투자 포인트: {news.importanceReason}</Text> : null}
     </TouchableOpacity>
   );
 }

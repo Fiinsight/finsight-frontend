@@ -82,3 +82,23 @@ test('loading reserves article cards, error retries are local, and buttons have 
   for (const node of nodes.filter(node=>node.type==='Pressable')) { assert.equal(node.props.accessibilityRole,'button'); assert(node.props.accessibilityLabel); }
 });
 
+test('pain point terms shows three definitions in the first card', () => {
+ const screen=harness({painPoint:'terms'}); const initial=screen.render();
+ assert(screen.text(initial).indexOf('오늘의 용어 3개') < screen.text(initial).indexOf('학습 목표'));
+ button(initial,'환율 뜻 보기').props.onPress();
+ assert(screen.text(screen.render()).includes('통화 교환 비율'));
+});
+test('each unmet goal offers one action and five minute approximation is explicit', () => {
+ for (const [type,label,target] of [['read1','오늘의 뉴스 읽기','HomeTab'],['memo','기사 메모 남기기','NewsDetail'],['reviewJudgement','판단 돌아보기','HistoryTab'],['minutes5','학습 활동 이어가기','NewsDetail']]) {
+  const screen=harness({goal:{type,achievedToday:false,streakDays:2}}); const initial=screen.render();
+  assert.match(screen.text(initial), /연속 달성\s+2\s*일/); button(initial,label).props.onPress();
+  assert.equal(screen.navigation[0][0],target);
+  if(type==='memo') assert.equal(screen.navigation[0][1].openNotes,true);
+  if(type==='minutes5') assert(screen.text(initial).includes('활동 3개 = 5분 학습'));
+ }
+});
+test('level suggestion changes only after the named button is pressed', () => {
+ const screen=harness({suggestion:'normal'}); const initial=screen.render();
+ assert(screen.text(initial).includes('일반용으로 읽어볼까요?')); assert.deepEqual(screen.changes,[]);
+ button(initial,'제안된 읽기 수준으로 변경').props.onPress(); assert.deepEqual(screen.changes,['normal']);
+});

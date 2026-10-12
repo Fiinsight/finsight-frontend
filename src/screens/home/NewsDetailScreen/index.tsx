@@ -1,7 +1,7 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useIsFocused } from "@react-navigation/native";
-import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 import { BottomActionBar } from "../../../components/BottomActionBar";
 import { LevelTabs } from "../../../components/LevelTabs";
@@ -22,22 +22,34 @@ import { LocalMlPanel } from "../../../localml/LocalMlPanel";
 import { searchLocalMl } from "../../../localml/transport";
 
 type Props = NativeStackScreenProps<NewsFlowParamList, "NewsDetail">;
-const MAX_IN_APP_EXCERPT_LENGTH = 600;
 
 export function NewsDetailScreen({ route, navigation }: Props) {
+  const client = useQueryClient();
+  const scroll = useRef<ScrollView>(null);
   const { newsId } = route.params;
   const isFocused = useIsFocused();
   const [bodyTab, setBodyTab] = useState<BodyTab>(route.params.readMode ?? "raw");
   useEffect(() => { if (route.params.readMode) setBodyTab(route.params.readMode); }, [newsId, route.params.readMode]);
+  const [showTerms, setShowTerms] = useState(true);
   const [selectedTerm, setSelectedTerm] = useState<string | null>(null);
 
   const storedReadingLevel = useAppStore((state) => state.readingLevelByNewsId[newsId]);
   const setReadingLevel = useAppStore((state) => state.setReadingLevel);
+  const [preferencesReady, setPreferencesReady] = useState(false);
   const [preferredLevel, setPreferredLevel] = useState<ReadingLevel>("beginner");
 
   useEffect(() => {
-    void getLearningPreferences().then((preferences) => setPreferredLevel(preferences.level));
-  }, []);
+    let active = true;
+    setPreferencesReady(false);
+    void getLearningPreferences().then((preferences) => {
+      if (!active) return;
+      setPreferredLevel(preferences.level);
+      setShowTerms(preferences.painPoint === "terms");
+      if (!route.params.readMode) setBodyTab(preferences.painPoint === "overload" ? "level" : "raw");
+      setPreferencesReady(true);
+    });
+    return () => { active = false; };
+  }, [newsId, route.params.readMode]);
 
   const readingLevel = route.params.readingLevel ?? storedReadingLevel ?? preferredLevel;
 
@@ -51,15 +63,15 @@ export function NewsDetailScreen({ route, navigation }: Props) {
   useEffect(() => {
     // Opening a loaded article counts as reading it; the daily goal is three
     // distinct articles, not a timed dwell requirement.
-    if (!data?.rawContent.trim() || !isFocused) return;
-    void recordArticleRead(newsId);
-  }, [data?.id, isFocused, newsId]);
+    if (!preferencesReady || !data?.rawContent.trim() || !isFocused) return;
+    void recordArticleRead(newsId).then(() => client.invalidateQueries({ queryKey: ["learning-progress"] }));
+  }, [data?.id, isFocused, newsId, preferencesReady, client]);
 
-  if (!data) {
+  if (!data || !preferencesReady) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.errorState}>
-          <Text style={styles.errorTitle}>{isLoading ? "뉴스를 불러오는 중이에요" : "뉴스를 불러오지 못했어요"}</Text>
+          <Text style={styles.errorTitle}>{isLoading || !preferencesReady ? "뉴스를 불러오는 중이에요" : "뉴스를 불러오지 못했어요"}</Text>
           <Text style={styles.errorBody}>{isError ? "실제 기사 데이터를 확인할 수 없어 예시 내용을 표시하지 않습니다." : "잠시만 기다려주세요."}</Text>
           {isError ? <Pressable style={styles.retryButton} onPress={() => void refetch()}><Text style={styles.retryText}>다시 시도</Text></Pressable> : null}
           <Pressable onPress={() => navigation.goBack()}><Text style={styles.backText}>돌아가기</Text></Pressable>
@@ -70,16 +82,14 @@ export function NewsDetailScreen({ route, navigation }: Props) {
 
   const detail: NewsDetail = data;
   const hasContent = !!detail.rawContent.trim();
-  const importanceReason = detail.importanceReasons?.[readingLevel] || detail.importanceReason;
-  const rawExcerpt = detail.rawContent.length > MAX_IN_APP_EXCERPT_LENGTH
-    ? `${detail.rawContent.slice(0, MAX_IN_APP_EXCERPT_LENGTH).trim()}\n\n전체 원문은 위 출처 링크에서 확인하세요.`
-    : detail.rawContent;
+  const importanceReason = detail.importanceReason;
+  const rawExcerpt = detail.rawContent;
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <DetailTopBar category={detail.category} publishedAt={detail.publishedAt} onBack={() => navigation.goBack()} />
 
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView ref={scroll} contentContainerStyle={styles.container}>
         <Text style={styles.title}>{detail.title}</Text>
         <SourceLinkRow source={detail.source} url={detail.url} />
 
@@ -88,7 +98,8 @@ export function NewsDetailScreen({ route, navigation }: Props) {
         {hasContent && bodyTab === "level" ? <LevelTabs value={readingLevel} onChange={(level: ReadingLevel) => setReadingLevel(newsId, level)} /> : null}
 
         {hasContent ? (bodyTab === "raw" ? <View style={styles.bodyCard}>
-          <ArticleBody text={rawExcerpt} terms={detail.keyTerms} onTermPress={setSelectedTerm} />
+          <Pressable accessibilityRole="switch" accessibilityState={{ checked: showTerms }} accessibilityLabel="용어 밑줄 표시" onPress={() => setShowTerms(!showTerms)}><Text style={styles.backText}>용어 밑줄 {showTerms ? "켜짐" : "꺼짐"}</Text></Pressable>
+          <ArticleBody text={rawExcerpt} terms={showTerms ? detail.keyTerms : []} onTermPress={setSelectedTerm} />
         </View> : <LearningPanel key={`${newsId}-${readingLevel}`} newsId={newsId} level={readingLevel} onTermPress={setSelectedTerm} />) : null}
 
         {hasContent && bodyTab === "raw" ? (
@@ -101,21 +112,13 @@ export function NewsDetailScreen({ route, navigation }: Props) {
           />
         ) : null}
 
-        {selectedTerm ? (
-          <LocalMlPanel
-            title={`${selectedTerm} 관련 용어 자료`}
-            request={{ kind: "term", query: selectedTerm, term: selectedTerm }}
-            search={searchLocalMl}
-          />
-        ) : null}
-
-        {hasContent && bodyTab === "raw" ? <ImportanceReasonCard reason={importanceReason} /> : null}
-        {hasContent ? <ArticleNotesPanel newsId={newsId} sourceUrl={detail.url} /> : null}
+        {hasContent && bodyTab === "raw" && importanceReason ? <ImportanceReasonCard reason={importanceReason} /> : null}
+        {hasContent ? <View onLayout={(event) => { if (route.params.openNotes) scroll.current?.scrollTo({ y: event.nativeEvent.layout.y, animated: true }); }}><ArticleNotesPanel newsId={newsId} sourceUrl={detail.url} /></View> : null}
       </ScrollView>
 
       {hasContent ? <BottomActionBar label="판단하기" onPress={() => navigation.navigate("Judgement", { newsId })} /> : null}
 
-      <TermPopup visible={!!selectedTerm} term={selectedTerm} newsId={newsId} onClose={() => setSelectedTerm(null)} />
+      <TermPopup visible={!!selectedTerm} term={selectedTerm} newsId={newsId} level={readingLevel} onClose={() => setSelectedTerm(null)} />
     </SafeAreaView>
   );
 }

@@ -1,9 +1,9 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useFocusEffect } from "@react-navigation/native";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { getArticleNotesRange, getJudgementHistoryRange } from "../../../lib/api";
+import { getLearningPreferences, getArticleNotesRange, getJudgementHistoryPage } from "../../../lib/api";
 import { loadAuthSession } from "../../../lib/auth";
 import { groupRecords, judgementSummary, kstDate, recentRange } from "../../../lib/historyRecords";
 import { toRelativeTimeKorean } from "../../../lib/format";
@@ -14,8 +14,10 @@ import { HistoryItem } from "./HistoryItem";
 
 type Props = NativeStackScreenProps<HistoryStackParamList, "History">;
 
-export function HistoryScreen({ navigation }: Props) {
-  const [tab, setTab] = useState<"judgements" | "notes">("judgements");
+export function HistoryScreen({ navigation, route }: Props) {
+  const [tab, setTab] = useState<"judgements" | "notes">(route.params?.initialTab ?? "judgements");
+  useEffect(() => { void getLearningPreferences().then(value => { if (!route.params?.initialTab && value.painPoint === "reflection") setTab("notes"); }); }, [route.params?.initialTab]);
+  useEffect(() => { if (route.params?.initialTab) setTab(route.params.initialTab); }, [route.params?.initialTab]);
   const [today, setToday] = useState(() => kstDate(new Date()));
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [ownerId, setOwnerId] = useState<number | null | undefined>();
@@ -28,10 +30,10 @@ export function HistoryScreen({ navigation }: Props) {
   }, [today]));
   const initialRange = recentRange(today);
   const historyQuery = useInfiniteQuery({
-    queryKey: ["judgement-history", ownerId, initialRange],
-    initialPageParam: initialRange,
-    queryFn: ({ pageParam, signal }) => getJudgementHistoryRange(pageParam, signal),
-    getNextPageParam: (page) => page.nextRange,
+    queryKey: ["judgement-history", ownerId, "page"],
+    initialPageParam: 0,
+    queryFn: ({ pageParam, signal }) => getJudgementHistoryPage(pageParam, signal),
+    getNextPageParam: (page) => page.nextPage,
     enabled: typeof ownerId === "number" && tab === "judgements",
     retry: 0, staleTime: 60_000, refetchOnWindowFocus: false, refetchOnReconnect: false
   });
@@ -63,7 +65,7 @@ export function HistoryScreen({ navigation }: Props) {
             </Pressable>
           ))}
         </View>
-        <Text style={styles.sectionSubtitle}>{selectedDate ? `${selectedDate} 기록만 표시합니다. 선택한 요일을 다시 누르면 해제돼요.` : "최근 7일 기록부터 보여드려요."}</Text>
+        <Text style={styles.sectionSubtitle}>{selectedDate ? `${selectedDate} 기록만 표시합니다. 선택한 요일을 다시 누르면 해제돼요.` : (tab === "judgements" ? "최근 판단부터 보여드려요. 이전 기록을 더 불러올 수 있어요." : "최근 7일 메모부터 보여드려요.")}</Text>
         {selectedDate ? <Pressable accessibilityRole="button" onPress={() => setSelectedDate(null)}><Text style={styles.reviewLink}>날짜 필터 해제</Text></Pressable> : null}
         {ownerId === null ? <Text style={styles.errorText}>로그인 정보를 확인할 수 없습니다.</Text> : ownerId === undefined || activeQuery.isLoading ? <Text style={styles.emptyText}>기록을 불러오는 중이에요.</Text> : null}
         {activeQuery.isError ? <View style={styles.emptyCard}>
@@ -78,7 +80,7 @@ export function HistoryScreen({ navigation }: Props) {
           const summary = judgementSummary(group.items);
           return <View key={group.key} style={styles.group}>
             <View style={styles.groupHeader}><Text style={styles.sectionTitle}>{group.label}</Text>
-              <Text style={styles.groupSummary}>{`판단 ${summary.total}건 · 적중 ${summary.hits} · 결과 대기 ${summary.pending}${summary.unavailable ? ` · 확인 불가 ${summary.unavailable}` : ""}`}</Text>
+              <Text style={styles.groupSummary}>{`판단 ${summary.total}건 · 적중 ${summary.total - summary.pending - summary.unavailable - summary.legacy === 0 ? "-" : summary.hits} · 결과 대기 ${summary.pending}${summary.unavailable ? ` · 확인 불가 ${summary.unavailable}` : ""}`}</Text>
             </View>
             {group.items.map((item) => <HistoryItem key={item.id} item={item} onPress={() => navigation.navigate("JudgementDetail", { item })} />)}
           </View>;

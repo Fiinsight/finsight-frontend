@@ -1,3 +1,4 @@
+import { focusHint, getDefaultLearningPreferences, type LearningPreferences } from "../../../lib/learningPreferences";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
@@ -6,10 +7,11 @@ import { getMoreBriefing, getTodayBriefing } from "../../../lib/api";
 import type { NewsBrief } from "../../../types/api";
 
 interface NewsSectionProps {
+  preferences?: LearningPreferences;
   onSelectNews: (newsId: number) => void;
 }
 
-export function NewsSection({ onSelectNews }: NewsSectionProps) {
+export function NewsSection({ onSelectNews, preferences = getDefaultLearningPreferences() }: NewsSectionProps) {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["today-briefing"],
     queryFn: getTodayBriefing,
@@ -17,6 +19,7 @@ export function NewsSection({ onSelectNews }: NewsSectionProps) {
     staleTime: 60_000
   });
 
+  const [expanded, setExpanded] = useState(false);
   const [olderNews, setOlderNews] = useState<NewsBrief[]>([]);
   const [nextPage, setNextPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
@@ -58,7 +61,7 @@ export function NewsSection({ onSelectNews }: NewsSectionProps) {
       </View>
 
       {news.length > 0 ? news.map((item) => (
-        <NewsCard key={item.id} news={item} onPress={() => onSelectNews(item.id)} />
+        <View key={item.id}><NewsCard news={item} onPress={() => onSelectNews(item.id)} /><Text style={styles.muted}>{focusHint[preferences.focus]}</Text></View>
       )) : (
         <View style={styles.emptyState}>
           <Text style={styles.emptyTitle}>{isError ? "뉴스를 불러오지 못했어요" : "오늘의 뉴스를 준비하고 있어요"}</Text>
@@ -67,13 +70,16 @@ export function NewsSection({ onSelectNews }: NewsSectionProps) {
         </View>
       )}
 
-      {olderNews.map((item) => (
-        <NewsCard key={item.id} news={item} onPress={() => onSelectNews(item.id)} />
+      {(!preferences || preferences.painPoint !== "overload" || expanded) && olderNews.map((item) => (
+        <View key={item.id}><NewsCard news={item} onPress={() => onSelectNews(item.id)} /><Text style={styles.muted}>{focusHint[preferences.focus]}</Text></View>
       ))}
 
       {moreError ? <Text accessibilityRole="alert" style={styles.emptyBody}>추가 뉴스를 불러오지 못했어요. 이미 불러온 뉴스는 유지합니다.</Text> : null}
-      {isRealData && hasMore ? (
-        <Pressable accessibilityRole="button" style={styles.moreButton} onPress={() => void handleLoadMore()} disabled={loadingMore}>
+      {isRealData && preferences.painPoint === "overload" ? <Pressable accessibilityRole="button" accessibilityLabel={expanded ? "추가 뉴스 접기" : "추가 뉴스 펼치기"} accessibilityState={{ expanded }} style={styles.moreButton} onPress={() => {
+        setExpanded(!expanded); if (!expanded && !olderNews.length && hasMore) void handleLoadMore();
+      }}><Text style={styles.moreButtonText}>{expanded ? "접기" : "더 보기"}</Text></Pressable> : null}
+      {isRealData && hasMore && (preferences.painPoint !== "overload" || expanded && olderNews.length > 0 || moreError) ? (
+        <Pressable accessibilityRole="button" accessibilityLabel="추가 뉴스 불러오기" style={styles.moreButton} onPress={() => void handleLoadMore()} disabled={loadingMore}>
           {loadingMore ? <ActivityIndicator size="small" color="#175CD3" /> : <Text style={styles.moreButtonText}>{moreError ? "다시 불러오기" : "더 많은 뉴스 보기"}</Text>}
         </Pressable>
       ) : null}

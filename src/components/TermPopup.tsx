@@ -6,13 +6,14 @@ interface TermPopupProps {
   visible: boolean;
   term: string | null;
   newsId?: number;
+  level?: "beginner" | "normal" | "analyst";
   onClose: () => void;
 }
 
-export function TermPopup({ visible, term, newsId, onClose }: TermPopupProps) {
+export function TermPopup({ visible, term, newsId, level = "normal", onClose }: TermPopupProps) {
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["term-explain", term, newsId],
-    queryFn: () => explainTerm({ term: term as string, newsId }),
+    queryKey: ["term-explain", term, newsId, level],
+    queryFn: () => explainTerm({ term: term as string, newsId, level }),
     enabled: visible && !!term,
     retry: 0,
     staleTime: 600_000
