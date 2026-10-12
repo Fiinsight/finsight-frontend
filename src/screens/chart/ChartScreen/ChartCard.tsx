@@ -8,13 +8,14 @@ type ChartPeriod = "D" | "W" | "MINUTE";
 
 interface ChartCardProps {
   candles: ChartCandle[];
+  selectedDate?: string;
   period: ChartPeriod;
   minuteInterval?: number;
   moveInsights?: MoveInsight[];
   onCandlePress?: (candle: ChartCandle) => void;
 }
 
-export function ChartCard({ candles, period, minuteInterval, moveInsights = [], onCandlePress }: ChartCardProps) {
+export function ChartCard({ candles, period, minuteInterval, moveInsights = [], selectedDate, onCandlePress }: ChartCardProps) {
   const [showGuide, setShowGuide] = useState(false);
   const periodLabel = period === "D" ? "하루" : period === "W" ? "일주일" : `${minuteInterval ?? 5}분`;
 
@@ -22,12 +23,13 @@ export function ChartCard({ candles, period, minuteInterval, moveInsights = [], 
     <View style={styles.card}>
       <CandlestickChart
         candles={candles}
+        selectedDate={selectedDate}
         height={240}
         moveMarkers={moveInsights.map((item) => ({ date: period === "MINUTE" ? item.timestamp : item.timestamp.slice(0, 10), changePercent: item.changePercent, title: item.newsTitle, color: item.explanation?.startsWith("뉴스 수집(") ? "#98A2B3" : undefined }))}
         onCandlePress={onCandlePress}
         showTimeLabels={period === "MINUTE"}
       />
-      <TouchableOpacity style={styles.guideTrigger} onPress={() => setShowGuide(true)} activeOpacity={0.75}>
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel="차트 읽는 법" style={styles.guideTrigger} onPress={() => setShowGuide(true)} activeOpacity={0.75}>
         <Text style={styles.guideTriggerText}>차트 읽는 법</Text>
         <Ionicons name="information-circle-outline" size={20} color="#175CD3" />
       </TouchableOpacity>

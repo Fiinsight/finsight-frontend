@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import Svg, { Line, Polygon, Rect, Text as SvgText } from "react-native-svg";
+import Svg, { Circle, Line, Polygon, Rect, Text as SvgText } from "react-native-svg";
 import { formatPrice, formatShortDate, formatShortDateTime, formatShortTime } from "../lib/format";
 import type { ChartCandle } from "../types/api";
 
@@ -13,6 +13,7 @@ interface MoveMarker {
 
 interface CandlestickChartProps {
   candles: ChartCandle[];
+  selectedDate?: string;
   height?: number;
   upColor?: string;
   downColor?: string;
@@ -22,7 +23,7 @@ interface CandlestickChartProps {
   moveMarkers?: MoveMarker[];
 }
 
-const PADDING_TOP = 40;
+const PADDING_TOP = 58;
 const PADDING_BOTTOM = 20;
 const PADDING_LEFT = 8;
 const PADDING_RIGHT = 52; // room for gridline price labels
@@ -33,6 +34,7 @@ const MAX_DATE_LABELS = 6;
 
 export function CandlestickChart({
   candles,
+  selectedDate,
   height = 240,
   upColor = "#D92D20",
   downColor = "#175CD3",
@@ -42,6 +44,8 @@ export function CandlestickChart({
 }: CandlestickChartProps) {
   const [width, setWidth] = useState(0);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+
+  useEffect(() => setSelectedIndex(null), [candles, selectedDate]);
 
   const chart = useMemo(() => {
     if (width === 0 || candles.length === 0) {
@@ -98,13 +102,10 @@ export function CandlestickChart({
     const visibleMoveMarkers = bars
       .map((bar) => ({ bar, marker: moveMarkerByDate.get(bar.candle.date) }))
       .filter((item): item is { bar: (typeof bars)[number]; marker: MoveMarker } => Boolean(item.marker));
-    const largest = visibleMoveMarkers.reduce<(typeof visibleMoveMarkers)[number] | undefined>((best, item) =>
-      !best || Math.abs(item.marker.changePercent) > Math.abs(best.marker.changePercent) ? item : best, undefined);
-    const biggestMove = largest?.bar ?? bars[0];
-    const showCallout = Boolean(largest);
-    const calloutIsUp = (largest?.marker.changePercent ?? 0) >= 0;
-    const calloutY = calloutIsUp ? biggestMove.wickTop - 10 : biggestMove.wickBottom + 10;
-    const calloutText = largest ? `${calloutIsUp ? "+" : ""}${largest.marker.changePercent.toFixed(2)}%` : "";
+    // Labels have their own top lane; leader lines keep each label tied to its candle.
+    const markers = visibleMoveMarkers.map((item, index) => ({ ...item,
+      labelX: PADDING_LEFT + plotWidth * (index + 0.5) / visibleMoveMarkers.length
+    }));
 
     const resolvedIndex = selectedIndex !== null && selectedIndex < candles.length ? selectedIndex : candles.length - 1;
     const activeBar = bars[resolvedIndex];
@@ -118,15 +119,10 @@ export function CandlestickChart({
       tooltipLeft,
       gridlines,
       labelIndices,
-      showCallout,
-      biggestMove,
-      calloutY,
-      calloutText,
-      calloutColor: largest?.marker.color ?? biggestMove.color,
-      calloutIsUp,
+      markers,
       visibleMoveMarkers
     };
-  }, [width, height, candles, selectedIndex, upColor, downColor, moveMarkers]);
+  }, [width, height, candles, selectedIndex, upColor, downColor, moveMarkers, selectedDate]);
 
   return (
     <View style={styles.container} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
@@ -142,6 +138,7 @@ export function CandlestickChart({
             </Text>
           </View> : null}
           <Svg width={width} height={height}>
+            {chart.bars.filter(bar => bar.candle.date === selectedDate).map(bar => <Rect key={`selected-${bar.index}`} x={Math.max(PADDING_LEFT, bar.x - Math.max(chart.slot, 12) / 2)} y={PADDING_TOP} width={Math.max(chart.slot, 12)} height={height - PADDING_TOP - PADDING_BOTTOM} fill="#EFF8FF" />)}
             {chart.gridlines.map((line, i) => (
               <Line
                 key={`grid-${i}`}
@@ -170,20 +167,16 @@ export function CandlestickChart({
                 strokeWidth={1.5}
               />
             ))}
-            {chart.visibleMoveMarkers.map(({ bar, marker }) => {
+            {chart.markers.map(({ bar, marker, labelX }) => {
               const isUp = marker.changePercent > 0;
               const y = isUp ? bar.wickTop - 7 : bar.wickBottom + 7;
-              const points = isUp
-                ? `${bar.x},${y - 5} ${bar.x - 4},${y + 2} ${bar.x + 4},${y + 2}`
-                : `${bar.x},${y + 5} ${bar.x - 4},${y - 2} ${bar.x + 4},${y - 2}`;
-              return (
-                <Polygon
-                  key={`move-marker-${bar.index}`}
-                  points={points}
-                  fill={marker.color ?? (isUp ? upColor : downColor)}
-                  opacity={0.9}
-                />
-              );
+              const color = marker.color ?? (isUp ? upColor : downColor);
+              const points = isUp ? `${bar.x},${y - 5} ${bar.x - 4},${y + 2} ${bar.x + 4},${y + 2}` : `${bar.x},${y + 5} ${bar.x - 4},${y - 2} ${bar.x + 4},${y - 2}`;
+              return <Fragment key={`marker-${bar.index}`}>
+                <Line key={`leader-${bar.index}`} x1={labelX} y1={40} x2={bar.x} y2={y} stroke="#D0D5DD" strokeWidth={1} strokeDasharray="2,3" />
+                {bar.candle.date === selectedDate ? <Circle key={`ring-${bar.index}`} cx={bar.x} cy={y} r={9} fill="none" stroke={color} strokeWidth={2} /> : null}
+                <Polygon key={`move-marker-${bar.index}`} points={points} fill={color} />
+              </Fragment>;
             })}
             {chart.bars.map((bar) => (
               <Rect
@@ -196,40 +189,25 @@ export function CandlestickChart({
                 rx={1}
               />
             ))}
-            {chart.showCallout ? (
-              <>
-                <Line
-                  x1={chart.biggestMove.x}
-                  x2={chart.biggestMove.x}
-                  y1={chart.calloutIsUp ? chart.calloutY + 4 : chart.calloutY - 4}
-                  y2={chart.calloutIsUp ? chart.biggestMove.wickTop : chart.biggestMove.wickBottom}
-                  stroke="#98A2B3"
-                  strokeWidth={1}
-                />
-                <SvgText
-                  x={Math.min(Math.max(chart.biggestMove.x, 60), width - 60)}
-                  y={chart.calloutY}
-                  fontSize={11}
-                  fontWeight="700"
-                  fill={chart.calloutColor}
-                  textAnchor="middle"
-                >
-                  {chart.calloutText}
-                </SvgText>
-              </>
-            ) : null}
           </Svg>
           {chart.bars.map((bar) => (
             <Pressable
               key={`touch-${bar.index}`}
               hitSlop={4}
               onPress={() => {
-                setSelectedIndex(bar.index);
+                setSelectedIndex(moveMarkers.some(marker => marker.date === bar.candle.date) ? null : bar.index);
                 onCandlePress?.(bar.candle);
               }}
-              style={[styles.touchTarget, { left: bar.x - chart.slot / 2, width: chart.slot }]}
+              accessibilityRole="button" accessibilityLabel={`${bar.candle.date} 종가 ${formatPrice(bar.candle.close)}`}
+              style={[styles.touchTarget, { top: PADDING_TOP, height: height - PADDING_TOP, left: bar.x - chart.slot / 2, width: chart.slot }]}
             />
           ))}
+          {selectedIndex === null ? chart.markers.map(({ bar, marker, labelX }) => <Pressable key={`marker-touch-${bar.index}`} accessibilityRole="button"
+            accessibilityLabel={`${bar.candle.date} 급등락 ${marker.changePercent > 0 ? "+" : ""}${marker.changePercent.toFixed(2)}% 선택`}
+            accessibilityState={{ selected: bar.candle.date === selectedDate }} onPress={() => { setSelectedIndex(null); onCandlePress?.(bar.candle); }}
+            style={[styles.markerTarget, { left: labelX - 22, borderColor: bar.candle.date === selectedDate ? (marker.changePercent >= 0 ? upColor : downColor) : "transparent" }]}>
+            <Text style={[styles.markerText, { color: marker.changePercent >= 0 ? upColor : downColor }]}>{marker.changePercent > 0 ? "+" : ""}{marker.changePercent.toFixed(2)}%</Text>
+          </Pressable>) : null}
           <View style={[styles.axisRow, { paddingRight: PADDING_RIGHT }]}>
             {chart.labelIndices.map((idx) => (
               <Text key={idx} style={styles.axisLabel}>
@@ -286,9 +264,10 @@ const styles = StyleSheet.create({
     color: "#98A2B3",
     fontSize: 10
   },
+  markerTarget: { position: "absolute", top: 4, width: 44, height: 36, borderWidth: 2, borderRadius: 8, alignItems: "center", justifyContent: "center", backgroundColor: "#FFFFFF" },
+  markerText: { fontSize: 10, fontWeight: "700" },
   touchTarget: {
     position: "absolute",
     top: 0,
-    bottom: 0
   }
 });

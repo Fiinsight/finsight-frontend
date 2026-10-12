@@ -5,12 +5,13 @@ import type { ChartRelatedNews } from "../../../types/api";
 
 interface RelatedNewsListProps {
   items: ChartRelatedNews[];
+  expandMarket?: boolean;
   onPress: (item: ChartRelatedNews) => void;
 }
 
-export function RelatedNewsList({ items, onPress }: RelatedNewsListProps) {
+export function RelatedNewsList({ items, onPress, expandMarket = false }: RelatedNewsListProps) {
   const [count, setCount] = useState(10);
-  const [marketOpen, setMarketOpen] = useState(false);
+  const [marketOpen, setMarketOpen] = useState(expandMarket);
   const direct = items.filter((item) => item.relationType !== "MARKET");
   const market = items.filter((item) => item.relationType === "MARKET");
   const rows = (news: ChartRelatedNews[]) => news.slice(0, count).map((item, index) => (

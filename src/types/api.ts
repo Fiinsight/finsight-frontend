@@ -302,6 +302,7 @@ export interface ChartMinuteCandleRaw extends ChartCandleRaw {
 }
 
 export interface ChartMoveInsightRaw {
+  docent?: ChartDocentRaw | null;
   candidateNews?: ChartRelatedNewsRaw[];
   timestamp?: string;
   changePercent?: number;
@@ -313,6 +314,10 @@ export interface ChartMoveInsightRaw {
 }
 
 export interface ChartDocentRaw {
+  relation?: "DIRECT" | "MARKET" | "NONE";
+  possibleReason?: string;
+  marketImpact?: string;
+  mode?: "RULE" | "LLM";
   newsId?: number;
   newsTitle?: string;
   source?: string;
@@ -341,6 +346,7 @@ export interface ChartDataRaw {
 }
 
 export interface MoveInsight {
+  docent: ChartDocent | null;
   candidateNews: ChartRelatedNews[];
   timestamp: string;
   changePercent: number;
@@ -352,6 +358,10 @@ export interface MoveInsight {
 }
 
 export interface ChartDocent {
+  relation: "DIRECT" | "MARKET" | "NONE";
+  possibleReason: string;
+  marketImpact: string;
+  mode: "RULE" | "LLM";
   newsId: number | null;
   newsTitle: string;
   source: string;
