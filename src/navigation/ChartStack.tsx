@@ -10,10 +10,10 @@ const Stack = createNativeStackNavigator<ChartStackParamList>();
 export function ChartStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Chart" component={ChartScreen} />
-      <Stack.Screen name="NewsDetail" component={NewsDetailScreen} />
-      <Stack.Screen name="Judgement" component={JudgementScreen} />
-      <Stack.Screen name="Feedback" component={FeedbackScreen} />
+      <Stack.Screen name="Chart" component={ChartScreen} options={{ title: "차트" }} />
+      <Stack.Screen name="NewsDetail" component={NewsDetailScreen} options={{ title: "기사 상세" }} />
+      <Stack.Screen name="Judgement" component={JudgementScreen} options={{ title: "판단하기" }} />
+      <Stack.Screen name="Feedback" component={FeedbackScreen} options={{ title: "판단 완료" }} />
     </Stack.Navigator>
   );
 }

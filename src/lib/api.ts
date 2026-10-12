@@ -109,8 +109,10 @@ export async function getCurrentUser(): Promise<AuthResponse> {
   return data;
 }
 
-export async function getKakaoLoginUrl(state?: string): Promise<string> {
-  const { data } = await api.get<{ authorizationUrl: string }>("/auth/kakao/url", { params: state ? { state } : undefined });
+export async function deleteAccount(): Promise<void> { await api.delete("/auth/me"); }
+
+export async function getKakaoLoginUrl(redirectUri?: string): Promise<string> {
+  const { data } = await api.get<{ authorizationUrl: string }>("/auth/kakao/url", { params: redirectUri ? { redirectUri } : undefined });
   return data.authorizationUrl;
 }
 
@@ -124,6 +126,11 @@ export async function syncOnboardingProfile(includePending = false): Promise<voi
   if (!profile || profile.answers.length === 0) return;
   await api.put("/profile/onboarding", { answers: profile.answers });
   if (profile.userId == null) await saveOnboardingProfile(profile.answers);
+}
+
+export async function getOnboardingAnswers(): Promise<OnboardingAnswer[]> {
+  const { data } = await api.get<{ answers: OnboardingAnswer[] }>("/profile/onboarding");
+  return data.answers ?? [];
 }
 
 export async function saveLearningSettings(answers: OnboardingAnswer[]): Promise<void> {

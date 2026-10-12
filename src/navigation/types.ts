@@ -6,7 +6,7 @@ import type { JudgementAck, JudgementHistoryItem, ReadingLevel } from "../types/
 // (e.g. tapping a related-news row on the Chart tab, or a past judgement on
 // the History tab).
 export type NewsFlowParamList = {
-  NewsDetail: { newsId: number; readMode?: "raw" | "level"; readingLevel?: ReadingLevel };
+  NewsDetail: { newsId: number; openNotes?: boolean; readMode?: "raw" | "level"; readingLevel?: ReadingLevel };
   Judgement: { newsId: number };
   // Only an acknowledgment — the real result isn't known until the next
   // trading day (see FeedbackScreen for why there's no chart/aligned here).
@@ -22,14 +22,16 @@ export type ChartStackParamList = NewsFlowParamList & {
 };
 
 export type HistoryStackParamList = NewsFlowParamList & {
-  History: undefined;
+  History: { initialTab?: "judgements" | "notes" } | undefined;
   JudgementDetail: { item: JudgementHistoryItem };
 };
 
+export type LearnStackParamList = NewsFlowParamList & { Learn: undefined };
+
 export type RootTabParamList = {
   HomeTab: NavigatorScreenParams<HomeStackParamList> | undefined;
-  ChartTab: undefined;
-  HistoryTab: undefined;
-  LearnTab: undefined;
+  ChartTab: NavigatorScreenParams<ChartStackParamList> | undefined;
+  HistoryTab: NavigatorScreenParams<HistoryStackParamList> | undefined;
+  LearnTab: NavigatorScreenParams<LearnStackParamList> | undefined;
   ProfileTab: { openLearningSettings?: boolean } | undefined;
 };

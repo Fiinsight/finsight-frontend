@@ -10,9 +10,10 @@ interface SettingsRow {
   onPress?: () => void;
 }
 
-export function SettingsList({ level, onLogout, onEditLevel, onEditLearning, onTerms, onPrivacy }: {
+export function SettingsList({ level, onLogout, onEditLevel, onEditLearning, onTerms, onPrivacy, onDeleteAccount }: {
   level: LearningLevel;
   onLogout: () => void;
+  onDeleteAccount: () => void;
   onEditLevel: () => void;
   onEditLearning: () => void;
   onTerms: () => void;
@@ -26,7 +27,8 @@ export function SettingsList({ level, onLogout, onEditLevel, onEditLearning, onT
     { icon: "document-text-outline", label: "이용약관", onPress: onTerms },
     { icon: "shield-checkmark-outline", label: "개인정보처리방침", onPress: onPrivacy },
     { icon: "information-circle-outline", label: "앱 정보/버전", value: `v${packageJson.version}` },
-    { icon: "log-out-outline", label: "로그아웃", onPress: onLogout }
+    { icon: "log-out-outline", label: "로그아웃", onPress: onLogout },
+    { icon: "trash-outline", label: "회원 탈퇴", onPress: onDeleteAccount }
   ];
   return (
     <View style={styles.card}>

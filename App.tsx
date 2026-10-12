@@ -1,3 +1,4 @@
+import type { RootTabParamList } from "./src/navigation/types";
 import { NavigationContainer } from "@react-navigation/native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StatusBar } from "expo-status-bar";
@@ -21,6 +22,7 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 60_000 } }
 });
 export default function App() {
+  const [signupFirst, setSignupFirst] = useState(false);
   const [showIntro, setShowIntro] = useState(true);
   const [onboardingDoneThisRun, setOnboardingDoneThisRun] = useState(false);
   const [session, setSession] = useState<AuthSession | null>(null);
@@ -101,7 +103,9 @@ export default function App() {
   if (!session && !onboardingDoneThisRun && !authExpired) {
     return (
       <OnboardingScreen
+        onLogin={() => { setSignupFirst(false); setOnboardingDoneThisRun(true); }}
         onComplete={(answers) => {
+          setSignupFirst(true);
           setOnboardingDoneThisRun(true);
           void saveOnboardingProfile(answers);
         }}
@@ -112,13 +116,19 @@ export default function App() {
   if (!session) {
     return <>
       {authExpired ? <Text accessibilityRole="alert" style={styles.authNotice}>로그인이 만료됐거나 인증이 거절됐어요. 다시 로그인해 주세요.</Text> : null}
-      <AuthScreen onAuthenticated={() => void loadAuthSession().then((value) => { setSession(value); setAuthExpired(false); })} />
+      <AuthScreen initialSignup={signupFirst} onAuthenticated={() => void loadAuthSession().then((value) => { setSession(value); setAuthExpired(false); })} />
     </>;
   }
 
   return (
     <QueryClientProvider client={queryClient}>
-      <NavigationContainer>
+      <NavigationContainer<RootTabParamList> linking={{ prefixes: [], config: { screens: {
+        HomeTab: { screens: { Home: "", NewsDetail: "news/:newsId", Judgement: "news/:newsId/judgement", Feedback: "feedback" } },
+        ChartTab: { screens: { Chart: "chart", NewsDetail: "chart/news/:newsId", Judgement: "chart/news/:newsId/judgement", Feedback: "chart/feedback" } },
+        HistoryTab: { screens: { History: "history", JudgementDetail: "history/detail", NewsDetail: "history/news/:newsId", Judgement: "history/news/:newsId/judgement", Feedback: "history/feedback" } },
+        LearnTab: { screens: { Learn: "learn", NewsDetail: "learn/news/:newsId", Judgement: "learn/news/:newsId/judgement", Feedback: "learn/feedback" } },
+        ProfileTab: "profile"
+      } } }} documentTitle={{ formatter: (options) => `${options?.title ?? "핀사이트"} · 핀사이트` }}>
         <StatusBar style="dark" />
         <RootNavigator
           session={session}
