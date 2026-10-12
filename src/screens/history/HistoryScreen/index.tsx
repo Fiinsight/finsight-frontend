@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -12,9 +12,14 @@ import { AttendanceCard } from "../../../components/AttendanceCard";
 import { TabScreenHeader } from "../../../components/TabScreenHeader";
 import { HistoryItem } from "./HistoryItem";
 
+import { getSeenFeedback } from "../../../lib/feedbackSeen";
+import { hasUnreadFeedback } from "../../../lib/historyRecords";
+
 type Props = NativeStackScreenProps<HistoryStackParamList, "History">;
 
 export function HistoryScreen({ navigation, route }: Props) {
+  const focused = useIsFocused();
+  const [seen, setSeen] = useState<Record<string, string>>({});
   const [tab, setTab] = useState<"judgements" | "notes">(route.params?.initialTab ?? "judgements");
   useEffect(() => { void getLearningPreferences().then(value => { if (!route.params?.initialTab && value.painPoint === "reflection") setTab("notes"); }); }, [route.params?.initialTab]);
   useEffect(() => { if (route.params?.initialTab) setTab(route.params.initialTab); }, [route.params?.initialTab]);
@@ -35,7 +40,8 @@ export function HistoryScreen({ navigation, route }: Props) {
     queryFn: ({ pageParam, signal }) => getJudgementHistoryPage(pageParam, signal),
     getNextPageParam: (page) => page.nextPage,
     enabled: typeof ownerId === "number" && tab === "judgements",
-    retry: 0, staleTime: 60_000, refetchOnWindowFocus: false, refetchOnReconnect: false
+    retry: 0, staleTime: 60_000, refetchOnWindowFocus: false, refetchOnReconnect: false,
+    refetchInterval: focused && tab === "judgements" ? 60_000 : false
   });
   const notesQuery = useInfiniteQuery({
     queryKey: ["article-notes", ownerId, "range", initialRange],
@@ -45,6 +51,14 @@ export function HistoryScreen({ navigation, route }: Props) {
     enabled: typeof ownerId === "number" && tab === "notes",
     retry: 0, staleTime: 60_000, refetchOnWindowFocus: false, refetchOnReconnect: false
   });
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    if (typeof ownerId === "number") {
+      void getSeenFeedback(ownerId).then(value => { if (active) setSeen(value); });
+      if (tab === "judgements" && historyQuery.dataUpdatedAt && Date.now() - historyQuery.dataUpdatedAt >= 60_000) void historyQuery.refetch();
+    }
+    return () => { active = false; };
+  }, [ownerId, tab, historyQuery.refetch]));
   const history = [...new Map((historyQuery.data?.pages.flatMap((page) => page.items) ?? []).map((item) => [item.id, item])).values()];
   const notes = [...new Map((notesQuery.data?.pages.flatMap((page) => page.items) ?? []).map((item) => [item.id, item])).values()];
   const historyGroups = groupRecords(history, (item) => item.judgedAt, today, selectedDate);
@@ -82,7 +96,7 @@ export function HistoryScreen({ navigation, route }: Props) {
             <View style={styles.groupHeader}><Text style={styles.sectionTitle}>{group.label}</Text>
               <Text style={styles.groupSummary}>{`판단 ${summary.total}건 · 적중 ${summary.total - summary.pending - summary.unavailable - summary.legacy === 0 ? "-" : summary.hits} · 결과 대기 ${summary.pending}${summary.unavailable ? ` · 확인 불가 ${summary.unavailable}` : ""}`}</Text>
             </View>
-            {group.items.map((item) => <HistoryItem key={item.id} item={item} onPress={() => navigation.navigate("JudgementDetail", { item })} />)}
+            {group.items.map((item) => <HistoryItem key={item.id} item={item} unread={hasUnreadFeedback(item, seen)} onPress={() => navigation.navigate("JudgementDetail", { item })} />)}
           </View>;
         }) : noteGroups.map((group) => <View key={group.key} style={styles.group}>
           <View style={styles.groupHeader}><Text style={styles.sectionTitle}>{group.label}</Text><Text style={styles.groupSummary}>메모 {group.items.length}건</Text></View>

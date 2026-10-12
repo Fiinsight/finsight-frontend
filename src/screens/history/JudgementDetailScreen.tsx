@@ -4,21 +4,28 @@ import { recordJudgementView } from "../../lib/readingProgress";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { judgementClosingPoints, judgementResult, kstDate } from "../../lib/historyRecords";
+import { judgementClosingPoints, judgementResult, kstDate, feedbackVerdict } from "../../lib/historyRecords";
 import { ScreenTopBar } from "../../components/ScreenTopBar";
 import { MiniLineChart } from "../../components/MiniLineChart";
-import { getChartData, getNewsDetail, searchStocks } from "../../lib/api";
+import { getChartData, getJudgementDetail, getNewsDetail, searchStocks } from "../../lib/api";
 import type { HistoryStackParamList } from "../../navigation/types";
+
+import { markFeedbackSeen } from "../../lib/feedbackSeen";
 
 type Props = NativeStackScreenProps<HistoryStackParamList, "JudgementDetail">;
 
 export function JudgementDetailScreen({ route, navigation }: Props) {
-  const { item } = route.params;
   const focused = useIsFocused();
+  const initial = route.params.item;
+  const detailQuery = useQuery({ queryKey: ["judgement-detail", initial.id], queryFn: ({ signal }) => getJudgementDetail(initial.id, signal),
+    enabled: Number.isSafeInteger(initial.id) && initial.id > 0, retry: 0, staleTime: 60_000,
+    refetchInterval: query => focused && !(query.state.data?.actualDirection ?? initial.actualDirection) ? 60_000 : false });
+  const item = Number.isSafeInteger(detailQuery.data?.id) && detailQuery.data?.id === initial.id ? detailQuery.data : initial;
   const client = useQueryClient();
   useEffect(() => {
     if (focused) void recordJudgementView(item.id).then(() => client.invalidateQueries({ queryKey: ["learning-progress"] }));
   }, [focused, item.id, client]);
+  useEffect(() => { if (focused) void markFeedbackSeen(item).catch(() => {}); }, [focused, item.id, item.feedbackGeneratedAt, item.comparisonDate]);
   const newsQuery = useQuery({
     queryKey: ["news-detail", item.newsId],
     queryFn: () => getNewsDetail(item.newsId),
@@ -44,17 +51,21 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
     staleTime: 10 * 60_000,
     retry: 0
   });
-  const stockName = newsQuery.data?.relatedSymbolName !== symbol ? newsQuery.data?.relatedSymbolName : stockQuery.data?.find(stock => stock.symbol === symbol)?.name;
+  const storedName = newsQuery.data?.relatedSymbolName?.trim();
+  const stockName = storedName && storedName !== symbol ? storedName : stockQuery.data?.find(stock => stock.symbol === symbol)?.name;
   const chartPoints = chartQuery.data?.points ?? [];
   const judgementDate = kstDate(item.judgedAt);
   const result = judgementResult(item);
-  const status = result.legacy ? { label: "이전 방식", color: "#667085", background: "#F2F4F7" } : result.correct === true
-    ? { label: "적중", color: "#12B76A", background: "#ECFDF3" }
-    : result.correct === false
-      ? { label: "불일치", color: "#D92D20", background: "#FEF3F2" }
-      : result.unavailable
-        ? { label: "비교 불가", color: "#667085", background: "#F2F4F7" }
-        : { label: "결과 대기", color: "#667085", background: "#F2F4F7" };
+  const verdict = feedbackVerdict(item);
+  const hasReason = Boolean(item.reasonText?.trim() || item.reasons.length);
+  const headline = verdict === "CORRECT" ? hasReason ? "✓ 정확한 판단이에요!" : "예측 방향이 같았어요"
+    : verdict === "WRONG" ? "다르게 움직였어요" : verdict === "PARTIAL" ? "방향은 맞았지만 변동이 작았어요"
+    : result.unavailable ? "결과를 비교할 수 없어요" : result.legacy ? "이전 방식으로 채점된 기록이에요(당일 비교)" : "내일 장 마감 후 결과를 알려드려요";
+  const tone = verdict === "CORRECT" ? "#ECFDF3" : verdict === "WRONG" ? "#FFF4ED" : "#F2F4F7";
+  const percent = item.actualChangePercent == null ? "등락률 확인 불가" : `${item.actualChangePercent > 0 ? "+" : ""}${item.actualChangePercent.toFixed(2)}%`;
+  const movement = item.actualDirection === "UP" ? "상승" : item.actualDirection === "DOWN" ? "하락" : "보합";
+  const storedReasons = verdict ? item.feedbackReasons : null;
+  const pricePoints = points && (chartPoints.length === 0 || points[0].date < chartPoints[0].date || points[1].date > chartPoints[chartPoints.length - 1].date) ? points : chartPoints;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -63,15 +74,13 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
 
         <Text style={styles.eyebrow}>판단 기록 상세</Text>
         <Text style={styles.title}>{item.newsTitle}</Text>
-        <View style={styles.statusRow}>
-          <View style={[styles.statusBadge, { backgroundColor: status.background }]}>
-            <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
-          </View>
+        <View style={[styles.resultCard, { backgroundColor: tone }]} accessibilityRole="summary">
+          <Text style={styles.resultHeadline}>{headline}</Text>
+          {verdict ? <Text style={styles.feedback}>{`실제 ${stockName || symbol || "판단 대상"} ${item.comparisonDate} 종가는 판단일 대비 ${percent} ${movement}`}</Text> : result.pending ? <Text style={styles.muted}>휴장일이면 다음 거래일 장 마감 기준으로 알려드려요.</Text> : null}
           <Text style={styles.choice}>{item.choice === "UP" ? "상승 예측" : item.choice === "DOWN" ? "하락 예측" : "중립 예측"}</Text>
-          <Text style={styles.actual}>{result.label}</Text>
         </View>
-
-        {result.legacy ? <Text style={styles.chartNote}>이전 방식으로 채점된 기록이에요(당일 비교)</Text> : null}
+        {detailQuery.isError ? <TouchableOpacity accessibilityRole="button" accessibilityLabel="판단 결과 다시 시도" onPress={() => void detailQuery.refetch()}><Text style={styles.back}>최신 결과 다시 시도</Text></TouchableOpacity> : null}
+        {result.pending || !storedReasons?.length ? (
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>판단 근거</Text>
           {item.reasons.length > 0 ? item.reasons.map((reason, index) => (
@@ -82,56 +91,64 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
           )) : <Text style={styles.muted}>이 기록에는 저장된 판단 근거 목록이 없습니다.</Text>}
         </View>
 
-        {result.feedbackText ? (
-          <View style={styles.feedbackCard}>
-            <Text style={styles.sectionTitle}>피드백</Text>
-            <Text style={styles.feedback}>{result.feedbackText}</Text>
-          </View>
-        ) : (
-          <View style={styles.feedbackCard}>
-            <Text style={styles.sectionTitle}>피드백</Text>
-            <Text style={styles.muted}>{result.legacy ? "이 기록의 피드백을 확인할 수 없어요." : "다음 거래일 이후 실제 결과가 확인되면 피드백이 표시됩니다."}</Text>
-          </View>
-        )}
+        ) : null}
 
+        {!result.pending && result.feedbackText ? <View style={styles.feedbackCard}>
+          <Text style={styles.sectionTitle}>{storedReasons?.length ? verdict === "CORRECT" && hasReason ? "왜 정확한 판단일까요?" : verdict === "WRONG" ? "무엇을 놓쳤을까요?" : "어떤 점을 확인할까요?" : "피드백"}</Text>
+          {storedReasons?.length ? storedReasons.map((reason, index) => <View key={`${reason.title}-${index}`} style={styles.reasonRow}>
+            <Text style={styles.bullet}>{verdict === "CORRECT" ? "✓" : "!"}</Text>
+            <View style={styles.reasonCopy}><Text style={styles.reasonTitle}>{reason.title}</Text><Text style={styles.feedback}>{reason.detail}</Text></View>
+          </View>) : <Text style={styles.feedback}>{result.feedbackText}</Text>}
+          {storedReasons?.length ? <Text style={styles.muted}>가격 변화가 이 뉴스 때문이라고 단정할 수는 없어요.</Text> : null}
+        </View> : null}
+        {verdict && item.nextTip ? <View style={styles.tipCard}><Text style={styles.feedback}>💡 {item.nextTip}</Text></View> : null}
+        {!result.pending ? (
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>판단 전후 가격 흐름</Text>
           {symbol ? <Text style={styles.choice}>{stockName ? `${stockName} ${symbol}` : symbol}</Text> : null}
           {points ? <Text style={styles.chartNote}>{`판단일 기준 종가 ${points[0].value.toLocaleString("ko-KR")} · 비교일 종가 ${points[1].value.toLocaleString("ko-KR")} (${item.actualChangePercent != null ? `${item.actualChangePercent > 0 ? "+" : ""}${item.actualChangePercent.toFixed(2)}%` : "등락률 확인 불가"})`}</Text> : null}
+          {chartQuery.isError && points ? <><Text style={styles.muted}>가격 차트를 불러오지 못했어요. 저장된 판단 기준·결과 종가를 비교해요.</Text><TouchableOpacity accessibilityRole="button" accessibilityLabel="가격 흐름 다시 시도" onPress={() => void chartQuery.refetch()}><Text style={styles.back}>다시 시도</Text></TouchableOpacity></> : null}
           {newsQuery.isLoading ? <Text style={styles.muted}>관련 종목을 확인하는 중이에요.</Text>
           : newsQuery.isError ? <><Text style={styles.muted}>관련 종목 조회에 실패했습니다.</Text><TouchableOpacity accessibilityRole="button" onPress={() => void newsQuery.refetch()}><Text style={styles.back}>다시 시도</Text></TouchableOpacity></>
           : !symbol ? <Text style={styles.muted}>연결된 종목이 없어 가격 흐름을 표시할 수 없습니다.</Text>
-          : indexSymbol ? <Text style={styles.muted}>지수 차트는 준비 중입니다.</Text>
+          : indexSymbol && pricePoints.length === 0 ? <Text style={styles.muted}>지수 종가 비교 데이터를 확인할 수 없어요.</Text>
           : chartQuery.isLoading ? <Text style={styles.muted}>가격 차트를 불러오는 중이에요.</Text>
-          : chartQuery.isError || chartPoints.length === 0 ? <>
+          : pricePoints.length === 0 ? <>
               <Text style={styles.muted}>가격 차트를 불러오지 못했어요</Text>
               <TouchableOpacity accessibilityRole="button" onPress={() => void chartQuery.refetch()}><Text style={styles.back}>다시 시도</Text></TouchableOpacity>
             </>
           : <>
-              <MiniLineChart points={chartPoints} height={180} highlightDate={judgementDate} markers={[
-                {date: judgementDate, label: "판단일", color: "#F79009"},
-                ...(points ? [{date: points[1].date, label: "비교일", color: "#175CD3"}] : [])
+              <MiniLineChart points={pricePoints} height={180} highlightDate={judgementDate} showTooltip={false}
+                highlightRange={item.comparisonDate && !result.legacy ? { from: judgementDate, to: item.comparisonDate, color: tone } : undefined} markers={[
+                {date: judgementDate, label: "판단", color: "#F79009", kind: "line"},
+                ...(item.comparisonDate && !result.legacy ? [{date: item.comparisonDate, label: `결과 ${percent}`, color: "#175CD3", kind: "point" as const}] : [])
               ]} />
             </>}
-          {!points && !result.legacy && /^\d{6}$/.test(symbol) ? <Text style={styles.chartNote}>결과 비교 종가는 다음 판정 때 저장돼요</Text> : null}
+          {!points && !result.legacy && /^\d{6}$/.test(symbol) ? <Text style={styles.chartNote}>저장된 비교 종가를 확인할 수 없어요</Text> : null}
 
         </View>
+        ) : null}
       </ScrollView>
+      <View style={styles.footer}><TouchableOpacity accessibilityRole="button" accessibilityLabel="완료, 판단 기록 목록으로" style={styles.doneButton} onPress={() => navigation.navigate("History", { initialTab: "judgements" })}><Text style={styles.doneText}>완료</Text></TouchableOpacity></View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#F8FAFC" },
-  container: { padding: 20, paddingBottom: 40, gap: 14 },
+  container: { padding: 20, paddingBottom: 24, gap: 14 },
+  resultCard: { borderRadius: 16, padding: 20, gap: 10 },
+  resultHeadline: { fontSize: 20, fontWeight: "800", color: "#101828", lineHeight: 28 },
+  reasonCopy: { flex: 1, gap: 5 },
+  reasonTitle: { fontSize: 15, fontWeight: "700", color: "#101828" },
+  tipCard: { backgroundColor: "#FFFAEB", padding: 16, borderRadius: 14 },
+  footer: { backgroundColor: "#FFFFFF", paddingHorizontal: 20, paddingVertical: 12, borderTopColor: "#EAECF0", borderTopWidth: 1 },
+  doneButton: { backgroundColor: "#175CD3", borderRadius: 12, minHeight: 48, alignItems: "center", justifyContent: "center" },
+  doneText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
   back: { color: "#175CD3", fontSize: 14, fontWeight: "700" },
   eyebrow: { color: "#667085", fontSize: 13, fontWeight: "700", marginTop: 4 },
   title: { color: "#101828", fontSize: 21, fontWeight: "800", lineHeight: 29 },
-  statusRow: { flexDirection: "row", alignItems: "center", gap: 9, flexWrap: "wrap" },
-  statusBadge: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
-  statusText: { fontSize: 12, fontWeight: "800" },
   choice: { color: "#475467", fontSize: 13, fontWeight: "700" },
-  actual: { color: "#667085", fontSize: 13 },
   card: { backgroundColor: "#FFFFFF", borderColor: "#EAECF0", borderWidth: 1, borderRadius: 14, padding: 16, gap: 10 },
   feedbackCard: { backgroundColor: "#EEF4FF", borderRadius: 14, padding: 16, gap: 10 },
   sectionTitle: { color: "#101828", fontSize: 16, fontWeight: "800" },

@@ -1,5 +1,5 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { judgementResult } from "../../../lib/historyRecords";
+import { judgementResult, feedbackVerdict } from "../../../lib/historyRecords";
 import { toRelativeTimeKorean } from "../../../lib/format";
 import type { JudgementChoice, JudgementHistoryItem } from "../../../types/api";
 
@@ -15,10 +15,12 @@ const choiceColor: Record<JudgementChoice, string> = {
   DOWN: "#175CD3"
 };
 
-export function HistoryItem({ item, onPress }: { item: JudgementHistoryItem; onPress: () => void }) {
+export function HistoryItem({ item, onPress, unread = false }: { item: JudgementHistoryItem; onPress: () => void; unread?: boolean }) {
   const result = judgementResult(item);
+  const partial = feedbackVerdict(item) === "PARTIAL";
   return (
     <TouchableOpacity accessibilityRole="button" style={styles.card} activeOpacity={0.85} onPress={onPress}>
+      {unread ? <Text style={styles.arrived} accessibilityLabel="새 판단 결과 도착">결과 도착</Text> : null}
       <Text style={styles.title} numberOfLines={2}>
         {item.newsTitle}
       </Text>
@@ -26,8 +28,8 @@ export function HistoryItem({ item, onPress }: { item: JudgementHistoryItem; onP
         <Text style={[styles.choice, { color: choiceColor[item.choice] }]}>{choiceLabel[item.choice]}</Text>
         <Text style={result.pending ? styles.pending : styles.result}>{result.label}</Text>
         {result.correct !== null ? (
-          <View style={[styles.badge, { backgroundColor: result.correct ? "#ECFDF3" : "#FEF3F2" }]}>
-            <Text style={[styles.badgeText, { color: result.correct ? "#12B76A" : "#D92D20" }]}>{result.correct ? "적중" : "불일치"}</Text>
+          <View style={[styles.badge, { backgroundColor: partial ? "#F2F4F7" : result.correct ? "#ECFDF3" : "#FEF3F2" }]}>
+            <Text style={[styles.badgeText, { color: partial ? "#667085" : result.correct ? "#12B76A" : "#D92D20" }]}>{partial ? "소폭 변동" : result.correct ? "적중" : "불일치"}</Text>
           </View>
         ) : null}
       </View>
@@ -38,6 +40,7 @@ export function HistoryItem({ item, onPress }: { item: JudgementHistoryItem; onP
 }
 
 const styles = StyleSheet.create({
+  arrived: { color: "#175CD3", backgroundColor: "#EEF4FF", alignSelf: "flex-start", fontSize: 12, fontWeight: "700", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
   card: {
     backgroundColor: "#FFFFFF",
     borderColor: "#EAECF0",

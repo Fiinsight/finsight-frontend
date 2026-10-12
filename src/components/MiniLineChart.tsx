@@ -1,18 +1,20 @@
 import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import Svg, { Circle, Line, Path } from "react-native-svg";
+import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
 import { formatPrice, formatShortDate } from "../lib/format";
 import type { ChartPoint } from "../types/api";
 
 interface MiniLineChartProps {
   points: ChartPoint[];
+  showTooltip?: boolean;
+  highlightRange?: { from: string; to: string; color: string };
   height?: number;
   strokeColor?: string;
   highlightDate?: string;
   showAxisLabels?: boolean;
   /** Lets the caller make data points tappable (e.g. the full Chart screen). */
   onPointPress?: (point: ChartPoint) => void;
-  markers?: Array<{ date: string; label: string; color: string }>;
+  markers?: Array<{ date: string; label: string; color: string; kind?: "line" | "point" }>;
 }
 
 const PADDING_TOP = 34;
@@ -20,7 +22,7 @@ const PADDING_BOTTOM = 8;
 const PADDING_HORIZONTAL = 10;
 const TOOLTIP_WIDTH = 96;
 
-export function MiniLineChart({ points, height = 160, strokeColor = "#175CD3", highlightDate, showAxisLabels = true, onPointPress, markers = [] }: MiniLineChartProps) {
+export function MiniLineChart({ points, height = 160, strokeColor = "#175CD3", highlightDate, showAxisLabels = true, onPointPress, markers = [], showTooltip = true, highlightRange }: MiniLineChartProps) {
   const [width, setWidth] = useState(0);
 
   const chart = useMemo(() => {
@@ -33,10 +35,11 @@ export function MiniLineChart({ points, height = 160, strokeColor = "#175CD3", h
     const max = Math.max(...values);
     const range = max - min || 1;
     const plotWidth = Math.max(width - PADDING_HORIZONTAL * 2, 1);
-    const plotHeight = Math.max(height - PADDING_TOP - PADDING_BOTTOM, 1);
+    const paddingTop = markers.length ? 54 : PADDING_TOP;
+    const plotHeight = Math.max(height - paddingTop - PADDING_BOTTOM, 1);
 
     const xAt = (index: number) => PADDING_HORIZONTAL + (points.length === 1 ? plotWidth / 2 : (index / (points.length - 1)) * plotWidth);
-    const yAt = (value: number) => PADDING_TOP + (1 - (value - min) / range) * plotHeight;
+    const yAt = (value: number) => paddingTop + (1 - (value - min) / range) * plotHeight;
 
     const path = points.map((point, index) => `${index === 0 ? "M" : "L"}${xAt(index).toFixed(1)},${yAt(point.value).toFixed(1)}`).join(" ");
     const positions = points.map((point, index) => ({ point, x: xAt(index), y: yAt(point.value) }));
@@ -66,8 +69,11 @@ export function MiniLineChart({ points, height = 160, strokeColor = "#175CD3", h
       return [{ ...marker, label: outside ? `${marker.label}(범위 밖)` : marker.label, x, y: undefined }];
     });
 
-    return { path, positions, highlightX, highlightY, highlightPoint, tooltipLeft, markerPositions };
-  }, [width, height, points, highlightDate, markers]);
+    const from = markerPositions.find(marker => marker.date === highlightRange?.from);
+    const to = markerPositions.find(marker => marker.date === highlightRange?.to);
+    const rangeHighlight = from && to ? { x: Math.min(from.x, to.x), width: Math.abs(to.x - from.x) } : null;
+    return { paddingTop, rangeHighlight, path, positions, highlightX, highlightY, highlightPoint, tooltipLeft, markerPositions };
+  }, [width, height, points, highlightDate, markers, highlightRange]);
 
   return (
     <View
@@ -78,23 +84,24 @@ export function MiniLineChart({ points, height = 160, strokeColor = "#175CD3", h
     >
       {chart ? (
         <>
-          <View style={[styles.tooltip, { left: chart.tooltipLeft, top: Math.max(chart.highlightY - 34, 0) }]}>
+          {showTooltip ? <View style={[styles.tooltip, { left: chart.tooltipLeft, top: Math.max(chart.highlightY - 34, 0) }]}>
             <Text style={styles.tooltipText}>{formatShortDate(chart.highlightPoint.date)}</Text>
             <Text style={styles.tooltipValue}>{formatPrice(chart.highlightPoint.value)}</Text>
-          </View>
+          </View> : null}
           <Svg width={width} height={height}>
-            {chart.markerPositions.map((marker) => (
-              <Line key={`${marker.date}-${marker.label}`} x1={marker.x} x2={marker.x} y1={PADDING_TOP} y2={height - PADDING_BOTTOM} stroke={marker.color} strokeWidth={1.5} strokeDasharray="4 4" />
+            {chart.rangeHighlight ? <Rect x={chart.rangeHighlight.x} y={chart.paddingTop} width={chart.rangeHighlight.width} height={height - chart.paddingTop - PADDING_BOTTOM} fill={highlightRange?.color} /> : null}
+            {chart.markerPositions.filter(marker => marker.kind !== "point").map((marker) => (
+              <Line key={`${marker.date}-${marker.label}`} x1={marker.x} x2={marker.x} y1={chart.paddingTop} y2={height - PADDING_BOTTOM} stroke={marker.color} strokeWidth={1.5} strokeDasharray="4 4" />
             ))}
             <Path d={chart.path} stroke={strokeColor} strokeWidth={2.5} fill="none" strokeLinejoin="round" strokeLinecap="round" />
-            <Circle cx={chart.highlightX} cy={chart.highlightY} r={5} fill={strokeColor} stroke="#FFFFFF" strokeWidth={2} />
-            {chart.markerPositions.filter(marker => marker.y !== undefined).map((marker) => (
+            {showTooltip ? <Circle cx={chart.highlightX} cy={chart.highlightY} r={5} fill={strokeColor} stroke="#FFFFFF" strokeWidth={2} /> : null}
+            {chart.markerPositions.filter(marker => marker.y !== undefined && marker.kind !== "line").map((marker) => (
               <Circle key={`${marker.date}-${marker.label}-dot`} cx={marker.x} cy={marker.y} r={4} fill={marker.color} stroke="#FFFFFF" strokeWidth={2} />
             ))}
           </Svg>
-          {chart.markerPositions.map((marker) => (
-            <View key={`${marker.date}-${marker.label}-label`} pointerEvents="none" style={[styles.markerLabel, { left: Math.max(Math.min(marker.x - 24, width - 48), 0), top: 4 }]}>
-              <Text style={[styles.markerText, { color: marker.color }]}>{marker.label}</Text>
+          {chart.markerPositions.map((marker, index) => (
+            <View key={`${marker.date}-${marker.label}-label`} pointerEvents="none" style={[styles.markerLabel, { left: Math.max(Math.min(marker.x - 48, width - 96), 0), top: index % 2 * 20 + 4 }]}>
+              <Text numberOfLines={1} style={[styles.markerText, { color: marker.color }]}>{marker.label}</Text>
             </View>
           ))}
           {onPointPress
@@ -157,7 +164,7 @@ const styles = StyleSheet.create({
   },
   markerLabel: {
     position: "absolute",
-    width: 48,
+    width: 96,
     alignItems: "center"
   },
   markerText: {

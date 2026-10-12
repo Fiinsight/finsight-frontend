@@ -150,7 +150,13 @@ export interface JudgementAck {
 // Judgement history (GET /judgements/history) - shape not finalized yet
 // ---------------------------------------------------------------------------
 
+export type FeedbackVerdict = "CORRECT" | "WRONG" | "PARTIAL";
+export interface FeedbackReason { title: string; detail: string; }
 export interface JudgementHistoryItemRaw {
+  headline?: string | null;
+  verdict?: FeedbackVerdict | null;
+  nextTip?: string | null;
+  feedbackGeneratedAt?: string | null;
   id?: number;
   // Actual finsight-backend JudgementHistoryResponse uses `judgementId`.
   judgementId?: number;
@@ -167,13 +173,19 @@ export interface JudgementHistoryItemRaw {
   correct?: boolean;
   aligned?: boolean;
   feedbackText?: string;
-  reasons?: string[];
+  reasons?: Array<string | FeedbackReason> | null;
   reasonText?: string;
   createdAt?: string;
   judgedAt?: string;
 }
 
 export interface JudgementHistoryItem {
+  headline?: string | null;
+  verdict?: FeedbackVerdict | null;
+  nextTip?: string | null;
+  feedbackGeneratedAt?: string | null;
+  feedbackReasons?: FeedbackReason[] | null;
+  reasonText?: string;
   id: number;
   newsId: number;
   newsTitle: string;
