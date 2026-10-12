@@ -132,7 +132,7 @@ export function CandlestickChart({
     <View style={styles.container} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
       {chart ? (
         <>
-          <View style={[styles.tooltip, { left: chart.tooltipLeft }]}>
+          {selectedIndex !== null ? <View style={[styles.tooltip, { left: chart.tooltipLeft }]}>
             <Text style={styles.tooltipDate}>{showTimeLabels ? formatShortDateTime(chart.activeBar.candle.date) : formatShortDate(chart.activeBar.candle.date)}</Text>
             <Text style={styles.tooltipValue}>
               종가 <Text style={styles.tooltipStrong}>{formatPrice(chart.activeBar.candle.close)}</Text>
@@ -140,7 +140,7 @@ export function CandlestickChart({
             <Text style={styles.tooltipRange}>
               고 {formatPrice(chart.activeBar.candle.high)} · 저 {formatPrice(chart.activeBar.candle.low)}
             </Text>
-          </View>
+          </View> : null}
           <Svg width={width} height={height}>
             {chart.gridlines.map((line, i) => (
               <Line

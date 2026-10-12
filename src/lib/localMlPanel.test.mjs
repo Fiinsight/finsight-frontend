@@ -60,7 +60,7 @@ test('onboarding fallback belongs to the signed-in account; pending answers need
 
 test('similar news pushes and pops correctly in every stack that registers NewsDetail', async () => {
   const { StackRouter, StackActions } = await import('@react-navigation/routers');
-  for (const [file, entry] of [['HomeStack.tsx', 'Home'], ['ChartStack.tsx', 'Chart'], ['HistoryStack.tsx', 'History']]) {
+  for (const [file, entry] of [['HomeStack.tsx', 'Home'], ['ChartStack.tsx', 'Chart'], ['HistoryStack.tsx', 'History'], ['LearnStack.tsx', 'Learn']]) {
     const source = readFileSync(new URL(`../navigation/${file}`, import.meta.url), 'utf8');
     const names = [...source.matchAll(/<Stack.Screen name="([^"]+)"/g)].map((match) => match[1]);
     assert.ok(names.includes('NewsDetail'));

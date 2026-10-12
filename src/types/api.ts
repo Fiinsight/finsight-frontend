@@ -375,6 +375,7 @@ export interface ChartData {
 }
 
 export interface PopularStock {
+  fallback?: boolean;
   symbol: string;
   name: string;
   price: number;
@@ -382,6 +383,7 @@ export interface PopularStock {
 }
 
 export interface PopularStockRaw {
+  fallback?: boolean;
   symbol?: string;
   name?: string;
   price?: number;

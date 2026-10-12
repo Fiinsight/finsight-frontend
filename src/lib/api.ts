@@ -459,7 +459,7 @@ function normalizeChartData(raw: ChartDataRaw, symbol: string): ChartData {
 }
 
 export async function getChartData(symbol: string, period: "D" | "W" | "MINUTE" = "D", interval = 5, signal?: AbortSignal): Promise<ChartData> {
-  const { data } = await api.get<ChartDataRaw>(`/charts/${symbol}`, { params: { period, interval }, signal, timeout: 15_000 });
+  const { data } = await api.get<ChartDataRaw>(`/charts/${symbol}`, { params: { period, ...(period === "MINUTE" ? { interval } : {}) }, signal, timeout: period === "MINUTE" ? 90_000 : 15_000 });
   return normalizeChartData(data, symbol);
 }
 
@@ -469,6 +469,7 @@ export async function getPopularStocks(): Promise<PopularStock[]> {
     symbol: item.symbol ?? "",
     name: item.name ?? "",
     price: item.price ?? 0,
+    fallback: item.fallback ?? false,
     changePercent: item.changePercent ?? 0
   }));
 }

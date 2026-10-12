@@ -16,13 +16,16 @@ export function PopularStockChips({ stocks, selectedSymbol, onSelect }: PopularS
         return (
           <TouchableOpacity
             key={stock.symbol}
+            accessibilityRole="button"
+            accessibilityLabel={`${stock.name} 차트 보기`}
+            accessibilityState={{ selected }}
             style={[styles.chip, selected && styles.chipSelected]}
             activeOpacity={0.85}
             onPress={() => onSelect(stock.symbol)}
           >
             <Text style={[styles.name, selected && styles.nameSelected]}>{stock.name}</Text>
-            <Text style={[styles.price, selected && styles.nameSelected]}>{formatPrice(stock.price)}</Text>
-            <Text style={[styles.change, { color: stock.changePercent >= 0 ? "#D92D20" : "#175CD3" }]}>{formatPercent(stock.changePercent)}</Text>
+            <Text style={[styles.price, selected && styles.nameSelected]}>{stock.fallback || stock.price <= 0 ? "확인 불가" : formatPrice(stock.price)}</Text>
+            <Text style={[styles.change, { color: stock.changePercent >= 0 ? "#D92D20" : "#175CD3" }]}>{stock.fallback || stock.price <= 0 ? "-" : formatPercent(stock.changePercent)}</Text>
           </TouchableOpacity>
         );
       })}
