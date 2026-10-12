@@ -22,7 +22,7 @@ import { LocalMlPanel } from "../../../localml/LocalMlPanel";
 import { searchLocalMl } from "../../../localml/transport";
 
 type Props = NativeStackScreenProps<NewsFlowParamList, "NewsDetail">;
-const MAX_IN_APP_EXCERPT_LENGTH = 1200;
+const MAX_IN_APP_EXCERPT_LENGTH = 600;
 
 export function NewsDetailScreen({ route, navigation }: Props) {
   const { newsId } = route.params;
@@ -39,7 +39,7 @@ export function NewsDetailScreen({ route, navigation }: Props) {
     void getLearningPreferences().then((preferences) => setPreferredLevel(preferences.level));
   }, []);
 
-  const readingLevel = storedReadingLevel ?? route.params.readingLevel ?? preferredLevel;
+  const readingLevel = route.params.readingLevel ?? storedReadingLevel ?? preferredLevel;
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["news-detail", newsId],
@@ -51,7 +51,7 @@ export function NewsDetailScreen({ route, navigation }: Props) {
   useEffect(() => {
     // Opening a loaded article counts as reading it; the daily goal is three
     // distinct articles, not a timed dwell requirement.
-    if (!data || !isFocused) return;
+    if (!data?.rawContent.trim() || !isFocused) return;
     void recordArticleRead(newsId);
   }, [data?.id, isFocused, newsId]);
 
@@ -69,6 +69,7 @@ export function NewsDetailScreen({ route, navigation }: Props) {
   }
 
   const detail: NewsDetail = data;
+  const hasContent = !!detail.rawContent.trim();
   const importanceReason = detail.importanceReasons?.[readingLevel] || detail.importanceReason;
   const rawExcerpt = detail.rawContent.length > MAX_IN_APP_EXCERPT_LENGTH
     ? `${detail.rawContent.slice(0, MAX_IN_APP_EXCERPT_LENGTH).trim()}\n\n전체 원문은 위 출처 링크에서 확인하세요.`
@@ -82,19 +83,20 @@ export function NewsDetailScreen({ route, navigation }: Props) {
         <Text style={styles.title}>{detail.title}</Text>
         <SourceLinkRow source={detail.source} url={detail.url} />
 
-        <BodyTabs value={bodyTab} onChange={setBodyTab} />
+        {hasContent ? <BodyTabs value={bodyTab} onChange={setBodyTab} /> : <Text>원문 링크에서 확인하세요.</Text>}
 
-        {bodyTab === "level" ? <LevelTabs value={readingLevel} onChange={(level: ReadingLevel) => setReadingLevel(newsId, level)} /> : null}
+        {hasContent && bodyTab === "level" ? <LevelTabs value={readingLevel} onChange={(level: ReadingLevel) => setReadingLevel(newsId, level)} /> : null}
 
-        {bodyTab === "raw" ? <View style={styles.bodyCard}>
+        {hasContent ? (bodyTab === "raw" ? <View style={styles.bodyCard}>
           <ArticleBody text={rawExcerpt} terms={detail.keyTerms} onTermPress={setSelectedTerm} />
-        </View> : <LearningPanel key={`${newsId}-${readingLevel}`} newsId={newsId} level={readingLevel} onTermPress={setSelectedTerm} />}
+        </View> : <LearningPanel key={`${newsId}-${readingLevel}`} newsId={newsId} level={readingLevel} onTermPress={setSelectedTerm} />) : null}
 
-        {bodyTab === "raw" ? (
+        {hasContent && bodyTab === "raw" ? (
           <LocalMlPanel
             title="비슷한 뉴스"
+            excludeNewsId={newsId}
             onNewsPress={(id) => navigation.push("NewsDetail", { newsId: id })}
-            request={{ kind: "news", query: detail.title, endAt: detail.publishedAt }}
+            request={{ kind: "news", query: detail.title }}
             search={searchLocalMl}
           />
         ) : null}
@@ -107,11 +109,11 @@ export function NewsDetailScreen({ route, navigation }: Props) {
           />
         ) : null}
 
-        {bodyTab === "raw" ? <ImportanceReasonCard reason={importanceReason} /> : null}
-        <ArticleNotesPanel newsId={newsId} sourceUrl={detail.url} />
+        {hasContent && bodyTab === "raw" ? <ImportanceReasonCard reason={importanceReason} /> : null}
+        {hasContent ? <ArticleNotesPanel newsId={newsId} sourceUrl={detail.url} /> : null}
       </ScrollView>
 
-      <BottomActionBar label="판단하기" onPress={() => navigation.navigate("Judgement", { newsId })} />
+      {hasContent ? <BottomActionBar label="판단하기" onPress={() => navigation.navigate("Judgement", { newsId })} /> : null}
 
       <TermPopup visible={!!selectedTerm} term={selectedTerm} newsId={newsId} onClose={() => setSelectedTerm(null)} />
     </SafeAreaView>

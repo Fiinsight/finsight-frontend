@@ -123,11 +123,11 @@ export function AuthScreen({ onAuthenticated }: Props) {
         {isSignup && <TextInput autoCapitalize="none" placeholder="닉네임" placeholderTextColor="rgba(255,255,255,0.7)" value={nickname} onChangeText={setNickname} style={styles.input} />}
         <TextInput autoCapitalize="none" keyboardType="email-address" placeholder="이메일 아이디 입력" placeholderTextColor="rgba(255,255,255,0.7)" value={email} onChangeText={setEmail} style={styles.input} />
         <TextInput secureTextEntry placeholder="비밀번호 입력" placeholderTextColor="rgba(255,255,255,0.7)" value={password} onChangeText={setPassword} style={styles.input} />
-        <Pressable disabled={isBusy} onPress={submit} style={({ pressed }) => [styles.primary, pressed && styles.pressed]}><Text style={styles.primaryText}>{isSubmitting ? "처리 중..." : isSignup ? "회원가입" : "로그인"}</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityState={{ disabled: isBusy, busy: isSubmitting }} disabled={isBusy} onPress={submit} style={({ pressed }) => [styles.primary, pressed && styles.pressed]}><Text style={styles.primaryText}>{isSubmitting ? "처리 중..." : isSignup ? "회원가입" : "로그인"}</Text></Pressable>
         {authError ? <Text accessibilityRole="alert" style={styles.kakaoError}>{authError}</Text> : null}
         <View style={styles.links}>
           {!isSignup && <Pressable accessibilityRole="button" style={styles.linkButton} onPress={() => setAuthError("비밀번호 재설정은 아직 지원하지 않아요. 로그인할 수 있는 계정이나 카카오 로그인을 이용해 주세요.")}><Text style={styles.link}>비밀번호 찾기</Text></Pressable>}
-          <Pressable style={styles.linkButton} onPress={() => { setAuthError(null); setIsSignup((value) => !value); }}><Text style={styles.link}>{isSignup ? "로그인" : "회원가입"}</Text></Pressable>
+          <Pressable accessibilityRole="button" style={styles.linkButton} onPress={() => { setAuthError(null); setIsSignup((value) => !value); }}><Text style={styles.link}>{isSignup ? "로그인" : "회원가입"}</Text></Pressable>
         </View>
         <Text style={styles.socialLabel}>간편하게 로그인하세요.</Text>
         {kakaoError && <Text accessibilityRole="alert" style={styles.kakaoError}>{kakaoError}</Text>}

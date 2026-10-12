@@ -87,7 +87,7 @@ export function HistoryScreen({ navigation }: Props) {
           {group.items.map((note) => <TouchableOpacity key={note.id} accessibilityRole="button" style={styles.noteCard} activeOpacity={0.85} onPress={() => navigation.navigate("NewsDetail", { newsId: note.newsId })}>
             <View style={styles.noteHeader}><Text style={styles.noteSource} numberOfLines={1}>{note.source || "뉴스"}</Text><Text style={styles.noteDate}>{toRelativeTimeKorean(note.createdAt)}</Text></View>
             <Text style={styles.noteTitle} numberOfLines={2}>{note.newsTitle}</Text><Text style={styles.noteContent} numberOfLines={4}>{note.content}</Text>
-            <Text style={styles.reviewLink}>기사 다시 읽기 →</Text>
+            <Text style={styles.reviewLink}>기사 다시 읽기</Text>
           </TouchableOpacity>)}
         </View>)}
         {!selectedDate && activeQuery.hasNextPage && !activeQuery.isError ? <Pressable accessibilityRole="button" disabled={activeQuery.isFetching} style={styles.moreButton} onPress={() => void activeQuery.fetchNextPage()}>
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
   noteDate: { color: "#98A2B3", fontSize: 11 },
   noteTitle: { color: "#101828", fontSize: 15, lineHeight: 21, fontWeight: "800" },
   noteContent: { color: "#475467", fontSize: 14, lineHeight: 21 },
-  reviewLink: { alignSelf: "flex-start", color: "#175CD3", fontSize: 12, fontWeight: "800", marginTop: 2 },
+  reviewLink: { alignSelf: "flex-start", color: "#175CD3", fontSize: 14, fontWeight: "600", lineHeight: 20, marginTop: 2 },
   emptyCard: { backgroundColor: "#EEF4FF", borderRadius: 14, padding: 18, gap: 6 },
   emptyTitle: { color: "#182B59", fontSize: 15, fontWeight: "800" },
   emptyText: { color: "#667085", fontSize: 13, lineHeight: 19 },

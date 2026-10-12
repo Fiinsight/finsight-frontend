@@ -156,7 +156,7 @@ export function GuideList({ focus, level }: { focus: LearningFocus; level: Learn
             <Text style={styles.title}>기사 읽기 예시 · 학습용 가상 상황</Text>
             <Text style={styles.modalBody}>{selectedGuide?.example}</Text>
             <Text style={styles.title}>관련 용어 · 눌러서 뜻 확인</Text>
-            {selectedGuide?.terms.map((term) => <Pressable key={term[0]} accessibilityRole="button" onPress={() => setSelectedTerm(term)}><Text style={styles.termLink}>{term[0]} →</Text></Pressable>)}
+            {selectedGuide?.terms.map((term) => <Pressable key={term[0]} accessibilityRole="button" onPress={() => setSelectedTerm(term)}><Text style={styles.termLink}>{term[0]}</Text></Pressable>)}
             {selectedTerm ? <Text accessibilityLiveRegion="polite" style={styles.modalBody}>{selectedTerm[0]}: {selectedTerm[1]}</Text> : null}
             <Pressable onPress={() => setSelectedGuide(null)} style={styles.closeButton}>
               <Text style={styles.closeButtonText}>확인</Text>
@@ -169,7 +169,7 @@ export function GuideList({ focus, level }: { focus: LearningFocus; level: Learn
 }
 
 const styles = StyleSheet.create({
-  termLink: { color: "#175CD3", paddingVertical: 12, fontSize: 14 },
+  termLink: { color: "#175CD3", paddingVertical: 12, fontSize: 14, fontWeight: "600", lineHeight: 20 },
   card: {
     backgroundColor: "#FFFFFF",
     borderColor: "#EAECF0",

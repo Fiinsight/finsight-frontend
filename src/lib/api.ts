@@ -492,7 +492,7 @@ export interface NewsLesson {
   glossary: Array<{ term: string; definition: string }>;
   question: { term: string; prompt: string; options: string[] } | null;
 }
-export interface LearningAnswer { correct: boolean; definition: string; message: string }
+export interface LearningAnswer { correct: boolean; definition: string; message: string; correctIndex: number }
 export interface LearningReview { newsId: number; title: string; term: string; definition: string; level: ReadingLevel; answeredAt: string }
 export async function getNewsLesson(newsId: number, level: ReadingLevel): Promise<NewsLesson> {
   return (await api.get<NewsLesson>(`/learning/news/${newsId}`, { params: { level } })).data;
@@ -502,4 +502,16 @@ export async function answerLearningQuestion(newsId: number, level: ReadingLevel
 }
 export async function getLearningReviews(): Promise<LearningReview[]> {
   return (await api.get<LearningReview[]>("/learning/reviews")).data;
+}
+
+export interface LearningProgressSummary {
+  today: { answeredCount: number; correctCount: number; accuracy: number | null };
+  week: { from: string; to: string; answeredCount: number; correctCount: number; accuracy: number | null };
+  activityStreakDays: number;
+  completedNewsIds: number[];
+  totalDecidedCount: number;
+  weakAreas: Array<{ category: string; decidedCount: number; hitCount: number; recentNewsIds: number[] }>;
+}
+export async function getLearningProgress(): Promise<LearningProgressSummary> {
+  return (await api.get<LearningProgressSummary>("/learning/progress")).data;
 }

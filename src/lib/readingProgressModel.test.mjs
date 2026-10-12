@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { addUniqueArticleRead, countDailyReads, isAttendanceComplete, localDateKey } from "./readingProgressModel.ts";
+import { readFileSync } from "node:fs";
+import vm from "node:vm";
+import ts from "typescript";
+import { kstDate } from "./historyRecords.ts";
+const exports = {};
+vm.runInNewContext(ts.transpileModule(readFileSync(new URL("./readingProgressModel.ts", import.meta.url), "utf8"), {
+  compilerOptions: { module: ts.ModuleKind.CommonJS }
+}).outputText, { exports, require: () => ({ kstDate }) });
+const { addUniqueArticleRead, countDailyReads, isAttendanceComplete, localDateKey } = exports;
 
 test("re-reading the same article does not increase the daily count", () => {
   const first = addUniqueArticleRead({}, "2026-09-25", 11);
@@ -16,7 +24,12 @@ test("three distinct articles complete attendance for that date only", () => {
   assert.equal(isAttendanceComplete(log, "2026-09-24"), false);
 });
 
-test("date keys use the device's local calendar day", () => {
-  const date = new Date(2026, 8, 25, 23, 50);
-  assert.equal(localDateKey(date), "2026-09-25");
+test("reading date keys match attendance KST regardless of device timezone", () => {
+  assert.equal(localDateKey(new Date("2026-09-25T15:01:00Z")), "2026-09-26");
+  assert.equal(localDateKey(new Date("2026-09-25T14:59:00Z")), "2026-09-25");
 });
+
+ test("resume learning uses recent unique readings and excludes completed quizzes", () => {
+  assert.deepEqual(Array.from(exports.resumeLearningIds({"2026-10-05":[1,2],"2026-10-06":[2,3,4]},[3])),[4,2]);
+  assert.deepEqual(Array.from(exports.resumeLearningIds({},[])),[]);
+ });

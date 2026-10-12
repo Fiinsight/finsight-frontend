@@ -50,10 +50,10 @@ export function ProfileScreen({ session, onLogout }: { session: AuthSession; onL
       <ScrollView contentContainerStyle={styles.container}>
         <TabScreenHeader title="프로필" subtitle="내 투자 학습과 계정 설정을 관리하세요." />
         <ProfileHeader session={session} />
-        <SettingsList level={level} onLogout={onLogout} onEditLevel={() => { setEditing(!editing); setMessage(""); }} />
-        <Pressable accessibilityRole="button" onPress={() => { setSettingsOpen(true); setMessage(""); }} style={styles.menu}><Text>학습 설정 · 수준, 학습 목표, 관심 분야 →</Text></Pressable>
-        <Pressable accessibilityRole="button" onPress={() => setLegal("terms")} style={styles.menu}><Text>이용약관 →</Text></Pressable>
-        <Pressable accessibilityRole="button" onPress={() => setLegal("privacy")} style={styles.menu}><Text>개인정보처리방침 →</Text></Pressable>
+        <SettingsList level={level} onLogout={onLogout}
+          onEditLevel={() => { setEditing(!editing); setMessage(""); }}
+          onEditLearning={() => { setSettingsOpen(true); setMessage(""); }}
+          onTerms={() => setLegal("terms")} onPrivacy={() => setLegal("privacy")} />
         {editing ? <View style={{ gap: 12 }}>
           <Text>기본 읽기 수준을 선택하세요. 기사에서 바꾼 수준은 그 기사에 적용됩니다.</Text>
           {(["beginner", "normal", "analyst"] as LearningLevel[]).map((value) => <Pressable key={value} accessibilityRole="button" disabled={saving} onPress={() => void saveLevel(value)} style={{ padding: 12, backgroundColor: "#FFFFFF", borderRadius: 8 }}>

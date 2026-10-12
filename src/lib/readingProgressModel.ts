@@ -1,11 +1,9 @@
+import { kstDate } from "./historyRecords";
 export const DAILY_ARTICLE_GOAL = 3;
 export type DailyReadLog = Record<string, number[]>;
 
 export function localDateKey(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return kstDate(date);
 }
 
 export function addUniqueArticleRead(log: DailyReadLog, day: string, newsId: number): DailyReadLog {
@@ -20,4 +18,10 @@ export function countDailyReads(log: DailyReadLog, day: string): number {
 
 export function isAttendanceComplete(log: DailyReadLog, day: string): boolean {
   return countDailyReads(log, day) >= DAILY_ARTICLE_GOAL;
+}
+
+export function resumeLearningIds(log: DailyReadLog, completedNewsIds: number[]): number[] {
+  const completed = new Set(completedNewsIds);
+  const recent = Object.keys(log).sort().reverse().flatMap((day) => [...log[day]].reverse());
+  return [...new Set(recent)].filter((id) => !completed.has(id)).slice(0, 2);
 }

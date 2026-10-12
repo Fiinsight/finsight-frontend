@@ -14,14 +14,14 @@ function compile(path, context) {
 const visit = (node) => Array.isArray(node) ? node.flatMap(visit) : node && typeof node === 'object' ? [node, ...visit(node.children)] : [];
 
 test('reading panel shows provenance and sends the selected answer to server grading', async () => {
-  let mutation, invalidated, submitted;
-  const react = { createElement: (type, props, ...children) => ({ type, props, children }) };
+  let mutation, submitted; const invalidated=[];
+  const react = { createElement: (type, props, ...children) => ({ type, props, children }), useState: () => [0, () => {}], useRef: value => ({ current: value }) };
   const exports = compile('../screens/home/NewsDetailScreen/LearningPanel.tsx', { React: react, require: (name) =>
-    name === '@tanstack/react-query' ? {
+    name === 'react' ? react : name === '@tanstack/react-query' ? {
       useQuery: () => ({ data: { mode: 'RULE_FALLBACK', summary: '12.5% 증가했다.', glossary: [], question: { term: '환율', prompt: '정의는?', options: ['정의1', '정의2'] } } }),
-      useQueryClient: () => ({ invalidateQueries: (value) => { invalidated = value; } }),
+      useQueryClient: () => ({ invalidateQueries: (value) => { invalidated.push(value.queryKey[0]); } }),
       useMutation: (options) => { mutation = options; return { mutate: (index) => { submitted = index; }, data: { correct: false, definition: '통화 교환 비율', message: '복습 저장' } }; }
-    } : name === 'react-native' ? { Text: 'Text', View: 'View', Pressable: 'Pressable', StyleSheet: { create: (s) => s } }
+    } : name === 'react-native' ? { Animated: { Value: class {}, View: 'AnimatedView', timing: () => ({}), sequence: () => ({ start() {} }) }, Text: 'Text', View: 'View', Pressable: 'Pressable', StyleSheet: { create: (s) => s } }
       : name.endsWith('/api') ? { answerLearningQuestion: (...args) => args } : { ArticleBody: 'ArticleBody' }
   });
   const tree = visit(exports.LearningPanel({ newsId: 115, level: 'analyst', onTermPress() {} }));
@@ -32,8 +32,8 @@ test('reading panel shows provenance and sends the selected answer to server gra
   tree.find((n) => n.type === 'Pressable').props.onPress();
   assert.equal(submitted, 0);
   assert.deepEqual(Array.from(await mutation.mutationFn(1)), [115, 'analyst', '환율', 1]);
-  mutation.onSuccess();
-  assert.equal(invalidated.queryKey[0], 'learning-reviews');
+  mutation.onSuccess({ correct: false });
+  assert.deepEqual(invalidated, ['learning-reviews','learning-progress']);
 });
 
 test('only rejection of the current token expires a session, never network failures or stale requests', async () => {
@@ -60,8 +60,8 @@ test('learning focus callbacks run without invoking hooks inside an effect', () 
   const screen = compile('../screens/learn/LearnScreen/index.tsx', { React: react, require: (name) => {
     if (name === 'react') return react;
     if (name === 'react-native') return { StyleSheet: { create: (s) => s } };
-    if (name === '@react-navigation/native') return { useNavigation: () => hook({}), useFocusEffect: (fn) => { hook(null); effects.push(fn); } };
-    if (name === '@tanstack/react-query') return { useQuery: () => hook({}) };
+    if (name === '@react-navigation/native') return { useIsFocused: () => hook(true), useNavigation: () => hook({}), useFocusEffect: (fn) => { hook(null); effects.push(fn); } };
+    if (name === '@tanstack/react-query') return { useQuery: () => hook({}), useQueries: () => hook([]) };
     if (name.endsWith('/auth')) return { loadAuthSession: async () => null };
     if (name.endsWith('/api')) return { getLearningPreferences: async () => ({}) };
     if (name.endsWith('/onboarding')) return { getDefaultLearningPreferences: () => ({}) };

@@ -7,33 +7,43 @@ interface SettingsRow {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   value?: string;
+  onPress?: () => void;
 }
 
-const rows: SettingsRow[] = [
-  { icon: "notifications-outline", label: "알림 설정" },
-  { icon: "school-outline", label: "읽기 수준 기본값", value: "초보자용" },
-  { icon: "information-circle-outline", label: "앱 정보/버전", value: `v${packageJson.version}` },
-  { icon: "log-out-outline", label: "로그아웃" }
-];
-
-export function SettingsList({ level, onLogout, onEditLevel }: { level: LearningLevel; onLogout: () => void; onEditLevel: () => void }) {
-  const levelLabel = level === "analyst" ? "분석형" : level === "normal" ? "일반형" : "초보자용";
-  const rowsWithLevel = rows.map((row) => row.label === "읽기 수준 기본값" ? { ...row, value: levelLabel } : row);
+export function SettingsList({ level, onLogout, onEditLevel, onEditLearning, onTerms, onPrivacy }: {
+  level: LearningLevel;
+  onLogout: () => void;
+  onEditLevel: () => void;
+  onEditLearning: () => void;
+  onTerms: () => void;
+  onPrivacy: () => void;
+}) {
+  const levelLabel = level === "analyst" ? "분석용" : level === "normal" ? "일반용" : "초보자용";
+  const rows: SettingsRow[] = [
+    { icon: "options-outline", label: "학습 설정", onPress: onEditLearning },
+    { icon: "school-outline", label: "읽기 수준 기본값", value: levelLabel, onPress: onEditLevel },
+    { icon: "notifications-outline", label: "알림 설정", value: "준비 중" },
+    { icon: "document-text-outline", label: "이용약관", onPress: onTerms },
+    { icon: "shield-checkmark-outline", label: "개인정보처리방침", onPress: onPrivacy },
+    { icon: "information-circle-outline", label: "앱 정보/버전", value: `v${packageJson.version}` },
+    { icon: "log-out-outline", label: "로그아웃", onPress: onLogout }
+  ];
   return (
     <View style={styles.card}>
-      {rowsWithLevel.map((row, index) => (
+      {rows.map((row, index) => (
         <Pressable
           key={row.label}
-          accessibilityRole={row.label === "로그아웃" || row.label === "읽기 수준 기본값" ? "button" : undefined}
-          accessibilityLabel={row.label === "로그아웃" ? "로그아웃" : undefined}
-          disabled={row.label !== "로그아웃" && row.label !== "읽기 수준 기본값"}
-          onPress={row.label === "로그아웃" ? onLogout : row.label === "읽기 수준 기본값" ? onEditLevel : undefined}
+          accessibilityRole={row.onPress ? "button" : undefined}
+          accessibilityLabel={row.value ? `${row.label}, ${row.value}` : row.label}
+          accessibilityState={{ disabled: !row.onPress }}
+          disabled={!row.onPress}
+          onPress={row.onPress}
           style={[styles.row, index === rows.length - 1 && styles.rowLast]}
         >
           <Ionicons name={row.icon} size={18} color="#667085" />
           <Text style={styles.label}>{row.label}</Text>
           {row.value ? <Text style={styles.value}>{row.value}</Text> : null}
-          <Ionicons name="chevron-forward" size={16} color="#D0D5DD" />
+          {row.onPress ? <Ionicons name="chevron-forward" size={16} color="#D0D5DD" /> : null}
         </Pressable>
       ))}
     </View>
@@ -41,33 +51,9 @@ export function SettingsList({ level, onLogout, onEditLevel }: { level: Learning
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#EAECF0",
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 4
-  },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F2F4F7"
-  },
-  rowLast: {
-    borderBottomWidth: 0
-  },
-  label: {
-    flex: 1,
-    color: "#101828",
-    fontSize: 14,
-    fontWeight: "600"
-  },
-  value: {
-    color: "#98A2B3",
-    fontSize: 13
-  }
+  card: { backgroundColor: "#FFFFFF", borderColor: "#EAECF0", borderWidth: 1, borderRadius: 8, paddingHorizontal: 4 },
+  row: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 12, paddingVertical: 14, minHeight: 48, borderBottomWidth: 1, borderBottomColor: "#F2F4F7" },
+  rowLast: { borderBottomWidth: 0 },
+  label: { flex: 1, color: "#101828", fontSize: 14, fontWeight: "600" },
+  value: { color: "#98A2B3", fontSize: 13 }
 });

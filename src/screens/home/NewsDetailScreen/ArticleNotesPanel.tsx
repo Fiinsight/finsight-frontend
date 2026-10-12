@@ -17,6 +17,7 @@ export function ArticleNotesPanel({ newsId, sourceUrl }: { newsId: number; sourc
   const refreshNotes = () => {
     void queryClient.invalidateQueries({ queryKey });
     void queryClient.invalidateQueries({ queryKey: ["article-notes"] });
+    void queryClient.invalidateQueries({ queryKey: ["learning-progress"] });
   };
 
   const createMutation = useMutation({

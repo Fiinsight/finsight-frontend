@@ -1,15 +1,18 @@
+import { useIsFocused } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { StyleSheet, Text, View, Pressable } from "react-native";
 import { MarketStatCard } from "../../../components/MarketStatCard";
 import { getMarketSummary } from "../../../lib/api";
 
 export function MarketPanel() {
+  const isFocused = useIsFocused();
   const { data, isError, isPending, refetch } = useQuery({
     queryKey: ["market-summary"],
     queryFn: getMarketSummary,
     retry: 0,
     staleTime: 60_000,
-    refetchInterval: 60_000,
+    enabled: isFocused,
+    refetchInterval: isFocused ? 60_000 : false,
     refetchOnWindowFocus: false
   });
 
