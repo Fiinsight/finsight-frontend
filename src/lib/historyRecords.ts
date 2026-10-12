@@ -82,7 +82,7 @@ export function feedbackVerdict(item: JudgementHistoryItem) {
   const result = judgementResult(item);
   if (result.pending || result.unavailable || result.legacy) return null;
   if (item.verdict) return item.verdict;
-  if (result.correct && item.actualChangePercent != null && Math.abs(item.actualChangePercent) <= 1) return "PARTIAL";
+  if (result.correct && item.actualChangePercent != null && Math.abs(item.actualChangePercent) <= 1 + 1e-9) return "PARTIAL";
   return result.correct ? "CORRECT" : "WRONG";
 }
 export function feedbackVersion(item: JudgementHistoryItem) {

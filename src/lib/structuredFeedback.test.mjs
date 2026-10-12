@@ -34,6 +34,7 @@ test('legacy null renders paragraph, waiting shows only user reason, no-reason c
  assert(texts(pending).includes('내일 장 마감 후 결과를 알려드려요'));assert(!pending.some(n=>n.type==='MiniLineChart'));assert(!texts(pending).includes('기사 근거'));
  const none=render({...base,reasonText:'',reasons:[]}).tree;assert(!texts(none).some(s=>s.includes('정확한 판단')));
  const unavailable=render({...base,actualDirection:'UNKNOWN',comparisonDate:null,verdict:null,feedbackReasons:null}).tree;assert(texts(unavailable).includes('결과를 비교할 수 없어요'));assert(!texts(unavailable).some(s=>s.includes('당일 비교')));
+ assert.equal(history.feedbackVerdict({...base,verdict:null,choice:'UP',actualDirection:'UP',actualChangePercent:1.0000000000000002}),'PARTIAL');
  const arrival=render({...base,actualDirection:null},base).tree;assert(texts(arrival).includes('✓ 정확한 판단이에요!'));
 });
 test('API maps feedback reasons separately from the user reason and preserves legacy null',async()=>{
