@@ -94,7 +94,7 @@ export interface NewsDetail {
 
 export interface TermExplainRequest {
   term: string;
-  newsId: number;
+  newsId?: number;
 }
 
 export interface TermExplainResponseRaw {

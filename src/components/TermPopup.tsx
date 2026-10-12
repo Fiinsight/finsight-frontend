@@ -5,7 +5,7 @@ import { explainTerm } from "../lib/api";
 interface TermPopupProps {
   visible: boolean;
   term: string | null;
-  newsId: number;
+  newsId?: number;
   onClose: () => void;
 }
 
