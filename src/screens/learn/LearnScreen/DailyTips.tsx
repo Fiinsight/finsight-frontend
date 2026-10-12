@@ -40,7 +40,7 @@ export function DailyTips({ level, pace, focus }: { level: LearningLevel; pace: 
 
   return (
     <View style={styles.group}>
-      <Text style={styles.sectionTitle}>{pace === "deep" ? "오늘의 깊이 읽기" : "오늘의 한 줄 팁"}</Text>
+      <Text accessibilityRole="header" style={styles.sectionTitle}>{pace === "deep" ? "오늘의 깊이 읽기" : "오늘의 한 줄 팁"}</Text>
       {todaysTips.map((tip, index) => (
         <View key={index} style={styles.tipRow}>
           <Image source={require("../../../../assets/finsight-mascot-face.png")} style={styles.mascot} resizeMode="contain" />
@@ -57,11 +57,11 @@ export function DailyTips({ level, pace, focus }: { level: LearningLevel; pace: 
 
 const styles = StyleSheet.create({
   group: { gap: 10 },
-  sectionTitle: { color: "#101828", fontSize: 16, fontWeight: "800" },
+  sectionTitle: { color: "#101828", fontSize: 18, fontWeight: "700" },
   tipRow: { minHeight: 88, flexDirection: "row", alignItems: "flex-end", gap: 8 },
   mascot: { width: 58, height: 70 },
-  speechBubble: { flex: 1, backgroundColor: "#FFFFFF", borderColor: "#D9EEE2", borderWidth: 1, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 12 },
+  speechBubble: { flex: 1, backgroundColor: "#FFFFFF", borderColor: "#EAECF0", borderWidth: 1, borderRadius: 16, padding: 20 },
   tipLabel: { color: "#12B76A", fontSize: 12, fontWeight: "800", marginBottom: 5 },
-  tipText: { color: "#344054", fontSize: 14, lineHeight: 21 },
-  exampleText: { color: "#667085", fontSize: 12, lineHeight: 18, marginTop: 5 }
+  tipText: { color: "#344054", fontSize: 15, lineHeight: 22 },
+  exampleText: { color: "#667085", fontSize: 13, lineHeight: 20, marginTop: 5 }
 });
