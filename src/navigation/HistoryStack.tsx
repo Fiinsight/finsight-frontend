@@ -11,11 +11,11 @@ const Stack = createNativeStackNavigator<HistoryStackParamList>();
 export function HistoryStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="History" component={HistoryScreen} />
-      <Stack.Screen name="JudgementDetail" component={JudgementDetailScreen} />
-      <Stack.Screen name="NewsDetail" component={NewsDetailScreen} />
-      <Stack.Screen name="Judgement" component={JudgementScreen} />
-      <Stack.Screen name="Feedback" component={FeedbackScreen} />
+      <Stack.Screen name="History" component={HistoryScreen} options={{ title: "기록" }} />
+      <Stack.Screen name="JudgementDetail" component={JudgementDetailScreen} options={{ title: "판단 기록" }} />
+      <Stack.Screen name="NewsDetail" component={NewsDetailScreen} options={{ title: "기사 상세" }} />
+      <Stack.Screen name="Judgement" component={JudgementScreen} options={{ title: "판단하기" }} />
+      <Stack.Screen name="Feedback" component={FeedbackScreen} options={{ title: "판단 완료" }} />
     </Stack.Navigator>
   );
 }

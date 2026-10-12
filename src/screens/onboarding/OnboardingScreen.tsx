@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useRef, useState } from "react";
 import { Animated, Pressable, SafeAreaView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -58,18 +59,18 @@ const steps: Array<{ id: string; title: string; options: Option[] }> = [
   },
 ];
 
-type Props = { onComplete: (answers: OnboardingAnswer[]) => void; allowSkip?: boolean; saving?: boolean };
+type Props = { onComplete: (answers: OnboardingAnswer[]) => void; allowSkip?: boolean; saving?: boolean; initialAnswers?: OnboardingAnswer[]; onClose?: () => void; onLogin?: () => void };
 
-export function OnboardingScreen({ onComplete, allowSkip = true, saving = false }: Props) {
+export function OnboardingScreen({ onComplete, allowSkip = true, saving = false, initialAnswers = [], onClose, onLogin }: Props) {
   const { width } = useWindowDimensions();
-  const [step, setStep] = useState(0);
-  const [answers, setAnswers] = useState<number[]>([]);
+  const [step, setStep] = useState(allowSkip ? 0 : 1);
+  const [answers, setAnswers] = useState<number[]>(steps.map((item) => item.options.findIndex((option) => option.label === initialAnswers.find((answer) => answer.questionId === item.id)?.answer)));
   const characterProgress = useRef(new Animated.Value(0)).current;
   const isWelcome = step === 0;
   const questionIndex = step - 1;
   const question = steps[questionIndex];
   const selected = answers[questionIndex];
-  const isQuestionUnanswered = !isWelcome && selected === undefined;
+  const isQuestionUnanswered = !isWelcome && (selected === undefined || selected < 0);
   const isLast = step === steps.length;
   const characterTravel = Math.max(width - 88, 190);
 
@@ -87,7 +88,7 @@ export function OnboardingScreen({ onComplete, allowSkip = true, saving = false 
 
   const next = () => {
     if (isWelcome) return setStep(1);
-    if (selected === undefined) return;
+    if ((selected === undefined || selected < 0)) return;
     if (isLast) return onComplete(buildAnswers());
     setStep((current) => current + 1);
   };
@@ -106,6 +107,7 @@ export function OnboardingScreen({ onComplete, allowSkip = true, saving = false 
           <View style={styles.topBar}>
             <Text style={styles.brand}>FinSight</Text>
             {!isWelcome && <Text style={styles.stepText}>{step}/{steps.length}</Text>}
+            {onClose ? <Pressable accessibilityRole="button" accessibilityLabel="학습 설정 닫기" disabled={saving} onPress={onClose}><Ionicons name="close" size={24} color="#FFFFFF" /></Pressable> : null}
           </View>
 
           {isWelcome ? (
@@ -132,7 +134,7 @@ export function OnboardingScreen({ onComplete, allowSkip = true, saving = false 
                 {question.options.map((option, index) => {
                   const active = selected === index;
                   return (
-                    <Pressable key={option.label} accessibilityRole="button" accessibilityState={{ selected: active }} onPress={() => choose(index)} style={[styles.option, active && styles.optionActive]}>
+                    <Pressable key={option.label} accessibilityRole="button" accessibilityLabel={option.label} accessibilityState={{ selected: active }} onPress={() => choose(index)} style={[styles.option, active && styles.optionActive]}>
                       <View style={styles.optionCopy}>
                         <Text style={[styles.optionLabel, active && styles.optionLabelActive]}>{option.label}</Text>
                         {option.description && <Text style={styles.optionDescription}>{option.description}</Text>}
@@ -146,19 +148,20 @@ export function OnboardingScreen({ onComplete, allowSkip = true, saving = false 
           )}
 
           <View style={styles.footer}>
-            {!isWelcome ? <Pressable accessibilityRole="button" disabled={saving} onPress={() => setStep((current) => current - 1)} style={[styles.skipButton, { minHeight: 44, justifyContent: "center" }]}><Text style={styles.skipText}>이전</Text></Pressable> : null}
+            {!isWelcome ? <Pressable accessibilityRole="button" accessibilityLabel="이전 질문" disabled={saving || (!allowSkip && step === 1)} onPress={() => setStep((current) => current - 1)} style={[styles.skipButton, { minHeight: 44, justifyContent: "center" }]}><Text style={styles.skipText}>이전</Text></Pressable> : null}
             <Pressable
               accessibilityRole="button"
+              accessibilityLabel={isWelcome ? "시작하기" : isLast ? "저장" : "다음 질문"}
               accessibilityState={{ disabled: isQuestionUnanswered }}
               disabled={isQuestionUnanswered || saving}
               onPress={next}
               style={[styles.primaryButton, isQuestionUnanswered && styles.primaryButtonDisabled]}
             >
               <Text style={[styles.primaryButtonText, isQuestionUnanswered && styles.primaryButtonTextDisabled]}>
-                {saving ? "저장 중…" : isWelcome ? "시작하기" : isLast ? (allowSkip ? "시작하기" : "설정 저장") : "다음"}
+                {saving ? "저장 중…" : isWelcome ? "시작하기" : isLast ? (allowSkip ? "시작하기" : "저장") : "다음"}
               </Text>
             </Pressable>
-            {allowSkip ? <Pressable accessibilityRole="button" onPress={() => onComplete(buildAnswers())} style={styles.skipButton}>
+            {allowSkip ? <Pressable accessibilityRole="button" accessibilityLabel={isWelcome ? "이미 계정이 있어요" : "건너뛰기"} onPress={() => isWelcome && onLogin ? onLogin() : onComplete(buildAnswers())} style={styles.skipButton}>
               <Text style={styles.skipText}>{isWelcome ? "이미 계정이 있어요" : "건너뛰기"}</Text>
             </Pressable> : null}
           </View>
