@@ -4,7 +4,8 @@ import { useState } from "react";
 import { KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, Text, Pressable } from "react-native";
 import { BottomActionBar } from "../../../components/BottomActionBar";
 import { ScreenTopBar } from "../../../components/ScreenTopBar";
-import { getNewsDetail, submitJudgement } from "../../../lib/api";
+import axios from "axios";
+import { getJudgementHistory, getNewsDetail, submitJudgement } from "../../../lib/api";
 import type { NewsFlowParamList } from "../../../navigation/types";
 import { useAppStore } from "../../../store/useAppStore";
 import type { JudgementChoice } from "../../../types/api";
@@ -17,12 +18,16 @@ type Props = NativeStackScreenProps<NewsFlowParamList, "Judgement">;
 export function JudgementScreen({ route, navigation }: Props) {
   const { newsId } = route.params;
   const queryClient = useQueryClient();
-  const choice = useAppStore((state) => state.judgementDraftByNewsId[newsId]?.choice);
-  const reason = useAppStore((state) => state.judgementDraftByNewsId[newsId]?.reason ?? "");
+  const draft = useAppStore((state) => state.judgementDraftByNewsId[newsId]);
+  const history = useQuery({queryKey: ["judgement-history", "existing"], queryFn: getJudgementHistory, retry: 0, staleTime: 0});
+  const existing = history.data?.find((item) => item.newsId === newsId);
+  const confirmed = Boolean(existing?.actualDirection);
+  const choice = confirmed ? existing?.choice : draft?.choice ?? existing?.choice;
+  const reason = (confirmed ? existing?.reasons.join("\n") : draft?.reason ?? existing?.reasons.join("\n")) ?? "";
   const setJudgementChoice = useAppStore((state) => state.setJudgementChoice);
   const setJudgementReason = useAppStore((state) => state.setJudgementReason);
   const clearJudgementDraft = useAppStore((state) => state.clearJudgementDraft);
-  const [submitError, setSubmitError] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const { data, isError, isLoading, refetch } = useQuery({
     queryKey: ["news-detail", newsId],
@@ -43,19 +48,19 @@ export function JudgementScreen({ route, navigation }: Props) {
     if (!choice) {
       return;
     }
-    setSubmitError(false);
+    setSubmitError(null);
     try {
       const ack = await mutation.mutateAsync();
       await queryClient.invalidateQueries({ queryKey: ["judgement-history"] });
       void queryClient.invalidateQueries({ queryKey: ["learning-progress"] });
       clearJudgementDraft(newsId);
       navigation.navigate("Feedback", { newsId, ack });
-    } catch {
+    } catch (error) {
       // Real market/AI feedback can't exist yet at submit time either way —
       // but if the submission itself failed, the judgement was never saved,
       // so showing a "success" screen here would be actively misleading.
       // Let the user retry instead.
-      setSubmitError(true);
+      setSubmitError(axios.isAxiosError(error) && error.response?.status === 409 ? "이미 결과가 나온 판단이에요" : "서버에 연결하지 못해 판단이 저장되지 않았어요. 다시 시도해주세요.");
     }
   };
 
@@ -65,7 +70,7 @@ export function JudgementScreen({ route, navigation }: Props) {
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView contentContainerStyle={styles.container}>
-          <Text style={styles.question}>{`이 뉴스가 내일 ${symbolLabel}에 미칠 영향은?`}</Text>
+          <Text style={styles.question}>{`이 뉴스가 다음 거래일 ${symbolLabel}에 미칠 영향은?`}</Text>
           <Text style={styles.subtitle}>뉴스 내용을 바탕으로 주가 방향을 예측해보세요</Text>
 
           {isLoading ? <Text style={styles.errorText}>뉴스를 불러오는 중이에요.</Text> : null}
@@ -73,14 +78,16 @@ export function JudgementScreen({ route, navigation }: Props) {
           {isError ? <Pressable accessibilityRole="button" onPress={() => void refetch()}><Text>뉴스 다시 시도</Text></Pressable> : null}
           <Text style={styles.subtitle}>학습용 서비스이며 투자 권유가 아닙니다.</Text>
           {data ? <NewsSummaryCard summary={data.summary} /> : null}
-          {data ? <DirectionChoices value={choice} onChange={(next) => setJudgementChoice(newsId, next)} /> : null}
-          {data ? <ReasonInput value={reason} onChange={(text) => setJudgementReason(newsId, text)} /> : null}
+          {history.isError ? <Pressable accessibilityRole="button" onPress={() => void history.refetch()}><Text style={styles.errorText}>기존 판단을 확인하지 못했어요. 다시 시도</Text></Pressable> : null}
+          {confirmed ? <Text style={styles.errorText}>이미 결과가 나온 판단이에요</Text> : existing ? <Text style={styles.subtitle}>저장된 판단을 수정할 수 있어요.</Text> : null}
+          {data ? <DirectionChoices disabled={confirmed} value={choice} onChange={(next) => { if (!confirmed) { setJudgementReason(newsId, reason); setJudgementChoice(newsId, next); } }} /> : null}
+          {data ? <ReasonInput editable={!confirmed} value={reason} onChange={(text) => setJudgementReason(newsId, text)} /> : null}
 
-          {submitError ? <Text style={styles.errorText}>서버에 연결하지 못해 판단이 저장되지 않았어요. 다시 시도해주세요.</Text> : null}
+          {submitError ? <Text style={styles.errorText}>{submitError}</Text> : null}
         </ScrollView>
       </KeyboardAvoidingView>
 
-      <BottomActionBar label="제출하기" onPress={handleSubmit} disabled={!choice || !data} loading={mutation.isPending} />
+      <BottomActionBar label={existing && !confirmed ? "판단 수정하기" : "제출하기"} onPress={handleSubmit} disabled={!choice || !data || confirmed || history.isLoading || history.isError} loading={mutation.isPending} />
     </SafeAreaView>
   );
 }

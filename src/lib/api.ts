@@ -1,8 +1,9 @@
 import axios from "axios";
-import { previousRange, type RecordRange } from "./historyRecords";
+import { judgementResult, previousRange, type RecordRange } from "./historyRecords";
 import Constants from "expo-constants";
 import { getExpoGoProjectConfig } from "expo";
 import type {
+  ChartRelatedNewsRaw,
   ChartCandle,
   ChartCandleRaw,
   ChartData,
@@ -251,34 +252,22 @@ export async function submitJudgement(request: JudgementRequest): Promise<Judgem
 // ---------------------------------------------------------------------------
 
 function normalizeHistoryItem(raw: JudgementHistoryItemRaw, index: number): JudgementHistoryItem {
-  // finsight-backend's JudgementHistoryResponse doesn't send a `correct`/`aligned`
-  // boolean directly, but does send the actual direction once the feedback
-  // scheduler has run. Prefer that authoritative value; a 0% change is
-  // NEUTRAL, not an UP hit.
-  const actualDirection = raw.actualDirection?.trim().toUpperCase();
-  let derivedCorrect: boolean | null = raw.correct ?? raw.aligned ?? null;
-  if (derivedCorrect === null) {
-    if (actualDirection) {
-      derivedCorrect = actualDirection === "UNKNOWN" ? null : actualDirection === raw.choice;
-    } else if (raw.actualChangePercent !== undefined && raw.actualChangePercent !== null) {
-      derivedCorrect = raw.choice === "NEUTRAL"
-        ? Math.abs(raw.actualChangePercent) < 0.5
-        : raw.choice === "UP" ? raw.actualChangePercent > 0 : raw.actualChangePercent < 0;
-    }
-  }
+  const value = raw.actualDirection?.trim().toUpperCase();
+  const actualDirection = value === "UP" || value === "DOWN" || value === "NEUTRAL" || value === "UNKNOWN" ? value : null;
+  const actualChangePercent = typeof raw.actualChangePercent === "number" && Number.isFinite(raw.actualChangePercent) ? raw.actualChangePercent : null;
+  const choice = raw.choice ?? "NEUTRAL";
 
   return {
     id: raw.id ?? raw.judgementId ?? index,
     newsId: raw.newsId ?? index,
     newsTitle: raw.newsTitle ?? raw.title ?? "",
     choice: raw.choice ?? "NEUTRAL",
-    actualResult:
-      raw.actualResult ??
-      (raw.actualChangePercent !== undefined
-        && raw.actualChangePercent !== null
-        ? `${raw.actualChangePercent > 0 ? "+" : ""}${raw.actualChangePercent}%`
-        : raw.actualDirection ?? ""),
-    correct: derivedCorrect,
+    actualDirection,
+    actualChangePercent,
+    comparisonDate: raw.comparisonDate ?? null,
+    judgementClose: typeof raw.judgementClose === "number" && Number.isFinite(raw.judgementClose) ? raw.judgementClose : null,
+    comparisonClose: typeof raw.comparisonClose === "number" && Number.isFinite(raw.comparisonClose) ? raw.comparisonClose : null,
+    correct: judgementResult({ choice, actualDirection, actualChangePercent }).correct,
     feedbackText: raw.feedbackText ?? "",
     reasons: Array.isArray(raw.reasons) ? raw.reasons.filter((reason): reason is string => typeof reason === "string" && reason.trim().length > 0) : (raw.reasonText?.split(/\n+/).map((reason) => reason.trim()).filter(Boolean) ?? []),
     judgedAt: raw.judgedAt ?? raw.createdAt ?? ""
@@ -388,6 +377,11 @@ export async function getMarketSummary(): Promise<MarketSummary> {
 // Charts
 // ---------------------------------------------------------------------------
 
+function normalizeChartNews(item: ChartRelatedNewsRaw) {
+  return { id: item.id ?? item.newsId ?? null, title: item.title ?? "", source: item.source ?? "",
+    publishedAt: item.publishedAt ?? item.date ?? "", relationType: item.relationType };
+}
+
 function normalizeChartData(raw: ChartDataRaw, symbol: string): ChartData {
   if (raw.fallback) throw Object.assign(new Error("실제 차트 데이터를 확인할 수 없습니다."), { name: "ChartFallbackError" });
   const rawPoints: Array<ChartPointRaw | ChartCandleRaw> = raw.points ?? raw.candles ?? [];
@@ -449,14 +443,10 @@ function normalizeChartData(raw: ChartDataRaw, symbol: string): ChartData {
       newsTitle: insight.newsTitle ?? "",
       newsSource: insight.newsSource ?? "",
       explanation: insight.explanation ?? "",
-      causeScore: insight.causeScore ?? 0
+      causeScore: insight.causeScore ?? 0,
+      candidateNews: (insight.candidateNews ?? []).map(normalizeChartNews)
     })),
-    relatedNews: relatedNewsRaw.map((item) => ({
-      id: item.id ?? item.newsId ?? null,
-      title: item.title ?? "",
-      source: item.source ?? "",
-      publishedAt: item.publishedAt ?? item.date ?? ""
-    })),
+    relatedNews: relatedNewsRaw.map(normalizeChartNews),
     docent
   };
 }

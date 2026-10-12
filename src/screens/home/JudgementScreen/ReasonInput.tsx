@@ -1,15 +1,17 @@
 import { StyleSheet, Text, TextInput, View } from "react-native";
 
 interface ReasonInputProps {
+  editable?: boolean;
   value: string;
   onChange: (text: string) => void;
 }
 
-export function ReasonInput({ value, onChange }: ReasonInputProps) {
+export function ReasonInput({ value, onChange, editable = true }: ReasonInputProps) {
   return (
     <View style={styles.box}>
       <Text style={styles.label}>판단 근거 (선택)</Text>
       <TextInput
+        editable={editable}
         style={styles.input}
         placeholder="어떤 점이 이런 예상으로 이어졌나요?"
         placeholderTextColor="#98A2B3"

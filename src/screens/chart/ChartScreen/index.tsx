@@ -39,9 +39,10 @@ export function ChartScreen({ route, navigation }: Props) {
   const [selectedSymbol, setSelectedSymbol] = useState(route.params?.symbol ?? "005930");
   const [selectedStockName, setSelectedStockName] = useState<string | undefined>();
   const [query, setQuery] = useState("");
-  const [period, setPeriod] = useState<Period>("W");
+  const [period, setPeriod] = useState<Period>("D");
   const [minuteInterval, setMinuteInterval] = useState<1 | 5 | 15>(5);
   const [selectedInsight, setSelectedInsight] = useState<MoveInsight | null>(null);
+  useEffect(() => setSelectedInsight(null), [selectedSymbol, period, minuteInterval]);
 
   const { data: popularStocksData, isError: stocksError, refetch: refetchStocks } = useQuery({
     queryKey: ["popular-stocks"],
@@ -68,7 +69,7 @@ export function ChartScreen({ route, navigation }: Props) {
   });
 
   const { data, isError: chartError, isFetching, refetch: refetchChart } = useQuery({
-    queryKey: ["chart-data", selectedSymbol, period, minuteInterval],
+    queryKey: period === "MINUTE" ? ["chart", selectedSymbol, period, minuteInterval] : ["chart", selectedSymbol, period],
     queryFn: ({ signal }) => getChartData(selectedSymbol, period, minuteInterval, signal),
     enabled: Boolean(selectedSymbol),
     retry: 0,
@@ -139,7 +140,7 @@ export function ChartScreen({ route, navigation }: Props) {
           </View>
         ) : null}
         {stocks.length > 0 ? <PopularStockChips stocks={stocks} selectedSymbol={selectedSymbol} onSelect={(symbol) => selectStock(symbol, stocks.find((stock) => stock.symbol === symbol)?.name ?? chart?.symbolName ?? symbol)} /> : null}
-        {chart ? <StockHeader name={selectedStockName ?? stocks.find((stock) => stock.symbol === selectedSymbol)?.name ?? (chart.symbolName !== chart.symbol ? chart.symbolName : "종목명 확인 불가")} symbol={chart.symbol} price={chart.price} changePercent={chart.changePercent} changeLabel={changeLabel} /> : <View style={styles.emptyCard}><Text style={styles.emptyText}>{stocksError ? "인기 종목을 불러오지 못했습니다." : "시세 데이터를 불러오는 중입니다."}</Text></View>}
+        {chart ? <StockHeader name={selectedStockName ?? stocks.find((stock) => stock.symbol === selectedSymbol)?.name ?? (chart.symbolName !== chart.symbol ? chart.symbolName : "")} symbol={chart.symbol} price={chart.price} changePercent={chart.changePercent} changeLabel={changeLabel} /> : <View style={styles.emptyCard}><Text style={styles.emptyText}>{stocksError ? "인기 종목을 불러오지 못했습니다." : "시세 데이터를 불러오는 중입니다."}</Text></View>}
         {chartError || stocksError ? <TouchableOpacity accessibilityRole="button" onPress={() => { if (chartError) void refetchChart(); if (stocksError) void refetchStocks(); }}><Text style={styles.refreshText}>차트 다시 시도</Text></TouchableOpacity> : null}
         <View style={styles.periodRow}>
           <TouchableOpacity style={[styles.periodTab, period === "D" && styles.periodTabActive]} onPress={() => setPeriod("D")}>
@@ -176,7 +177,6 @@ export function ChartScreen({ route, navigation }: Props) {
           candles={displayCandles}
           period={period}
           minuteInterval={minuteInterval}
-          relatedNews={chart.relatedNews}
           moveInsights={chart.moveInsights}
           onCandlePress={handleCandlePress}
         /> : <View style={styles.emptyCard}><Text style={styles.emptyText}>실제 차트 데이터가 없어 차트를 표시할 수 없습니다.</Text></View>}
@@ -191,18 +191,17 @@ export function ChartScreen({ route, navigation }: Props) {
                 <Text style={[styles.selectedInsightNews, styles.newsLink]}>{selectedInsight.newsTitle}</Text>
               </TouchableOpacity>
             ) : (
-              <Text style={styles.selectedInsightNews}>연결된 뉴스가 없습니다.</Text>
+              <Text style={styles.selectedInsightNews}>관련 뉴스 없음</Text>
             )}
-            <Text style={styles.selectedInsightExplanation}>
-              {selectedInsight.explanation || "해당 시점의 종목 관련 뉴스가 없어 가격 변동만 표시합니다."}
-            </Text>
+            <TouchableOpacity accessibilityRole="button" onPress={() => setSelectedInsight(null)}><Text style={styles.newsLink}>전체 관련 뉴스 보기</Text></TouchableOpacity>
+            {selectedInsight.explanation ? <Text style={styles.selectedInsightExplanation}>{selectedInsight.explanation}</Text> : null}
           </View>
         ) : null}
         {chart && chart.moveInsights.length > 0 ? (
           <View style={styles.insightCard}>
             <Text style={styles.insightTitle}>급등락 시점과 관련 뉴스</Text>
             {chart.moveInsights.map((insight, index) => (
-              <View key={`${insight.timestamp ?? "move"}-${index}`} style={styles.insightRow}>
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel={`${formatMoveInsightTime(insight.timestamp, period)} 급등락 관련 뉴스 보기`} onPress={() => setSelectedInsight(insight)} key={`${insight.timestamp ?? "move"}-${index}`} style={styles.insightRow}>
                 <Text style={[styles.insightMove, insight.changePercent && insight.changePercent > 0 ? styles.up : styles.down]}>
                   {insight.changePercent && insight.changePercent > 0 ? "+" : ""}{insight.changePercent?.toFixed(2)}%
                 </Text>
@@ -213,17 +212,17 @@ export function ChartScreen({ route, navigation }: Props) {
                       <Text style={[styles.insightNews, styles.newsLink]}>{insight.newsTitle}</Text>
                     </TouchableOpacity>
                   ) : (
-                    <Text style={styles.insightNews}>해당 시각에 저장된 관련 뉴스가 없습니다.</Text>
+                    <Text style={styles.insightNews}>관련 뉴스 없음</Text>
                   )}
                   {insight.explanation ? <Text style={styles.insightExplanation}>{insight.explanation}</Text> : null}
                 </View>
-              </View>
+              </TouchableOpacity>
             ))}
           </View>
         ) : null}
-        {chart ? <RelatedNewsList items={chart.relatedNews} onPress={handleRelatedNewsPress} /> : null}
+        {chart ? <RelatedNewsList key={`${selectedSymbol}:${period}:${selectedInsight?.timestamp ?? "all"}`} items={selectedInsight ? selectedInsight.candidateNews : chart.relatedNews} onPress={handleRelatedNewsPress} /> : null}
         {docentContent ? (
-          <InsightBanner content={docentContent} changePercent={chart?.changePercent ?? 0} relatedNews={chart?.relatedNews ?? []} onNewsPress={handleRelatedNewsPress} />
+          <InsightBanner content={docentContent} changePercent={chart?.changePercent ?? 0} relatedNews={chart?.relatedNews.filter((news) => news.id === chart.docent?.newsId) ?? []} onNewsPress={handleRelatedNewsPress} />
         ) : null}
       </ScrollView>
     </SafeAreaView>
