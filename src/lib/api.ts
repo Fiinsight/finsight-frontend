@@ -523,6 +523,7 @@ export async function getLearningReviews(): Promise<LearningReview[]> {
 }
 
 export interface LearningProgressSummary {
+  mastery?: { strongest: ConceptMastery[]; weakest: ConceptMastery[]; totalAttempts: number };
   today: { answeredCount: number; correctCount: number; accuracy: number | null };
   week: { from: string; to: string; answeredCount: number; correctCount: number; accuracy: number | null };
   activityStreakDays: number;
@@ -531,6 +532,14 @@ export interface LearningProgressSummary {
   goal: { type: GoalType; achievedToday: boolean; streakDays: number };
   levelSuggestion: "normal" | "analyst" | null;
   weakAreas: Array<{ sampleSize: number; category: string; decidedCount: number; hitCount: number; recentNewsIds: number[] }>;
+}
+export interface ConceptMastery {
+  term: string;
+  pKnown: number;
+  effectivePKnown: number;
+  attempts: number;
+  lastAnsweredAt: string | null;
+  level: ReadingLevel | null;
 }
 export async function getLearningProgress(): Promise<LearningProgressSummary> {
   const session = await loadAuthSession();
