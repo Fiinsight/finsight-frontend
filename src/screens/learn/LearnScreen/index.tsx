@@ -154,6 +154,25 @@ export function LearnScreen() {
           </ScrollView>
         </View> : <Text style={styles.auxiliary}>복습할 개념이 없어요. 새 퀴즈로 학습을 이어가세요.</Text>}
 
+        <View style={styles.card}>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>내 개념 숙련도</Text>
+          {progress.isPending ? <View style={[styles.skeleton, { height: 180 }]} accessibilityLabel="개념 숙련도 불러오는 중" />
+            : progress.isError ? <Pressable accessibilityRole="button" accessibilityLabel="개념 숙련도 다시 시도" style={styles.retryButton} onPress={() => void progress.refetch()}><Text style={styles.link}>다시 시도</Text></Pressable>
+            : progress.data?.mastery?.totalAttempts ? <>
+              <Text style={styles.auxiliary}>최근 퀴즈 {progress.data.mastery.totalAttempts}회 기준 추정</Text>
+              {[{ title: "잘 아는 개념", rows: progress.data.mastery.strongest }, { title: "다시 볼 개념", rows: progress.data.mastery.weakest }].map(group => <View key={group.title} style={styles.section}>
+                <Text style={styles.articleTitle}>{group.title}</Text>
+                {group.rows.map(item => {
+                  const value = Math.round(Math.max(0, Math.min(1, item.effectivePKnown)) * 100);
+                  return <View key={item.term} style={{ gap: 6 }}>
+                    <View style={styles.articleMeta}><Text style={[styles.body, { flex: 1 }]} numberOfLines={1}>{item.term}</Text><Text style={styles.auxiliary}>{value}%</Text></View>
+                    <View accessibilityRole="progressbar" accessibilityLabel={`${item.term} 추정 숙련도`} accessibilityValue={{ min: 0, max: 100, now: value }} style={styles.masteryTrack}><View style={[styles.masteryFill, { width: `${value}%` }]} /></View>
+                  </View>;
+                })}
+              </View>)}
+            </> : <Text style={styles.auxiliary}>퀴즈를 풀면 개념별 숙련도를 추정해드려요.</Text>}
+        </View>
+
         <GuideList focus={preferences.focus} level={preferences.level} />
         <DailyTips level={preferences.level} pace={preferences.pace} focus={preferences.focus} />
 
@@ -216,6 +235,8 @@ const styles = StyleSheet.create({
   termChip: { minHeight: 44, maxWidth: 260, borderRadius: 22, paddingHorizontal: 18, paddingVertical: 11, backgroundColor: "#EFF4FF", justifyContent: "center" },
   termText: { fontSize: 15, lineHeight: 22, fontWeight: "700", color: "#175CD3" },
   skeleton: { backgroundColor: "#EAECF0", borderRadius: 6 },
+  masteryTrack: { height: 8, backgroundColor: "#EAECF0", borderRadius: 4, overflow: "hidden" },
+  masteryFill: { height: 8, backgroundColor: "#175CD3", borderRadius: 4 },
   goalSkeleton: { width: "75%", height: 26 },
   numberSkeleton: { width: 48, height: 32 },
   accuracySkeleton: { width: "90%", height: 20 },
