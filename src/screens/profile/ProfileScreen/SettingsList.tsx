@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, StyleSheet, Switch, Text, View } from "react-native";
 import type { LearningLevel } from "../../../lib/onboarding";
 
 interface SettingsRow {
@@ -10,7 +10,8 @@ interface SettingsRow {
   kind?: "logout" | "delete";
 }
 
-export function SettingsList({ level, onLogout, onEditLevel, onEditLearning, onTerms, onPrivacy, onDeleteAccount }: {
+export function SettingsList({ level, onLogout, onEditLevel, onEditLearning, onTerms, onPrivacy, onDeleteAccount, notificationsEnabled=false, onNotificationsChange, notificationsBusy=false }: {
+  notificationsEnabled?: boolean; onNotificationsChange?: (value:boolean)=>void; notificationsBusy?:boolean;
   level: LearningLevel; onLogout: () => void; onDeleteAccount: () => void;
   onEditLevel: () => void; onEditLearning: () => void; onTerms: () => void; onPrivacy: () => void;
 }) {
@@ -20,7 +21,7 @@ export function SettingsList({ level, onLogout, onEditLevel, onEditLearning, onT
       { icon: "options-outline", label: "학습 설정", onPress: onEditLearning },
       { icon: "school-outline", label: "읽기 수준 기본값", value: levelLabel, onPress: onEditLevel }
     ] },
-    { title: "알림", rows: [{ icon: "notifications-outline", label: "알림 설정", value: "준비 중" }] },
+    { title: "알림", rows: [{ icon: "notifications-outline", label: Platform.OS === "web" ? "알림 설정" : "판단 결과 알림", value: Platform.OS === "web" ? "준비 중" : undefined }] },
     { title: "약관 및 정보", rows: [
       { icon: "document-text-outline", label: "이용약관", onPress: onTerms },
       { icon: "shield-checkmark-outline", label: "개인정보처리방침", onPress: onPrivacy }
@@ -34,14 +35,18 @@ export function SettingsList({ level, onLogout, onEditLevel, onEditLearning, onT
     {sections.map(section => <View key={section.title}>
       <Text style={styles.sectionTitle}>{section.title}</Text>
       {section.rows.map((row,index) => <View key={row.label}>
-        <Pressable accessibilityRole={row.onPress ? "button" : undefined}
+        {section.title === "알림" && Platform.OS !== "web" ? <View style={styles.row}>
+          <Ionicons name="notifications-outline" size={20} color="#667085" />
+          <Text style={styles.label}>판단 결과 알림</Text>
+          <Switch accessibilityLabel="판단 결과 알림" value={notificationsEnabled} disabled={notificationsBusy} onValueChange={onNotificationsChange} trackColor={{false:"#EAECF0",true:"#175CD3"}} />
+        </View> : <Pressable accessibilityRole={row.onPress ? "button" : undefined}
           accessibilityLabel={row.value ? `${row.label}, ${row.value}` : row.label}
           accessibilityState={{ disabled: !row.onPress }} disabled={!row.onPress} onPress={row.onPress} style={styles.row}>
           {row.icon ? <Ionicons name={row.icon} size={20} color={row.kind === "logout" ? "#D92D20" : "#667085"} /> : null}
           <Text style={[styles.label,row.kind === "logout" && styles.logout,row.kind === "delete" && styles.delete]}>{row.label}</Text>
           {row.value ? <Text style={styles.value}>{row.value}</Text> : null}
           {row.onPress && !row.kind ? <Ionicons name="chevron-forward" size={16} color="#D0D5DD" /> : null}
-        </Pressable>
+        </Pressable>}
         {index<section.rows.length-1 ? <View style={styles.divider} /> : null}
       </View>)}
     </View>)}

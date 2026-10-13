@@ -1,3 +1,5 @@
+import { useJudgementResults } from "../../../components/JudgementResultsProvider";
+import { JudgementResultBanner } from "../../../components/JudgementResultBanner";
 import { useCallback, useState } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import { getLearningPreferences } from "../../../lib/api";
@@ -12,6 +14,9 @@ import { NewsSection } from "./NewsSection";
 type Props = NativeStackScreenProps<HomeStackParamList, "Home">;
 
 export function HomeScreen({ navigation }: Props) {
+  const {unseen,pending,refresh}=useJudgementResults();
+  useFocusEffect(useCallback(()=>{refresh();},[refresh]));
+  const result=unseen[0] ?? pending;
   const [preferences, setPreferences] = useState(getDefaultLearningPreferences());
   useFocusEffect(useCallback(() => { let active = true; void getLearningPreferences().then(value => { if (active) setPreferences(value); }); return () => { active = false; }; }, []));
   return (
@@ -21,6 +26,7 @@ export function HomeScreen({ navigation }: Props) {
         contentContainerStyle={styles.container}
       >
         <HomeHeader />
+        {result ? <JudgementResultBanner item={result} pending={!unseen.length} onPress={() => navigation.getParent()?.navigate("HistoryTab", {screen:"JudgementDetail",params:{item:result}})} /> : null}
         <MarketPanel />
         <NewsSection preferences={preferences} onSelectNews={(newsId) => navigation.navigate("NewsDetail", { newsId })} />
       </ScrollView>

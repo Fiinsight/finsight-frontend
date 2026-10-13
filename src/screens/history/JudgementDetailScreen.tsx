@@ -1,3 +1,4 @@
+import { resultDateLabel } from "../../lib/judgementResults";
 import { useEffect } from "react";
 import { useIsFocused } from "@react-navigation/native";
 import { recordJudgementView } from "../../lib/readingProgress";
@@ -58,9 +59,12 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
   const result = judgementResult(item);
   const verdict = feedbackVerdict(item);
   const hasReason = Boolean(item.reasonText?.trim() || item.reasons.length);
+  const expectedDate = item.expectedResultDate ? resultDateLabel(item.expectedResultDate) : null;
+  const delayed = !!item.expectedResultAt && Number.isFinite(Date.parse(item.expectedResultAt)) && Date.parse(item.expectedResultAt) <= Date.now();
+  const waitingHeadline = delayed ? "결과를 확인하고 있어요" : expectedDate ? `${expectedDate} 장 마감 후(15:40 이후) 결과를 알려드려요` : "다음 거래일 장 마감 후 결과를 알려드려요";
   const headline = verdict === "CORRECT" ? hasReason ? "✓ 정확한 판단이에요!" : "예측 방향이 같았어요"
     : verdict === "WRONG" ? "다르게 움직였어요" : verdict === "PARTIAL" ? "방향은 맞았지만 변동이 작았어요"
-    : result.unavailable ? "결과를 비교할 수 없어요" : result.legacy ? "이전 방식으로 채점된 기록이에요(당일 비교)" : "내일 장 마감 후 결과를 알려드려요";
+    : result.unavailable ? "결과를 비교할 수 없어요" : result.legacy ? "이전 방식으로 채점된 기록이에요(당일 비교)" : waitingHeadline;
   const tone = verdict === "CORRECT" ? "#ECFDF3" : verdict === "WRONG" ? "#FFF4ED" : "#F2F4F7";
   const percent = item.actualChangePercent == null ? "등락률 확인 불가" : `${item.actualChangePercent > 0 ? "+" : ""}${item.actualChangePercent.toFixed(2)}%`;
   const movement = item.actualDirection === "UP" ? "상승" : item.actualDirection === "DOWN" ? "하락" : "보합";

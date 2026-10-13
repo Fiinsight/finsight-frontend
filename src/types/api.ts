@@ -135,12 +135,14 @@ export interface JudgementRequest {
 }
 
 export interface JudgementResponseRaw {
+  judgementId?: number; expectedResultDate?: string | null; expectedResultAt?: string | null;
   newsId?: number;
   choice?: JudgementChoice;
   feedback?: string;
 }
 
 export interface JudgementAck {
+  judgementId?: number; expectedResultDate?: string | null; expectedResultAt?: string | null; notificationWarning?: string;
   newsId: number;
   choice: JudgementChoice;
   message: string;
@@ -153,6 +155,7 @@ export interface JudgementAck {
 export type FeedbackVerdict = "CORRECT" | "WRONG" | "PARTIAL";
 export interface FeedbackReason { title: string; detail: string; }
 export interface JudgementHistoryItemRaw {
+  relatedSymbol?: string | null; relatedSymbolName?: string | null; expectedResultDate?: string | null; expectedResultAt?: string | null;
   headline?: string | null;
   verdict?: FeedbackVerdict | null;
   nextTip?: string | null;
@@ -180,6 +183,7 @@ export interface JudgementHistoryItemRaw {
 }
 
 export interface JudgementHistoryItem {
+  relatedSymbol?: string | null; relatedSymbolName?: string | null; expectedResultDate?: string | null; expectedResultAt?: string | null;
   headline?: string | null;
   verdict?: FeedbackVerdict | null;
   nextTip?: string | null;

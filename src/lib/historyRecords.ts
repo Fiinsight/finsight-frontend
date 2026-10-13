@@ -86,7 +86,7 @@ export function feedbackVerdict(item: JudgementHistoryItem) {
   return result.correct ? "CORRECT" : "WRONG";
 }
 export function feedbackVersion(item: JudgementHistoryItem) {
-  if (!item.comparisonDate || judgementResult(item).pending || judgementResult(item).unavailable) return null;
+  if (!item.comparisonDate || typeof item.actualChangePercent !== "number" || !Number.isFinite(item.actualChangePercent) || judgementResult(item).pending || judgementResult(item).unavailable) return null;
   return item.feedbackGeneratedAt || item.comparisonDate;
 }
 export function hasUnreadFeedback(item: JudgementHistoryItem, seen: Record<string, string>) {

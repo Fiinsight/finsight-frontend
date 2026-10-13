@@ -1,6 +1,7 @@
+import { judgementNotificationsEnabled, setJudgementNotificationsEnabled } from "../../../lib/judgementNotifications";
 import { useQueryClient } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
-import { SafeAreaView, ScrollView, StyleSheet, View, Text, Pressable, Modal } from "react-native";
+import { Platform, SafeAreaView, ScrollView, StyleSheet, View, Text, Pressable, Modal } from "react-native";
 import type { AuthSession } from "../../../lib/auth";
 import { getDefaultLearningPreferences, type LearningLevel } from "../../../lib/onboarding";
 import { getLearningPreferences, setDefaultReadingLevel, saveLearningSettings, getOnboardingAnswers, deleteAccount } from "../../../lib/api";
@@ -42,6 +43,16 @@ export function ProfileScreen({ session, onLogout }: { session: AuthSession; onL
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [notificationsEnabled,setNotificationsEnabled]=useState(false);
+  const [notificationsBusy,setNotificationsBusy]=useState(false);
+  useEffect(()=>{if(Platform.OS!=="web")void judgementNotificationsEnabled(session.userId).then(setNotificationsEnabled);},[session.userId]);
+  async function toggleNotifications(enabled:boolean) {
+    setNotificationsBusy(true);setMessage("");
+    try {setNotificationsEnabled(await setJudgementNotificationsEnabled(session.userId,enabled));}
+    catch {setMessage("알림 설정을 변경하지 못했어요. 기기의 알림 권한을 확인하고 다시 시도해 주세요.");}
+    finally {setNotificationsBusy(false);}
+  }
+
   async function saveLevel(next: LearningLevel) {
     setSaving(true); setMessage("");
     try {
@@ -61,7 +72,7 @@ export function ProfileScreen({ session, onLogout }: { session: AuthSession; onL
       <ScrollView contentContainerStyle={styles.container}>
         <TabScreenHeader title="프로필" subtitle="내 투자 학습과 계정 설정을 관리하세요." />
         <View style={{ marginTop: 24 }}><ProfileHeader session={session} /></View>
-        <SettingsList onDeleteAccount={() => setDeleteStep(1)} level={level} onLogout={() => setLogoutConfirm(true)}
+        <SettingsList notificationsEnabled={notificationsEnabled} notificationsBusy={notificationsBusy} onNotificationsChange={value=>void toggleNotifications(value)} onDeleteAccount={() => setDeleteStep(1)} level={level} onLogout={() => setLogoutConfirm(true)}
           onEditLevel={() => { setEditing(true); setMessage(""); }}
           onEditLearning={() => { setSettingsOpen(true); setMessage(""); }}
           onTerms={() => setLegal("terms")} onPrivacy={() => setLegal("privacy")} />

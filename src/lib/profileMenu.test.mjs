@@ -6,7 +6,7 @@ import ts from 'typescript';
 const React={createElement:(type,props,...children)=>({type,props,children})};
 const nodes=n=>Array.isArray(n)?n.flatMap(nodes):n&&typeof n==='object'?[n,...nodes(n.children)]:[];
 test('profile menus are flat sections with inset separators and quiet account actions',()=>{
- const exports={};vm.runInNewContext(ts.transpileModule(fs.readFileSync(new URL('../screens/profile/ProfileScreen/SettingsList.tsx',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.React}}).outputText,{exports,React,require:name=>name==='@expo/vector-icons'?{Ionicons:'Icon'}:{Pressable:'Pressable',Text:'Text',View:'View',StyleSheet:{create:s=>s}}});
+ const exports={};vm.runInNewContext(ts.transpileModule(fs.readFileSync(new URL('../screens/profile/ProfileScreen/SettingsList.tsx',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.React}}).outputText,{exports,React,require:name=>name==='@expo/vector-icons'?{Ionicons:'Icon'}:{Platform:{OS:'web'},Switch:'Switch',Pressable:'Pressable',Text:'Text',View:'View',StyleSheet:{create:s=>s}}});
  const props={level:'normal',onLogout(){},onDeleteAccount(){},onEditLevel(){},onEditLearning(){},onTerms(){},onPrivacy(){}};
  const tree=nodes(exports.SettingsList(props));
  assert.deepEqual(tree.filter(n=>n.type==='Text'&&n.props?.style?.fontSize===13&&n.props.style.marginTop===24).map(n=>n.children[0]),['학습','알림','약관 및 정보','계정']);
@@ -24,4 +24,11 @@ test('profile no longer expands level choices beneath menus or contains an unuse
  assert(source.includes('FinSight v0.1.0'));
  assert(!source.includes('menu: {'));
  assert(!/backgroundColor:\s*"#FFFFFF"[^\n]*borderRadius/.test(source));
+});
+test('native judgement notification switch starts off while web has no toggle',()=>{
+ let platform='ios';const React={createElement:(type,props,...children)=>({type,props,children})};const exports={};
+ vm.runInNewContext(ts.transpileModule(fs.readFileSync(new URL('../screens/profile/ProfileScreen/SettingsList.tsx',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.React}}).outputText,{exports,React,require:name=>name==='@expo/vector-icons'?{Ionicons:'Icon'}:{Platform:{get OS(){return platform;}},Switch:'Switch',Pressable:'Pressable',Text:'Text',View:'View',StyleSheet:{create:s=>s}}});
+ let enabled;const props={level:'beginner',onLogout(){},onDeleteAccount(){},onEditLevel(){},onEditLearning(){},onTerms(){},onPrivacy(){},onNotificationsChange:next=>{enabled=next;}};
+ const toggle=nodes(exports.SettingsList(props)).find(n=>n.type==='Switch');assert.equal(toggle.props.value,false);toggle.props.onValueChange(true);assert.equal(enabled,true);
+ platform='web';assert(!nodes(exports.SettingsList(props)).some(n=>n.type==='Switch'));
 });
