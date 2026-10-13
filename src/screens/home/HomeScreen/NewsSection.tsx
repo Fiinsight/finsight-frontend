@@ -1,4 +1,4 @@
-import { focusHint, getDefaultLearningPreferences, type LearningPreferences } from "../../../lib/learningPreferences";
+import { getDefaultLearningPreferences, type LearningPreferences } from "../../../lib/learningPreferences";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
@@ -61,7 +61,7 @@ export function NewsSection({ onSelectNews, preferences = getDefaultLearningPref
       </View>
 
       {news.length > 0 ? news.map((item) => (
-        <View key={item.id}><NewsCard news={item} onPress={() => onSelectNews(item.id)} /><Text style={styles.muted}>{focusHint[preferences.focus]}</Text></View>
+        <NewsCard key={item.id} news={item} onPress={() => onSelectNews(item.id)} />
       )) : (
         <View style={styles.emptyState}>
           <Text style={styles.emptyTitle}>{isError ? "뉴스를 불러오지 못했어요" : "오늘의 뉴스를 준비하고 있어요"}</Text>
@@ -71,7 +71,7 @@ export function NewsSection({ onSelectNews, preferences = getDefaultLearningPref
       )}
 
       {(!preferences || preferences.painPoint !== "overload" || expanded) && olderNews.map((item) => (
-        <View key={item.id}><NewsCard news={item} onPress={() => onSelectNews(item.id)} /><Text style={styles.muted}>{focusHint[preferences.focus]}</Text></View>
+        <NewsCard key={item.id} news={item} onPress={() => onSelectNews(item.id)} />
       ))}
 
       {moreError ? <Text accessibilityRole="alert" style={styles.emptyBody}>추가 뉴스를 불러오지 못했어요. 이미 불러온 뉴스는 유지합니다.</Text> : null}

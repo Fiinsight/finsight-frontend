@@ -6,3 +6,6 @@ node_modules/
 dist/
 web-build/
 npm-debug.log*
+
+# Generated local QA pages; screenshots are tracked
+docs/profile-results/screenshots/*.html

@@ -73,4 +73,3 @@ export function getDefaultLearningPreferences(): LearningPreferences {
 export function evidenceCandidates(summary: string): string[] {
   return [...new Set(summary.split(/(?<=[.!?。])\s+|\n+/).map(value => value.trim()).filter(Boolean))].slice(0, 2);
 }
-export const focusHint = { news: "핵심 내용을 하나씩 읽어보세요", decision: "판단해볼 만한 근거가 있어요", market: "시장 지표와 함께 보세요", reflection: "지난 판단과 비교해보세요" };

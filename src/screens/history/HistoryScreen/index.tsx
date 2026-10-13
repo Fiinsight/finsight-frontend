@@ -83,7 +83,7 @@ export function HistoryScreen({ navigation, route }: Props) {
         {selectedDate ? <Pressable accessibilityRole="button" onPress={() => setSelectedDate(null)}><Text style={styles.reviewLink}>날짜 필터 해제</Text></Pressable> : null}
         {ownerId === null ? <Text style={styles.errorText}>로그인 정보를 확인할 수 없습니다.</Text> : ownerId === undefined || activeQuery.isLoading ? <Text style={styles.emptyText}>기록을 불러오는 중이에요.</Text> : null}
         {activeQuery.isError ? <View style={styles.emptyCard}>
-          <Text style={styles.errorText}>기록을 불러오지 못했어요. 이미 불러온 기록은 유지합니다.</Text>
+          <Text style={styles.errorText}>기록을 불러오지 못했어요 · 다시 시도</Text>
           <Pressable accessibilityRole="button" onPress={() => { if (activeQuery.isFetchNextPageError) void activeQuery.fetchNextPage(); else void activeQuery.refetch(); }}><Text style={styles.reviewLink}>다시 시도</Text></Pressable>
         </View> : null}
         {typeof ownerId === "number" && !activeQuery.isLoading && !activeQuery.isError && groups.length === 0 ? <View style={styles.emptyCard}>

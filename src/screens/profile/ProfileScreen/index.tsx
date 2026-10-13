@@ -60,22 +60,31 @@ export function ProfileScreen({ session, onLogout }: { session: AuthSession; onL
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
         <TabScreenHeader title="프로필" subtitle="내 투자 학습과 계정 설정을 관리하세요." />
-        <ProfileHeader session={session} />
+        <View style={{ marginTop: 24 }}><ProfileHeader session={session} /></View>
         <SettingsList onDeleteAccount={() => setDeleteStep(1)} level={level} onLogout={() => setLogoutConfirm(true)}
-          onEditLevel={() => { setEditing(!editing); setMessage(""); }}
+          onEditLevel={() => { setEditing(true); setMessage(""); }}
           onEditLearning={() => { setSettingsOpen(true); setMessage(""); }}
           onTerms={() => setLegal("terms")} onPrivacy={() => setLegal("privacy")} />
-        {editing ? <View style={{ gap: 12 }}>
-          <Text>기본 읽기 수준을 선택하세요. 기사에서 바꾼 수준은 그 기사에 적용됩니다.</Text>
-          {(["beginner", "normal", "analyst"] as LearningLevel[]).map((value) => <Pressable key={value} accessibilityRole="button" disabled={saving} onPress={() => void saveLevel(value)} accessibilityState={{ selected: level === value }} style={{ padding: 12, backgroundColor: level === value ? "#DCE8FF" : "#FFFFFF", borderRadius: 8 }}>
-            <Text>{value === "beginner" ? "초보자용" : value === "normal" ? "일반용" : "분석용"}{level === value ? " ✓ 현재 기본값" : ""}</Text>
-          </Pressable>)}
-          {saving ? <Text>저장 중…</Text> : null}
-        </View> : null}
         {deleteStep > 0 ? <View style={{ gap: 12 }}><Text>{deleteStep === 1 ? "회원 탈퇴를 진행할까요?" : "탈퇴하면 내 판단·메모·학습 기록이 모두 삭제돼요. 되돌릴 수 없습니다."}</Text><Pressable accessibilityRole="button" accessibilityLabel="회원 탈퇴 취소" disabled={saving} onPress={() => setDeleteStep(0)}><Text>취소</Text></Pressable><Pressable accessibilityRole="button" accessibilityLabel={deleteStep === 1 ? "탈퇴 다음 단계" : "회원 탈퇴 최종 확인"} disabled={saving} onPress={() => { if (deleteStep === 1) { setDeleteStep(2); return; } setSaving(true); void deleteAccount().then(onLogout).catch(() => setMessage("탈퇴 요청을 처리하지 못했어요. 다시 시도해 주세요.")).finally(() => setSaving(false)); }}><Text>{deleteStep === 1 ? "다음" : saving ? "처리 중…" : "계정과 기록 삭제"}</Text></Pressable></View> : null}
         {logoutConfirm ? <View><Text>로그아웃할까요?</Text><Pressable accessibilityRole="button" accessibilityLabel="로그아웃 취소" onPress={() => setLogoutConfirm(false)}><Text>취소</Text></Pressable><Pressable accessibilityRole="button" accessibilityLabel="로그아웃 확인" onPress={onLogout}><Text>로그아웃</Text></Pressable></View> : null}
         {message ? <Text accessibilityRole="alert">{message}</Text> : null}
+        <Text style={styles.version}>FinSight v0.1.0</Text>
       </ScrollView>
+      <Modal visible={editing} transparent animationType="slide" onRequestClose={() => { if (!saving) setEditing(false); }}>
+        <View style={styles.sheetBackdrop}>
+          <Pressable style={styles.sheetDismiss} accessibilityRole="button" accessibilityLabel="읽기 수준 선택 닫기" onPress={() => { if (!saving) setEditing(false); }} />
+          <View style={styles.sheet} accessibilityViewIsModal>
+            <Text style={styles.sheetTitle}>기본 읽기 수준</Text>
+            <Text style={styles.sheetDescription}>기사에서 바꾼 수준은 그 기사에 적용돼요.</Text>
+            {(["beginner", "normal", "analyst"] as LearningLevel[]).map(value => <Pressable key={value} accessibilityRole="button" accessibilityLabel={value === "beginner" ? "초보자용" : value === "normal" ? "일반용" : "분석용"} disabled={saving} onPress={() => void saveLevel(value)} accessibilityState={{ selected: level === value, disabled: saving }} style={styles.levelRow}>
+              <Text style={styles.levelText}>{value === "beginner" ? "초보자용" : value === "normal" ? "일반용" : "분석용"}</Text>
+              {level === value ? <Ionicons name="checkmark" size={20} color="#175CD3" /> : null}
+            </Pressable>)}
+            {message ? <Text accessibilityRole="alert">{message}</Text> : null}
+            <Pressable accessibilityRole="button" accessibilityLabel="읽기 수준 선택 취소" disabled={saving} style={styles.levelRow} onPress={() => setEditing(false)}><Text style={styles.sheetDescription}>{saving ? "저장 중…" : "취소"}</Text></Pressable>
+          </View>
+        </View>
+      </Modal>
       <Modal visible={settingsOpen} animationType="slide" onRequestClose={() => { if (!saving) setSettingsOpen(false); }}>
         <View style={{ flex: 1, backgroundColor: "#071B4A" }}>
           {message ? <Text accessibilityRole="alert" style={{ color: "#FFFFFF", padding: 16 }}>{message}</Text> : null}
@@ -90,14 +99,21 @@ export function ProfileScreen({ session, onLogout }: { session: AuthSession; onL
 }
 
 const styles = StyleSheet.create({
-  menu: { padding: 16, backgroundColor: "#FFFFFF", borderRadius: 10 },
+  version: { fontSize: 13, color: "#98A2B3", textAlign: "center", marginTop: "auto", paddingTop: 24 },
+  sheetBackdrop: { flex: 1, backgroundColor: "rgba(16,24,40,0.35)", justifyContent: "flex-end" },
+  sheetDismiss: { flex: 1 },
+  sheet: { padding: 20, paddingBottom: 32, backgroundColor: "#F8FAFC" },
+  sheetTitle: { color: "#101828", fontSize: 18, fontWeight: "700", marginBottom: 8 },
+  sheetDescription: { color: "#667085", fontSize: 13, lineHeight: 20 },
+  levelRow: { height: 56, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  levelText: { color: "#101828", fontSize: 16 },
   safeArea: {
     flex: 1,
     backgroundColor: "#F8FAFC"
   },
   container: {
+    flexGrow: 1,
     padding: 20,
-    paddingBottom: 40,
-    gap: 24
+    paddingBottom: 24
   }
 });
