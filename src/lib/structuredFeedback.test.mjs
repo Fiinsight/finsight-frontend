@@ -33,7 +33,7 @@ test('legacy null renders paragraph, waiting shows only user reason, no-reason c
  const pending=render({...base,actualDirection:null,comparisonDate:null,verdict:null,feedbackText:'',feedbackReasons:null}).tree;
  assert(texts(pending).includes('다음 거래일 장 마감 후 결과를 알려드려요'));assert(!pending.some(n=>n.type==='MiniLineChart'));assert(!texts(pending).includes('기사 근거'));
  const none=render({...base,reasonText:'',reasons:[]}).tree;assert(!texts(none).some(s=>s.includes('정확한 판단')));
- const unavailable=render({...base,actualDirection:'UNKNOWN',comparisonDate:null,verdict:null,feedbackReasons:null}).tree;assert(texts(unavailable).includes('결과를 비교할 수 없어요'));assert(!texts(unavailable).some(s=>s.includes('당일 비교')));
+ const unavailable=render({...base,actualDirection:'UNKNOWN',comparisonDate:null,verdict:null,feedbackReasons:null}).tree;assert(texts(unavailable).includes('판단 대상이 정해지지 않은 기사예요'));assert(!texts(unavailable).some(s=>s.includes('당일 비교')));
  assert.equal(history.feedbackVerdict({...base,verdict:null,choice:'UP',actualDirection:'UP',actualChangePercent:1.0000000000000002}),'PARTIAL');
  const arrival=render({...base,actualDirection:null},base).tree;assert(texts(arrival).includes('✓ 정확한 판단이에요!'));
 });
@@ -61,4 +61,11 @@ test('history row displays arrival badge only while unread',()=>{
  const exports={};vm.runInNewContext(compile('../screens/history/HistoryScreen/HistoryItem.tsx'),{exports,React,require:name=>name==='react-native'?{View:'View',Text:'Text',TouchableOpacity:'TouchableOpacity',StyleSheet:{create:s=>s}}:name.endsWith('/historyRecords')?history:{toRelativeTimeKorean:()=>''}});
  assert(texts(nodes(exports.HistoryItem({item:base,unread:true,onPress(){}}))).includes('결과 도착'));
  assert(!texts(nodes(exports.HistoryItem({item:base,unread:false,onPress(){}}))).includes('결과 도착'));
+});
+
+test('result uses stored target, compares the real index figure and opens the selected concept quiz',()=>{
+ const item={...base,relatedSymbol:'KOSPI',relatedSymbolName:'코스피',indexName:'코스닥',indexChangePercent:-.76,conceptTerm:'금리',conceptDefinition:'돈을 빌리는 비용'};
+ const {tree,navigation}=render(item);const text=texts(tree).join(' ');assert.match(text,/코스피 -1.76%/);assert.match(text,/같은 날 코스닥 -0.76%/);
+ tree.find(n=>n.props?.accessibilityLabel==='금리 퀴즈로 확인하기').props.onPress();assert.equal(navigation[0][0],'NewsDetail');assert.equal(navigation[0][1].quizTerm,'금리');assert.equal(navigation[0][1].openQuiz,true);
+ const absent=render({...base,indexName:null,indexChangePercent:null,conceptTerm:null}).tree;assert(!absent.some(n=>n.props?.accessibilityLabel?.includes('퀴즈로 확인하기')));assert(!texts(absent).some(t=>t.includes('같은 날')));
 });

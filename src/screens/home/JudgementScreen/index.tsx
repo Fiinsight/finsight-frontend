@@ -39,16 +39,17 @@ export function JudgementScreen({ route, navigation }: Props) {
     staleTime: 60_000
   });
 
-  const symbol = data?.relatedSymbol;
-  const marketLabel = symbol === "KOSPI" ? "관련 시장(코스피)" : symbol === "KOSDAQ" ? "관련 시장(코스닥)" : null;
-  const symbolLabel = marketLabel ?? (data?.relatedSymbolName && data.relatedSymbolName !== symbol ? `${data.relatedSymbolName} 주가` : symbol ? `관련 종목(${symbol}) 주가` : "관련 기업이나 시장");
+  const target = data?.judgementTarget;
+  const symbol = target?.symbol;
+  const marketLabel = symbol === "KOSPI" ? "코스피" : symbol === "KOSDAQ" ? "코스닥" : null;
+  const symbolLabel = marketLabel ?? (target?.name && target.name !== symbol ? `${target.name} 주가` : symbol ? `관련 종목(${symbol}) 주가` : "관련 기업이나 시장");
 
   const mutation = useMutation({
     mutationFn: () => submitJudgement({ newsId, choice: choice as JudgementChoice, reason: reason || undefined })
   });
 
   const handleSubmit = async () => {
-    if (!choice) {
+    if (!choice || !symbol) {
       return;
     }
     setSubmitError(null);
@@ -64,7 +65,7 @@ export function JudgementScreen({ route, navigation }: Props) {
       // but if the submission itself failed, the judgement was never saved,
       // so showing a "success" screen here would be actively misleading.
       // Let the user retry instead.
-      setSubmitError(axios.isAxiosError(error) && error.response?.status === 409 ? "이미 결과가 나온 판단이에요" : "서버에 연결하지 못해 판단이 저장되지 않았어요. 다시 시도해주세요.");
+      setSubmitError(axios.isAxiosError(error) && error.response?.status === 409 ? "이미 결과가 나온 판단이에요" : axios.isAxiosError(error) && error.response?.status === 400 ? "이 기사는 판단할 대상이 없어요" : "서버에 연결하지 못해 판단이 저장되지 않았어요. 다시 시도해주세요.");
     }
   };
 
@@ -74,7 +75,7 @@ export function JudgementScreen({ route, navigation }: Props) {
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView contentContainerStyle={styles.container}>
-          <Text style={styles.question}>{`이 뉴스가 다음 거래일 ${symbolLabel}에 미칠 영향은?`}</Text>
+          <Text style={styles.question}>{symbol ? `이 뉴스가 나온 뒤 다음 거래일 ${symbolLabel}는?` : "이 기사는 판단할 대상이 없어요"}</Text>
           <Text style={styles.subtitle}>{marketLabel ? "뉴스 내용을 바탕으로 지수 방향을 예측해보세요" : "뉴스 내용을 바탕으로 주가 방향을 예측해보세요"}</Text>
 
           {isLoading ? <Text style={styles.errorText}>뉴스를 불러오는 중이에요.</Text> : null}
@@ -85,14 +86,14 @@ export function JudgementScreen({ route, navigation }: Props) {
           {history.isError ? <Pressable accessibilityRole="button" onPress={() => void history.refetch()}><Text style={styles.errorText}>기존 판단을 확인하지 못했어요. 다시 시도</Text></Pressable> : null}
           {confirmed ? <Text style={styles.errorText}>이미 결과가 나온 판단이에요</Text> : existing ? <Text style={styles.subtitle}>저장된 판단을 수정할 수 있어요.</Text> : null}
           <Text style={styles.subtitle}>다음 거래일 종가의 변화가 ±0.5% 이내면 중립으로 비교해요.</Text>
-          {data ? <DirectionChoices isIndex={!!marketLabel} disabled={confirmed} value={choice} onChange={(next) => { if (!confirmed) { setJudgementReason(newsId, reason); setJudgementChoice(newsId, next); } }} /> : null}
-          {data ? <ReasonInput recommended={recommendEvidence} candidates={evidenceCandidates(data.summary)} editable={!confirmed} value={reason} onChange={(text) => setJudgementReason(newsId, text)} /> : null}
+          {symbol ? <DirectionChoices isIndex={!!marketLabel} disabled={confirmed} value={choice} onChange={(next) => { if (!confirmed) { setJudgementReason(newsId, reason); setJudgementChoice(newsId, next); } }} /> : null}
+          {symbol && data ? <ReasonInput recommended={recommendEvidence} candidates={evidenceCandidates(data.summary)} editable={!confirmed} value={reason} onChange={(text) => setJudgementReason(newsId, text)} /> : null}
 
           {submitError ? <Text style={styles.errorText}>{submitError}</Text> : null}
         </ScrollView>
       </KeyboardAvoidingView>
 
-      <BottomActionBar label={existing && !confirmed ? "판단 수정하기" : "제출하기"} onPress={handleSubmit} disabled={!choice || !data || confirmed || history.isLoading || history.isError} loading={mutation.isPending} />
+      {symbol ? <BottomActionBar label={existing && !confirmed ? "판단 수정하기" : "제출하기"} onPress={handleSubmit} disabled={!choice || !data || confirmed || history.isLoading || history.isError} loading={mutation.isPending} /> : null}
     </SafeAreaView>
   );
 }
