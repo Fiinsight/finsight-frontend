@@ -518,10 +518,10 @@ export interface NewsLesson {
   glossary: Array<{ term: string; definition: string }>;
   question: { term: string; prompt: string; options: string[] } | null;
 }
-export interface LearningAnswer { correct: boolean; definition: string; message: string }
+export interface LearningAnswer { correct: boolean; definition: string; message: string; termDefinition?: string }
 export interface LearningReview { newsId: number; title: string; term: string; definition: string; level: ReadingLevel; answeredAt: string }
-export async function getNewsLesson(newsId: number, level: ReadingLevel): Promise<NewsLesson> {
-  return (await api.get<NewsLesson>(`/learning/news/${newsId}`, { params: { level } })).data;
+export async function getNewsLesson(newsId: number, level: ReadingLevel, term?: string): Promise<NewsLesson> {
+  return (await api.get<NewsLesson>(`/learning/news/${newsId}`, { params: { level, ...(term ? { term } : {}) } })).data;
 }
 export async function answerLearningQuestion(newsId: number, level: ReadingLevel, term: string, answerIndex: number): Promise<LearningAnswer> {
   return (await api.post<LearningAnswer>(`/learning/news/${newsId}/answers`, { level, term, answerIndex })).data;

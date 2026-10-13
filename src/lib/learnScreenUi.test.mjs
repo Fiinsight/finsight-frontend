@@ -8,23 +8,23 @@ const model = {};
 vm.runInNewContext(ts.transpileModule(fs.readFileSync(new URL('./readingProgressModel.ts', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, { exports: model, require: () => ({ kstDate }) });
 const { resumeLearningIds, DAILY_ARTICLE_GOAL } = model;
 
-function harness({ count = 1, completed = [], reviewItems, weak = [], pending = false, error = false, painPoint, goal, mastery, recommendations = [], suggestion = null } = {}) {
+function harness({ count = 1, completed = [], reviewItems, weak = [], pending = false, fetching = false, error = false, painPoint, goal, mastery, recommendations = [], suggestion = null, section } = {}) {
   const reviews = reviewItems ?? [{ newsId: 232, term: '코스피', definition: '시장 흐름을 보여주는 지수예요.', title: '기사 제목', level: 'analyst' }];
   const preferences = { level: 'beginner', focus: 'news', pace: 'micro', dailyGoal: '뉴스 하나 읽기', source: 'onboarding', painPoint };
   const values = [{ '2026-10-12': [100,101,102,103] }, 1, preferences, 4, true];
-  const navigation = [], retries = [], changes = [];
+  const navigation = [], retries = [], changes = [], scrolls = [], params = [];
   let slot = 0;
-  const React = { createElement: (type, props, ...children) => ({ type, props, children }), useCallback: fn => fn, useState(initial) {
+  const React = { createElement: (type, props, ...children) => ({ type, props, children }), useCallback: fn => fn, useRef: initial => ({ current: initial === null ? { scrollTo: position => scrolls.push(position), getInnerViewNode() {}, measureLayout(_node,success) { success(0,480); } } : initial }), useState(initial) {
     const index = slot++;
     if (!(index in values)) values[index] = initial;
     return [values[index], next => { values[index] = next; }];
   }};
   const exports = {};
-  const query = (data, key) => ({ data: pending || error ? undefined : data, isPending: pending, isLoading: pending, isError: error, refetch: () => retries.push(key) });
+  const query = (data, key) => ({ data: pending || error ? undefined : data, isPending: pending, isFetching: fetching, isLoading: pending, isError: error, refetch: () => retries.push(key) });
   vm.runInNewContext(ts.transpileModule(fs.readFileSync(new URL('../screens/learn/LearnScreen/index.tsx', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.React } }).outputText, { exports, React, require: name => {
     if (name === 'react') return React;
     if (name === 'react-native') return { SafeAreaView:'SafeAreaView', ScrollView:'ScrollView', Text:'Text', Pressable:'Pressable', View:'View', Modal:'Modal', StyleSheet:{create:value=>value} };
-    if (name === '@react-navigation/native') return { useFocusEffect() {}, useIsFocused:()=>true, useNavigation:()=>({ navigate:(...args)=>navigation.push(args) }) };
+    if (name === '@react-navigation/native') return { useFocusEffect() {}, useIsFocused:()=>true, useRoute:()=>({params:{section}}), useNavigation:()=>({ navigate:(...args)=>navigation.push(args), setParams: value=>params.push(value) }) };
     if (name === '@tanstack/react-query') return { useQuery: options => options.queryKey[0] === "learning-recommendations" ? query({items:recommendations}, "recommendations") : options.queryKey[0] === "daily-learning-terms" ? query([{term:"금리",definition:"이자 비율"},{term:"환율",definition:"통화 교환 비율"},{term:"물가",definition:"평균 가격"}], "terms") : options.queryKey[0] === 'learning-reviews' ? query(reviews, 'reviews') : query({today:{answeredCount:count,accuracy:1},week:{answeredCount:count,accuracy:1},activityStreakDays:3,completedNewsIds:completed,weakAreas:weak,goal,mastery,levelSuggestion:suggestion}, 'progress'), useQueryClient: () => ({ invalidateQueries() {} }), useMutation: () => ({ mutate(level) { changes.push(level); }, isPending:false, isError:false }), useQueries: ({queries}) => queries.map((options,index)=>query({id:options.queryKey[1],title:`복습할 기사 ${index}`,category:'국내증시',rawContent:'본문'}, 'article')) };
     if (name.endsWith('/readingProgressModel')) return { resumeLearningIds, DAILY_ARTICLE_GOAL };
     if (name.endsWith('/onboarding')) return { getDefaultLearningPreferences:()=>preferences };
@@ -36,7 +36,7 @@ function harness({ count = 1, completed = [], reviewItems, weak = [], pending = 
   const visit = node => Array.isArray(node) ? node.flatMap(visit) : !node || typeof node !== 'object' || node.type === 'Modal' && !node.props.visible ? [] : [node,...visit(node.children)];
   const render = () => { slot=0; return visit(exports.LearnScreen()); };
   const text = nodes => nodes.filter(node=>node.type==='Text').flatMap(node=>node.children).join(' ');
-  return {render,text,navigation,retries,values,changes};
+  return {render,text,navigation,retries,values,changes,scrolls,params};
 }
 
 const button = (nodes, name) => nodes.find(node=>node.type==='Pressable' && node.props.accessibilityLabel?.startsWith(name));
@@ -59,8 +59,8 @@ test('small samples hide accuracy and reading count matches attendance cap', () 
 test('review chip opens definition sheet and returns to its original reading level', () => {
   const screen=harness(); button(screen.render(),'코스피 뜻과').props.onPress();
   const sheet=screen.render(); assert(screen.text(sheet).includes('시장 흐름을 보여주는 지수예요.'));
-  button(sheet,'코스피 기사에서 다시 풀기').props.onPress();
-  assert.equal(screen.navigation[0][1].newsId,232); assert.equal(screen.navigation[0][1].readingLevel,'analyst');
+  button(sheet,'코스피 이 개념이 나온 기사 다시 풀기').props.onPress();
+  assert.equal(screen.navigation[0][1].newsId,232); assert.equal(screen.navigation[0][1].readingLevel,'analyst'); assert.equal(screen.navigation[0][1].quizTerm,'코스피'); assert.equal(screen.navigation[0][1].openQuiz,true);
   assert.equal(screen.values[5],null);
 });
 
@@ -75,16 +75,16 @@ test('criteria are kept in the info sheet and weak areas only appear when presen
 test('loading reserves article cards, error retries are local, and buttons have names', () => {
   const loading=harness({pending:true}); const loadingNodes=loading.render();
   assert.equal(button(loadingNodes,'다음 할 일').props.disabled,true);
-  assert.equal(loadingNodes.filter(node=>node.props?.accessibilityLabel==='이어서 학습할 기사 불러오는 중').length,2);
+  assert.equal(loadingNodes.filter(node=>node.props?.accessibilityLabel==='풀다 만 퀴즈 기사 불러오는 중').length,2);
   const error=harness({error:true}); const nodes=error.render();
-  button(nodes,'학습 진행도 다시 시도').props.onPress(); button(nodes,'복습 개념 다시 시도').props.onPress();
+  button(nodes,'학습 진행도 다시 시도').props.onPress(); button(nodes,'다시 볼 개념 다시 시도').props.onPress();
   assert.deepEqual(error.retries,['progress','reviews']);
   for (const node of nodes.filter(node=>node.type==='Pressable')) { assert.equal(node.props.accessibilityRole,'button'); assert(node.props.accessibilityLabel); }
 });
 
-test('pain point terms shows three definitions in the first card', () => {
+test('pain point terms keeps three definitions after the main learning flow', () => {
  const screen=harness({painPoint:'terms'}); const initial=screen.render();
- assert(screen.text(initial).indexOf('오늘의 용어 3개') < screen.text(initial).indexOf('학습 목표'));
+ assert(screen.text(initial).indexOf('학습 목표') < screen.text(initial).indexOf('오늘의 용어 3개'));
  button(initial,'환율 뜻 보기').props.onPress();
  assert(screen.text(screen.render()).includes('통화 교환 비율'));
 });
@@ -115,9 +115,24 @@ test('concept mastery card renders strongest and weakest estimates with accessib
 });
 
 test('recommendation cards show actual behavior reason and open the selected article', () => {
- const items=[{newsId:777,title:'원화와 수출 기업',summary:'매출 기준을 확인했어요.',category:'해외시장',reason:'이전에 읽은 환율 기사의 학습 활동과 비슷해요.'}];
+ const items=[{newsId:777,reasonNewsId:115,basis:'RULE_INTEREST',title:'원화와 수출 기업',summary:'매출 기준을 확인했어요.',category:'해외시장',reason:'이전에 읽은 환율 기사의 학습 활동과 비슷해요.'}];
  const screen=harness({recommendations:items});const tree=screen.render();
  assert(screen.text(tree).includes(items[0].reason));
  button(tree,'원화와 수출 기업 추천 기사 읽기').props.onPress();
  assert.equal(screen.navigation.at(-1)[0],'NewsDetail');assert.equal(screen.navigation.at(-1)[1].newsId,777);
+});
+
+
+test('learning sections explain the flow, keep their order, hide unrelated recommendations and scroll to reviews', () => {
+ const item={newsId:777,reasonNewsId:115,basis:'RULE_INTEREST',title:'추천 기사',reason:"'금리' 퀴즈를 틀린 기사와 비슷해요"};
+ const screen=harness({recommendations:[item],section:'reviews'});const tree=screen.render();const text=screen.text(tree);
+ const titles=['학습 목표','풀다 만 퀴즈','다시 볼 개념','비슷한 기사 더 읽기','내 개념 숙련도'];
+ assert(titles.every((title,index)=>!index || text.indexOf(title)>text.indexOf(titles[index-1])));
+ for(const description of ['읽었지만 아직 퀴즈를 풀지 않은 기사예요','퀴즈에서 틀렸거나 아직 익숙하지 않은 개념이에요','내가 공부한 기사와 비슷한 주제예요']) assert(text.includes(description));
+ const target=tree.find(node=>node.type==='View' && node.props?.onLayout);target.props.onLayout({nativeEvent:{layout:{y:480}}});
+ assert.equal(screen.scrolls[0].y,480);assert.equal(screen.params[0].section,undefined);
+ const busy=harness({pending:true,section:'reviews'});busy.render().find(node=>node.type==='View' && node.props?.onLayout).props.onLayout({nativeEvent:{layout:{y:800}}});assert.equal(busy.scrolls.length,0);
+ const cached=harness({fetching:true,section:'reviews'});cached.render().find(node=>node.type==='View' && node.props?.onLayout).props.onLayout({nativeEvent:{layout:{y:800}}});assert.equal(cached.scrolls.length,0);
+ const empty=harness({reviewItems:[],recommendations:[{...item,reasonNewsId:null,basis:'RULE_RECENT'}]});const emptyText=empty.text(empty.render());
+ assert(emptyText.includes('지금은 다시 볼 개념이 없어요'));assert(!emptyText.includes('비슷한 기사 더 읽기'));assert(!emptyText.includes('최근 수집된 기사'));
 });

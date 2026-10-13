@@ -1,11 +1,11 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { SafeAreaView, ScrollView, StyleSheet, Text, Pressable, View, Modal } from "react-native";
 import { useMutation, useQuery, useQueries, useQueryClient } from "@tanstack/react-query";
-import type { CompositeNavigationProp } from "@react-navigation/native";
+import type { CompositeNavigationProp, RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { RootTabParamList, LearnStackParamList } from "../../../navigation/types";
-import { useFocusEffect, useNavigation, useIsFocused } from "@react-navigation/native";
+import { useFocusEffect, useNavigation, useIsFocused, useRoute } from "@react-navigation/native";
 import { loadAuthSession } from "../../../lib/auth";
 import { getReadingLog } from "../../../lib/readingProgress";
 import { countDailyReads, DAILY_ARTICLE_GOAL, localDateKey, resumeLearningIds, type DailyReadLog } from "../../../lib/readingProgressModel";
@@ -18,11 +18,15 @@ import { TabScreenHeader } from "../../../components/TabScreenHeader";
 export function LearnScreen() {
   const navigation = useNavigation<CompositeNavigationProp<NativeStackNavigationProp<LearnStackParamList>, BottomTabNavigationProp<RootTabParamList>>>();
   const isFocused = useIsFocused();
+  const route = useRoute<RouteProp<LearnStackParamList, "Learn">>();
+  const scroll = useRef<ScrollView>(null);
+  const reviewRef = useRef<View>(null);
   const [readingLog, setReadingLog] = useState<DailyReadLog>({});
   const [ownerId, setOwnerId] = useState<number | null>(null);
   const reviews = useQuery({ queryKey: ["learning-reviews", ownerId], queryFn: getLearningReviews, enabled: ownerId !== null && isFocused, retry: 0, staleTime: 60_000, refetchOnWindowFocus: false });
   const progress = useQuery({ queryKey: ["learning-progress", ownerId], queryFn: getLearningProgress, enabled: ownerId !== null && isFocused, retry: 0, staleTime: 60_000, refetchOnWindowFocus: false });
   const recommendations = useQuery({ queryKey: ["learning-recommendations", ownerId], queryFn: getLearningRecommendations, enabled: ownerId !== null && isFocused, retry: 0, staleTime: 60_000, refetchOnWindowFocus: false });
+  const recommendedArticles = recommendations.data?.items.filter(item => item.basis !== "RULE_RECENT" && item.reasonNewsId != null) ?? [];
   const resumeIds = progress.data ? resumeLearningIds(readingLog, progress.data.completedNewsIds) : [];
   const resumeArticles = useQueries({ queries: resumeIds.map((newsId) => ({ queryKey: ["news-detail", newsId], queryFn: () => getNewsDetail(newsId), enabled: isFocused, retry: 0, staleTime: 60_000 })) });
   const accuracy = (value: number | null) => value === null ? "아직 기록이 없어요" : `${Math.round(value * 100)}%`;
@@ -30,6 +34,15 @@ export function LearnScreen() {
 
   const [readCount, setReadCount] = useState<number | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const scrollToReviews = useCallback(() => {
+    if (isFocused && loaded && ownerId !== null && !progress.isPending && !progress.isFetching && !reviews.isLoading && !reviews.isFetching && route.params?.section === "reviews" && scroll.current) {
+      reviewRef.current?.measureLayout(scroll.current.getInnerViewNode(), (_x, y) => {
+        scroll.current?.scrollTo({ y, animated: true });
+        navigation.setParams({ section: undefined });
+      });
+    }
+  }, [isFocused, loaded, ownerId, progress.isPending, progress.isFetching, reviews.isLoading, reviews.isFetching, route.params?.section, navigation]);
+  useFocusEffect(scrollToReviews);
   useFocusEffect(useCallback(() => {
     let active = true;
     setLoaded(false);
@@ -68,15 +81,15 @@ export function LearnScreen() {
   const closeSheet = () => { setInfo(null); setSelectedReview(null); };
   const openNextTask = () => {
     if (resumeIds.length) {
-      navigation.navigate("NewsDetail", { newsId: resumeIds[0], readMode: "level", readingLevel: preferences.level });
+      navigation.navigate("NewsDetail", { newsId: resumeIds[0], readMode: "level", readingLevel: preferences.level, openQuiz: true });
     } else if (reviews.data?.length) {
       const first = reviews.data[0];
-      navigation.navigate("NewsDetail", { newsId: first.newsId, readMode: "level", readingLevel: first.level });
+      navigation.navigate("NewsDetail", { newsId: first.newsId, readMode: "level", readingLevel: first.level, openQuiz: true, quizTerm: first.term });
     } else {
       navigation.navigate("HomeTab", { screen: "Home" });
     }
   };
-  const nextTaskHint = resumeIds.length ? "이어서 풀 퀴즈로 이동해요" : reviews.data?.length ? "복습할 개념으로 돌아가요" : "홈에서 오늘의 뉴스를 읽어보세요";
+  const nextTaskHint = resumeIds.length ? "이어서 풀 퀴즈로 이동해요" : reviews.data?.length ? "다시 볼 개념으로 돌아가요" : "홈에서 오늘의 뉴스를 읽어보세요";
   const metrics = [
     { label: "오늘 읽은 기사", value: readCount === null ? "-" : `${Math.min(readCount, DAILY_ARTICLE_GOAL)}/${DAILY_ARTICLE_GOAL}`, loading: readCount === null && !loaded,
       description: "기사 3개를 읽으면 수달 배지가 자동으로 찍혀요. 같은 기사를 다시 읽어도 한 번만 세며, 기록 탭과 동일한 한국 시간 기준이에요." },
@@ -88,15 +101,9 @@ export function LearnScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView ref={scroll} contentContainerStyle={styles.container}>
         <TabScreenHeader title="학습" subtitle="오늘 할 일을 하나씩 이어가요." />
 
-        {preferences.painPoint === "terms" ? <View style={styles.card}>
-          <Text accessibilityRole="header" style={styles.sectionTitle}>오늘의 용어 3개</Text>
-          {dailyTerms.isPending ? <View style={[styles.skeleton, styles.termSkeleton]} /> : dailyTerms.isError ? <Pressable accessibilityRole="button" accessibilityLabel="오늘의 용어 다시 시도" onPress={() => void dailyTerms.refetch()}><Text style={styles.link}>다시 시도</Text></Pressable> : <View style={styles.termRow}>
-            {dailyTerms.data?.map(item => <Pressable key={item.term} style={[styles.termChip, { flex: 1, minWidth: 0, paddingHorizontal: 10 }]} accessibilityRole="button" accessibilityLabel={`${item.term} 뜻 보기`} onPress={() => setInfo({ title: item.term, description: item.definition })}><Text style={styles.termText} numberOfLines={1}>{item.term}</Text></Pressable>)}
-          </View>}
-        </View> : null}
         <View style={styles.hero}>
           <View style={styles.goalRow}><Text style={styles.goalLabel}>학습 목표</Text>
             {loaded ? <Text style={styles.goalValue} numberOfLines={1} accessibilityLabel={`학습 목표 ${preferences.dailyGoal}`}>{preferences.dailyGoal}</Text> : <View style={[styles.skeleton, styles.goalSkeleton]} accessibilityLabel="학습 목표 불러오는 중" />}
@@ -126,34 +133,41 @@ export function LearnScreen() {
           {loaded && preferences.source === "default" ? <Pressable accessibilityRole="button" accessibilityLabel="프로필에서 학습 설정하기" onPress={() => navigation.navigate("ProfileTab", { openLearningSettings: true })}><Text style={styles.heroAuxiliary}>기본 학습 목표예요 · 학습 설정하기</Text></Pressable> : null}
         </View>
 
-        {progress.data?.levelSuggestion ? <View style={styles.card}>
-          <Text accessibilityRole="header" style={styles.sectionTitle}>{progress.data.levelSuggestion === "normal" ? "일반용으로 읽어볼까요?" : "분석용으로 읽어볼까요?"}</Text>
-          <Text style={styles.body}>최근 퀴즈에서 개념을 꾸준히 이해하고 있어요. 원할 때 수준을 바꿀 수 있어요.</Text>
-          <Pressable accessibilityRole="button" accessibilityLabel="제안된 읽기 수준으로 변경" disabled={promotion.isPending} onPress={() => promotion.mutate(progress.data!.levelSuggestion!)}><Text style={styles.link}>이 수준으로 읽기</Text></Pressable>
-          {promotion.isError ? <Text style={styles.auxiliary}>수준을 변경하지 못했어요. 다시 시도해주세요.</Text> : null}
-        </View> : null}
         <View style={styles.section}>
-          <Text accessibilityRole="header" style={styles.sectionTitle}>이어서 학습</Text>
-          {progress.isPending ? [0, 1].map((key) => <View key={key} style={styles.articleCard} accessibilityLabel="이어서 학습할 기사 불러오는 중">
+          <Text accessibilityRole="header" style={styles.sectionTitle}>풀다 만 퀴즈</Text>
+          <Text style={styles.auxiliary}>읽었지만 아직 퀴즈를 풀지 않은 기사예요</Text>
+          {progress.isPending ? [0, 1].map((key) => <View key={key} style={styles.articleCard} accessibilityLabel="풀다 만 퀴즈 기사 불러오는 중">
             <View style={[styles.skeleton, styles.chipSkeleton]} /><View style={[styles.skeleton, styles.titleSkeleton]} /><View style={[styles.skeleton, styles.shortSkeleton]} />
-          </View>) : progress.isError ? <View style={styles.card}><Text style={styles.body}>이어서 학습할 기사를 확인하지 못했어요.</Text><Pressable accessibilityRole="button" accessibilityLabel="이어서 학습 다시 시도" style={styles.retryButton} onPress={() => void progress.refetch()}><Text style={styles.link}>다시 시도</Text></Pressable></View>
+          </View>) : progress.isError ? <View style={styles.card}><Text style={styles.body}>풀다 만 퀴즈 기사를 확인하지 못했어요.</Text><Pressable accessibilityRole="button" accessibilityLabel="풀다 만 퀴즈 다시 시도" style={styles.retryButton} onPress={() => void progress.refetch()}><Text style={styles.link}>다시 시도</Text></Pressable></View>
           : !resumeIds.length ? <Text style={styles.auxiliary}>{Object.keys(readingLog).length ? "최근 읽은 기사의 퀴즈를 모두 마쳤어요." : "아직 읽은 기사가 없어요. 오늘의 뉴스부터 시작해보세요."}</Text>
           : resumeArticles.slice(0, 3).map((article, index) => article.isPending ? <View key={resumeIds[index]} style={styles.articleCard} accessibilityLabel="기사 제목 불러오는 중">
             <View style={[styles.skeleton, styles.chipSkeleton]} /><View style={[styles.skeleton, styles.titleSkeleton]} /><View style={[styles.skeleton, styles.shortSkeleton]} />
           </View> : article.data?.rawContent.trim() ? <Pressable key={resumeIds[index]} accessibilityRole="button" accessibilityLabel={`${article.data.title} · 퀴즈 이어 풀기`} style={styles.articleCard}
-            onPress={() => navigation.navigate("NewsDetail", { newsId: resumeIds[index], readMode: "level", readingLevel: preferences.level })}>
+            onPress={() => navigation.navigate("NewsDetail", { newsId: resumeIds[index], readMode: "level", readingLevel: preferences.level, openQuiz: true })}>
             <View style={styles.articleMeta}><Text style={styles.categoryChip}>{article.data.category}</Text><Text style={styles.remainingBadge}>퀴즈 남음</Text></View>
             <Text style={styles.articleTitle} numberOfLines={2}>{article.data.title}</Text>
           </Pressable> : <View key={resumeIds[index]} style={styles.articleCard}><Text style={styles.auxiliary}>기사 내용을 확인할 수 없어요.</Text><Pressable accessibilityRole="button" accessibilityLabel="기사 다시 시도" style={styles.retryButton} onPress={() => void article.refetch()}><Text style={styles.link}>다시 시도</Text></Pressable></View>)}
         </View>
 
-        {reviews.isLoading || ownerId === null ? <View style={styles.section}><Text accessibilityRole="header" style={styles.sectionTitle}>복습할 개념</Text><View style={styles.termRow}>{[0, 1, 2].map((key) => <View key={key} style={[styles.skeleton, styles.termSkeleton]} accessibilityLabel="복습 개념 불러오는 중" />)}</View></View>
-        : reviews.isError ? <View style={styles.card}><Text accessibilityRole="header" style={styles.sectionTitle}>복습할 개념</Text><Text style={styles.body}>복습 기록을 확인하지 못했어요.</Text><Pressable accessibilityRole="button" accessibilityLabel="복습 개념 다시 시도" style={styles.retryButton} onPress={() => void reviews.refetch()}><Text style={styles.link}>다시 시도</Text></Pressable></View>
-        : reviews.data?.length ? <View style={styles.section}><Text accessibilityRole="header" style={styles.sectionTitle}>복습할 개념</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.termRow}>
-            {reviews.data.map((item) => <Pressable key={`${item.newsId}-${item.term}`} accessibilityRole="button" accessibilityLabel={`${item.term} 뜻과 복습 기사 보기`} style={styles.termChip} onPress={() => setSelectedReview(item)}><Text style={styles.termText} numberOfLines={1}>{item.term}</Text></Pressable>)}
-          </ScrollView>
-        </View> : <Text style={styles.auxiliary}>복습할 개념이 없어요. 새 퀴즈로 학습을 이어가세요.</Text>}
+        <View style={styles.section} ref={reviewRef} onLayout={scrollToReviews}>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>다시 볼 개념</Text>
+          <Text style={styles.auxiliary}>퀴즈에서 틀렸거나 아직 익숙하지 않은 개념이에요</Text>
+          {reviews.isLoading || ownerId === null ? <View style={styles.termRow}>{[0, 1, 2].map(key => <View key={key} style={[styles.skeleton, styles.termSkeleton]} accessibilityLabel="다시 볼 개념 불러오는 중" />)}</View>
+          : reviews.isError ? <><Text style={styles.body}>다시 볼 개념을 확인하지 못했어요.</Text><Pressable accessibilityRole="button" accessibilityLabel="다시 볼 개념 다시 시도" style={styles.retryButton} onPress={() => void reviews.refetch()}><Text style={styles.link}>다시 시도</Text></Pressable></>
+          : reviews.data?.length ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.termRow}>
+            {reviews.data.map(item => <Pressable key={`${item.newsId}-${item.term}`} accessibilityRole="button" accessibilityLabel={`${item.term} 뜻과 다시 풀 기사 보기`} style={styles.termChip} onPress={() => setSelectedReview(item)}><Text style={styles.termText} numberOfLines={1}>{item.term}</Text></Pressable>)}
+          </ScrollView> : <Text style={styles.auxiliary}>지금은 다시 볼 개념이 없어요</Text>}
+        </View>
+
+        {recommendations.isPending || recommendations.isError || recommendedArticles.length ? <View style={styles.section}>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>비슷한 기사 더 읽기</Text>
+          <Text style={styles.auxiliary}>내가 공부한 기사와 비슷한 주제예요</Text>
+          {recommendations.isPending ? <View style={[styles.card, { minHeight: 140 }]}><View style={[styles.skeleton, styles.titleSkeleton]} /><View style={[styles.skeleton, styles.shortSkeleton]} /></View>
+            : recommendations.isError ? <View style={styles.card}><Text style={styles.auxiliary}>추천 기사를 확인하지 못했어요.</Text><Pressable accessibilityRole="button" accessibilityLabel="추천 기사 다시 시도" style={styles.retryButton} onPress={() => void recommendations.refetch()}><Text style={styles.link}>다시 시도</Text></Pressable></View>
+            : recommendedArticles.length ? recommendedArticles.slice(0, 3).map(item => <Pressable key={item.newsId} style={styles.card} accessibilityRole="button" accessibilityLabel={`${item.title} 추천 기사 읽기`} onPress={() => navigation.navigate("NewsDetail", { newsId: item.newsId, readMode: "level", readingLevel: preferences.level })}>
+              <Text style={styles.categoryChip}>{item.category ?? "뉴스"}</Text><Text style={styles.articleTitle} numberOfLines={2}>{item.title}</Text><Text style={styles.body} numberOfLines={2}>{item.summary}</Text><Text style={styles.auxiliary} numberOfLines={2}>{item.reason}</Text>
+            </Pressable>) : null}
+        </View> : null}
 
         <View style={styles.card}>
           <Text accessibilityRole="header" style={styles.sectionTitle}>내 개념 숙련도</Text>
@@ -161,7 +175,7 @@ export function LearnScreen() {
             : progress.isError ? <Pressable accessibilityRole="button" accessibilityLabel="개념 숙련도 다시 시도" style={styles.retryButton} onPress={() => void progress.refetch()}><Text style={styles.link}>다시 시도</Text></Pressable>
             : progress.data?.mastery?.totalAttempts ? <>
               <Text style={styles.auxiliary}>최근 퀴즈 {progress.data.mastery.totalAttempts}회 기준 추정</Text>
-              {[{ title: "잘 아는 개념", rows: progress.data.mastery.strongest }, { title: "다시 볼 개념", rows: progress.data.mastery.weakest }].map(group => <View key={group.title} style={styles.section}>
+              {[{ title: "잘 아는 개념", rows: progress.data.mastery.strongest }, { title: "익숙해지는 개념", rows: progress.data.mastery.weakest }].map(group => <View key={group.title} style={styles.section}>
                 <Text style={styles.articleTitle}>{group.title}</Text>
                 {group.rows.map(item => {
                   const value = Math.round(Math.max(0, Math.min(1, item.effectivePKnown)) * 100);
@@ -174,15 +188,18 @@ export function LearnScreen() {
             </> : <Text style={styles.auxiliary}>퀴즈를 풀면 개념별 숙련도를 추정해드려요.</Text>}
         </View>
 
-        <View style={styles.section}>
-          <Text accessibilityRole="header" style={styles.sectionTitle}>학습을 이어갈 기사</Text>
-          {recommendations.isPending ? <View style={[styles.card, { minHeight: 140 }]}><View style={[styles.skeleton, styles.titleSkeleton]} /><View style={[styles.skeleton, styles.shortSkeleton]} /></View>
-            : recommendations.isError ? <View style={styles.card}><Text style={styles.auxiliary}>추천 기사를 확인하지 못했어요.</Text><Pressable accessibilityRole="button" accessibilityLabel="추천 기사 다시 시도" style={styles.retryButton} onPress={() => void recommendations.refetch()}><Text style={styles.link}>다시 시도</Text></Pressable></View>
-            : recommendations.data?.items?.length ? recommendations.data.items.slice(0, 3).map(item => <Pressable key={item.newsId} style={styles.card} accessibilityRole="button" accessibilityLabel={`${item.title} 추천 기사 읽기`} onPress={() => navigation.navigate("NewsDetail", { newsId: item.newsId, readMode: "level", readingLevel: preferences.level })}>
-              <Text style={styles.categoryChip}>{item.category ?? "뉴스"}</Text><Text style={styles.articleTitle} numberOfLines={2}>{item.title}</Text><Text style={styles.body} numberOfLines={2}>{item.summary}</Text><Text style={styles.auxiliary} numberOfLines={2}>{item.reason}</Text>
-            </Pressable>) : <Text style={styles.auxiliary}>새 추천 기사가 아직 없어요.</Text>}
-        </View>
-
+        {preferences.painPoint === "terms" ? <View style={styles.card}>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>오늘의 용어 3개</Text>
+          {dailyTerms.isPending ? <View style={[styles.skeleton, styles.termSkeleton]} /> : dailyTerms.isError ? <Pressable accessibilityRole="button" accessibilityLabel="오늘의 용어 다시 시도" onPress={() => void dailyTerms.refetch()}><Text style={styles.link}>다시 시도</Text></Pressable> : <View style={styles.termRow}>
+            {dailyTerms.data?.map(item => <Pressable key={item.term} style={[styles.termChip, { flex: 1, minWidth: 0, paddingHorizontal: 10 }]} accessibilityRole="button" accessibilityLabel={`${item.term} 뜻 보기`} onPress={() => setInfo({ title: item.term, description: item.definition })}><Text style={styles.termText} numberOfLines={1}>{item.term}</Text></Pressable>)}
+          </View>}
+        </View> : null}
+        {progress.data?.levelSuggestion ? <View style={styles.card}>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>{progress.data.levelSuggestion === "normal" ? "일반용으로 읽어볼까요?" : "분석용으로 읽어볼까요?"}</Text>
+          <Text style={styles.body}>최근 퀴즈에서 개념을 꾸준히 이해하고 있어요. 원할 때 수준을 바꿀 수 있어요.</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel="제안된 읽기 수준으로 변경" disabled={promotion.isPending} onPress={() => promotion.mutate(progress.data!.levelSuggestion!)}><Text style={styles.link}>이 수준으로 읽기</Text></Pressable>
+          {promotion.isError ? <Text style={styles.auxiliary}>수준을 변경하지 못했어요. 다시 시도해주세요.</Text> : null}
+        </View> : null}
         <GuideList focus={preferences.focus} level={preferences.level} />
         <DailyTips level={preferences.level} pace={preferences.pace} focus={preferences.focus} />
 
@@ -202,7 +219,7 @@ export function LearnScreen() {
           <View style={styles.sheet} accessibilityViewIsModal>
             <View style={styles.sheetHeader}><Text accessibilityRole="header" style={styles.sectionTitle}>{selectedReview?.term ?? info?.title}</Text><Pressable accessibilityRole="button" accessibilityLabel="학습 안내 닫기" style={styles.closeButton} onPress={closeSheet}><Text style={styles.closeText}>×</Text></Pressable></View>
             <Text style={styles.body}>{selectedReview?.definition ?? info?.description}</Text>
-            {selectedReview ? <><Text style={styles.auxiliary} numberOfLines={2}>{selectedReview.title}</Text><Pressable accessibilityRole="button" accessibilityLabel={`${selectedReview.term} 기사에서 다시 풀기`} style={styles.sheetAction} onPress={() => { const item = selectedReview; closeSheet(); navigation.navigate("NewsDetail", { newsId: item.newsId, readMode: "level", readingLevel: item.level }); }}><Text style={styles.sheetActionText}>기사에서 다시 풀기</Text></Pressable></> : null}
+            {selectedReview ? <><Text style={styles.auxiliary} numberOfLines={2}>{selectedReview.title}</Text><Pressable accessibilityRole="button" accessibilityLabel={`${selectedReview.term} 이 개념이 나온 기사 다시 풀기`} style={styles.sheetAction} onPress={() => { const item = selectedReview; closeSheet(); navigation.navigate("NewsDetail", { newsId: item.newsId, readMode: "level", readingLevel: item.level, openQuiz: true, quizTerm: item.term }); }}><Text style={styles.sheetActionText}>이 개념이 나온 기사 다시 풀기</Text></Pressable></> : null}
           </View>
         </View>
       </Modal>

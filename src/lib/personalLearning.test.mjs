@@ -28,7 +28,7 @@ test('reading panel shows provenance and sends the selected answer to server gra
   const texts = tree.filter((n) => n.type === 'Text').flatMap((n) => n.children).join(' ');
   assert.doesNotMatch(texts, /fallback|무료 규칙 기반/);
   assert.match(texts, /기사에 추가된 사실이 아닙니다/);
-  assert.match(texts, /다시 살펴볼까요/);
+  assert.match(texts, /아쉬워요/);
   tree.find((n) => n.type === 'Pressable').props.onPress();
   assert.equal(submitted, 0);
   assert.deepEqual(Array.from(await mutation.mutationFn(1)), [115, 'analyst', '환율', 1]);
@@ -56,11 +56,11 @@ test('learning focus callbacks run without invoking hooks inside an effect', () 
   const effects = [];
   let inEffect = false;
   const hook = (value) => { assert.equal(inEffect, false, 'hook called inside focus callback'); return value; };
-  const react = { createElement: () => null, useState: (value) => hook([value, () => {}]), useCallback: (fn) => hook(fn) };
+  const react = { createElement: () => null, useState: (value) => hook([value, () => {}]), useRef: value => hook({current:value}), useCallback: (fn) => hook(fn) };
   const screen = compile('../screens/learn/LearnScreen/index.tsx', { React: react, require: (name) => {
     if (name === 'react') return react;
     if (name === 'react-native') return { StyleSheet: { create: (s) => s } };
-    if (name === '@react-navigation/native') return { useIsFocused: () => hook(true), useNavigation: () => hook({}), useFocusEffect: (fn) => { hook(null); effects.push(fn); } };
+    if (name === '@react-navigation/native') return { useRoute: () => hook({params:{}}), useIsFocused: () => hook(true), useNavigation: () => hook({}), useFocusEffect: (fn) => { hook(null); effects.push(fn); } };
     if (name === '@tanstack/react-query') return { useQuery: () => hook({}), useQueries: () => hook([]), useQueryClient: () => hook({ invalidateQueries() {} }), useMutation: () => hook({}) };
     if (name.endsWith('/auth')) return { loadAuthSession: async () => null };
     if (name.endsWith('/api')) return { getLearningPreferences: async () => ({}) };
