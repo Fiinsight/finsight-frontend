@@ -3,32 +3,81 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import ts from 'typescript';
-const React={createElement:(type,props,...children)=>({type,props,children})};
-const nodes=n=>Array.isArray(n)?n.flatMap(nodes):n&&typeof n==='object'?[n,...nodes(n.children)]:[];
-test('profile menus are flat sections with inset separators and quiet account actions',()=>{
- const exports={};vm.runInNewContext(ts.transpileModule(fs.readFileSync(new URL('../screens/profile/ProfileScreen/SettingsList.tsx',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.React}}).outputText,{exports,React,require:name=>name==='@expo/vector-icons'?{Ionicons:'Icon'}:{Platform:{OS:'web'},Switch:'Switch',Pressable:'Pressable',Text:'Text',View:'View',StyleSheet:{create:s=>s}}});
- const props={level:'normal',onLogout(){},onDeleteAccount(){},onEditLevel(){},onEditLearning(){},onTerms(){},onPrivacy(){}};
- const tree=nodes(exports.SettingsList(props));
- assert.deepEqual(tree.filter(n=>n.type==='Text'&&n.props?.style?.fontSize===13&&n.props.style.marginTop===24).map(n=>n.children[0]),['학습','알림','약관 및 정보','계정']);
- const rows=tree.filter(n=>n.type==='Pressable');assert.equal(rows.length,7);
- assert(rows.every(row=>row.props.style.height===56&&row.props.style.paddingHorizontal===0));
- const notification=rows.find(n=>n.props.accessibilityLabel==='알림 설정, 준비 중');assert(!nodes(notification).some(n=>n.props?.name==='chevron-forward'));
- for(const label of ['로그아웃','회원 탈퇴']) {const row=rows.find(n=>n.props.accessibilityLabel===label);assert(!nodes(row).some(n=>n.props?.name==='chevron-forward'));}
- assert(!nodes(rows.find(n=>n.props.accessibilityLabel==='회원 탈퇴')).some(n=>n.type==='Icon'));
- assert.equal(tree.filter(n=>n.type==='View'&&n.props?.style?.marginLeft===32).length,3);
- assert(!tree.some(n=>n.type==='View'&&n.props?.style?.backgroundColor==='#FFFFFF'));
+const React = { createElement: (type, props, ...children) => ({ type, props, children }) };
+const nodes = n => Array.isArray(n) ? n.flatMap(nodes) : n && typeof n === 'object' ? [n, ...nodes(n.children)] : [];
+const native = { Platform: { OS: 'web' }, Switch: 'Switch', Modal: 'Modal', Pressable: 'Pressable', Text: 'Text', View: 'View', StyleSheet: { create: s => s } };
+function compile(path, mocks) {
+ const exports = {};
+ vm.runInNewContext(ts.transpileModule(fs.readFileSync(new URL(path, import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.React } }).outputText, { exports, React, require: name => mocks[name] ?? {} });
+ return exports;
+}
+const props = { level: 'beginner', onLogout() {}, onDeleteAccount() {}, onEditLevel() {}, onEditLearning() {}, onTerms() {}, onPrivacy() {} };
+
+test('profile has exactly eight uniform icon rows without sections, separators, boxes or arrows', () => {
+ const menu = compile('../screens/profile/ProfileScreen/SettingsList.tsx', { '@expo/vector-icons': { Ionicons: 'Icon' }, 'react-native': native });
+ const tree = nodes(menu.SettingsList(props));
+ const rows = tree.filter(n => n.type === 'Pressable');
+ assert.deepEqual(rows.map(row => nodes(row).find(n => n.type === 'Text').children[0]), ['학습 설정', '읽기 수준 기본값', '알림 설정', '이용약관', '개인정보처리방침', '버전 정보', '로그아웃', '회원 탈퇴']);
+ const icons = tree.filter(n => n.type === 'Icon');
+ assert.deepEqual(icons.map(n => n.props.name), ['options-outline', 'school-outline', 'notifications-outline', 'document-text-outline', 'shield-checkmark-outline', 'information-circle-outline', 'log-out-outline', 'person-remove-outline']);
+ assert(icons.every(n => n.props.size === 22 && n.props.color === '#667085'));
+ assert(rows.every(n => n.props.style.height === 56 && n.props.style.gap === 16 && n.props.style.paddingHorizontal === 0));
+ assert(rows.every(row => { const s = nodes(row).find(n => n.type === 'Text').props.style; return s.fontSize === 16 && s.color === '#101828' && s.fontWeight === '400'; }));
+ assert.deepEqual(rows.filter(n => n.props.disabled).map(n => n.props.accessibilityLabel), ['알림 설정, 준비 중', '버전 정보, v0.1.0']);
+ const values = tree.filter(n => n.type === 'Text' && n.props.style.fontSize === 14);
+ assert.deepEqual(values.map(n => n.children[0]), ['초보자용', '준비 중', 'v0.1.0']);
+ assert(values.every(n => n.props.style.color === '#98A2B3'));
+ assert.equal(tree.filter(n => n.type === 'View').length, 1);
+ assert(tree.every(n => !n.props?.style?.backgroundColor && !n.props?.style?.borderWidth && !n.props?.style?.borderRadius));
+ for (const level of ['normal', 'analyst']) assert(nodes(menu.SettingsList({ ...props, level })).some(n => n.props?.accessibilityLabel === `읽기 수준 기본값, ${level === 'normal' ? '일반용' : '분석용'}`));
 });
-test('profile no longer expands level choices beneath menus or contains an unused white menu style',()=>{
- const source=fs.readFileSync(new URL('../screens/profile/ProfileScreen/index.tsx',import.meta.url),'utf8');
- assert(source.includes('<Modal visible={editing} transparent'));
- assert(source.includes('FinSight v0.1.0'));
- assert(!source.includes('menu: {'));
- assert(!/backgroundColor:\s*"#FFFFFF"[^\n]*borderRadius/.test(source));
+
+test('native notification menu opens its sheet while web keeps preparation label', () => {
+ const menu = compile('../screens/profile/ProfileScreen/SettingsList.tsx', { '@expo/vector-icons': { Ionicons: 'Icon' }, 'react-native': { ...native, Platform: { OS: 'ios' } } });
+ let opened = false;
+ const tree = nodes(menu.SettingsList({ ...props, onNotificationsPress() { opened = true; } }));
+ const row = tree.find(n => n.props?.accessibilityLabel === '알림 설정, 꺼짐');
+ assert.equal(row.props.accessibilityRole, 'button'); row.props.onPress(); assert(opened);
+ assert(!tree.some(n => n.type === 'Switch'));
 });
-test('native judgement notification switch starts off while web has no toggle',()=>{
- let platform='ios';const React={createElement:(type,props,...children)=>({type,props,children})};const exports={};
- vm.runInNewContext(ts.transpileModule(fs.readFileSync(new URL('../screens/profile/ProfileScreen/SettingsList.tsx',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.React}}).outputText,{exports,React,require:name=>name==='@expo/vector-icons'?{Ionicons:'Icon'}:{Platform:{get OS(){return platform;}},Switch:'Switch',Pressable:'Pressable',Text:'Text',View:'View',StyleSheet:{create:s=>s}}});
- let enabled;const props={level:'beginner',onLogout(){},onDeleteAccount(){},onEditLevel(){},onEditLearning(){},onTerms(){},onPrivacy(){},onNotificationsChange:next=>{enabled=next;}};
- const toggle=nodes(exports.SettingsList(props)).find(n=>n.type==='Switch');assert.equal(toggle.props.value,false);toggle.props.onValueChange(true);assert.equal(enabled,true);
- platform='web';assert(!nodes(exports.SettingsList(props)).some(n=>n.type==='Switch'));
+
+test('logout and deletion warnings appear only in confirmation sheets and require confirmation', async () => {
+ let cursor = 0, loggedOut = 0, deleted = 0;
+ const values = [];
+ const hooks = { ...React, useEffect() {}, useState(initial) { const id = cursor++; values[id] ??= initial; return [values[id], value => { values[id] = value; }]; } };
+ const screen = compile('../screens/profile/ProfileScreen/index.tsx', {
+  react: hooks, 'react-native': native, '@tanstack/react-query': { useQueryClient: () => ({}) },
+  '@react-navigation/native': { useNavigation: () => ({}), useRoute: () => ({ params: {} }) },
+  '../../../lib/onboarding': { getDefaultLearningPreferences: () => ({ level: 'beginner' }) },
+  '../../../lib/api': { deleteAccount: async () => { deleted++; } }, './SettingsList': { SettingsList: 'SettingsList' }
+ });
+ const render = () => { cursor = 0; return nodes(screen.ProfileScreen({ session: {}, onLogout() { loggedOut++; } })); };
+ let tree = render();
+ assert(!tree.some(n => n.type === 'Text' && n.children.includes('FinSight v0.1.0')));
+ assert(tree.filter(n => n.type === 'Modal').every(n => !n.props.visible));
+ tree.find(n => n.type === 'SettingsList').props.onLogout(); tree = render();
+ assert(tree.some(n => n.type === 'Modal' && n.props.visible)); assert.equal(loggedOut, 0);
+ tree.find(n => n.props?.accessibilityLabel === '로그아웃 취소').props.onPress();
+ tree = render(); tree.find(n => n.type === 'SettingsList').props.onDeleteAccount(); tree = render();
+ assert.equal(deleted, 0); tree.find(n => n.props?.accessibilityLabel === '탈퇴 다음 단계').props.onPress(); tree = render();
+ assert(tree.some(n => n.type === 'Text' && n.children[0]?.includes('되돌릴 수 없습니다'))); assert.equal(deleted, 0);
+ tree.find(n => n.props?.accessibilityLabel === '회원 탈퇴 최종 확인').props.onPress(); await new Promise(setImmediate);
+ assert.equal(deleted, 1); assert.equal(loggedOut, 1);
+});
+
+test('app waits for Ionicons font loading before rendering icon screens', () => {
+ let loaded = false, error = null, fontMap;
+ let index;
+ const hooks = { ...React, useEffect() {}, useState: initial => { const values = [false, false, false, { userId: 1 }, false, true]; return [values[index++] ?? initial, () => {}]; } };
+ const font = { ionicons: 'bundled-ionicons.ttf' };
+ const app = compile('../../App.tsx', {
+  react: hooks, 'react-native': native, 'expo-linear-gradient': { LinearGradient: 'Gradient' },
+  '@expo/vector-icons': { Ionicons: { font } }, 'expo-font': { useFonts(map) { fontMap = map; return [loaded, error]; } },
+  '@tanstack/react-query': { QueryClient: class {}, QueryClientProvider: 'Provider' },
+  '@react-navigation/native': { NavigationContainer: 'Navigation' }, './src/navigation/RootNavigator': { RootNavigator: 'Root' }
+ });
+ const render = () => { index = 0; return nodes(app.default()); };
+ assert(!render().some(n => n.type === 'Root')); assert.equal(fontMap, font);
+ error = new Error('font unavailable'); assert(render().some(n => n.props?.accessibilityRole === 'alert'));
+ loaded = true; error = null; assert(render().some(n => n.type === 'Root'));
 });

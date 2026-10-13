@@ -1,7 +1,7 @@
 import { judgementNotificationsEnabled, setJudgementNotificationsEnabled } from "../../../lib/judgementNotifications";
 import { useQueryClient } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
-import { Platform, SafeAreaView, ScrollView, StyleSheet, View, Text, Pressable, Modal } from "react-native";
+import { Platform, SafeAreaView, ScrollView, StyleSheet, View, Text, Pressable, Modal, Switch } from "react-native";
 import type { AuthSession } from "../../../lib/auth";
 import { getDefaultLearningPreferences, type LearningLevel } from "../../../lib/onboarding";
 import { getLearningPreferences, setDefaultReadingLevel, saveLearningSettings, getOnboardingAnswers, deleteAccount } from "../../../lib/api";
@@ -45,6 +45,7 @@ export function ProfileScreen({ session, onLogout }: { session: AuthSession; onL
   const [message, setMessage] = useState("");
   const [notificationsEnabled,setNotificationsEnabled]=useState(false);
   const [notificationsBusy,setNotificationsBusy]=useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   useEffect(()=>{if(Platform.OS!=="web")void judgementNotificationsEnabled(session.userId).then(setNotificationsEnabled);},[session.userId]);
   async function toggleNotifications(enabled:boolean) {
     setNotificationsBusy(true);setMessage("");
@@ -72,15 +73,42 @@ export function ProfileScreen({ session, onLogout }: { session: AuthSession; onL
       <ScrollView contentContainerStyle={styles.container}>
         <TabScreenHeader title="프로필" subtitle="내 투자 학습과 계정 설정을 관리하세요." />
         <View style={{ marginTop: 24 }}><ProfileHeader session={session} /></View>
-        <SettingsList notificationsEnabled={notificationsEnabled} notificationsBusy={notificationsBusy} onNotificationsChange={value=>void toggleNotifications(value)} onDeleteAccount={() => setDeleteStep(1)} level={level} onLogout={() => setLogoutConfirm(true)}
+        <SettingsList notificationsEnabled={notificationsEnabled} onNotificationsPress={() => setNotificationsOpen(true)} onDeleteAccount={() => setDeleteStep(1)} level={level} onLogout={() => setLogoutConfirm(true)}
           onEditLevel={() => { setEditing(true); setMessage(""); }}
           onEditLearning={() => { setSettingsOpen(true); setMessage(""); }}
           onTerms={() => setLegal("terms")} onPrivacy={() => setLegal("privacy")} />
-        {deleteStep > 0 ? <View style={{ gap: 12 }}><Text>{deleteStep === 1 ? "회원 탈퇴를 진행할까요?" : "탈퇴하면 내 판단·메모·학습 기록이 모두 삭제돼요. 되돌릴 수 없습니다."}</Text><Pressable accessibilityRole="button" accessibilityLabel="회원 탈퇴 취소" disabled={saving} onPress={() => setDeleteStep(0)}><Text>취소</Text></Pressable><Pressable accessibilityRole="button" accessibilityLabel={deleteStep === 1 ? "탈퇴 다음 단계" : "회원 탈퇴 최종 확인"} disabled={saving} onPress={() => { if (deleteStep === 1) { setDeleteStep(2); return; } setSaving(true); void deleteAccount().then(onLogout).catch(() => setMessage("탈퇴 요청을 처리하지 못했어요. 다시 시도해 주세요.")).finally(() => setSaving(false)); }}><Text>{deleteStep === 1 ? "다음" : saving ? "처리 중…" : "계정과 기록 삭제"}</Text></Pressable></View> : null}
-        {logoutConfirm ? <View><Text>로그아웃할까요?</Text><Pressable accessibilityRole="button" accessibilityLabel="로그아웃 취소" onPress={() => setLogoutConfirm(false)}><Text>취소</Text></Pressable><Pressable accessibilityRole="button" accessibilityLabel="로그아웃 확인" onPress={onLogout}><Text>로그아웃</Text></Pressable></View> : null}
         {message ? <Text accessibilityRole="alert">{message}</Text> : null}
-        <Text style={styles.version}>FinSight v0.1.0</Text>
       </ScrollView>
+      <Modal visible={logoutConfirm || deleteStep > 0} transparent animationType="slide" onRequestClose={() => { if (!saving) { setLogoutConfirm(false); setDeleteStep(0); } }}>
+        <View style={styles.sheetBackdrop}>
+          <Pressable style={styles.sheetDismiss} accessibilityRole="button" accessibilityLabel="계정 확인 닫기" disabled={saving} onPress={() => { setLogoutConfirm(false); setDeleteStep(0); }} />
+          <View style={styles.sheet} accessibilityViewIsModal>
+            <Text style={styles.sheetTitle}>{logoutConfirm ? "로그아웃할까요?" : "회원 탈퇴를 진행할까요?"}</Text>
+            {deleteStep > 0 ? <Text style={styles.warning}>{deleteStep === 1 ? "다음 단계에서 계정과 기록 삭제를 확인해요." : "탈퇴하면 내 판단·메모·학습 기록이 모두 삭제돼요. 되돌릴 수 없습니다."}</Text> : null}
+            <Pressable accessibilityRole="button" accessibilityLabel={logoutConfirm ? "로그아웃 취소" : "회원 탈퇴 취소"} disabled={saving} style={styles.levelRow} onPress={() => { setLogoutConfirm(false); setDeleteStep(0); }}><Text style={styles.levelText}>취소</Text></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel={logoutConfirm ? "로그아웃 확인" : deleteStep === 1 ? "탈퇴 다음 단계" : "회원 탈퇴 최종 확인"} disabled={saving} style={styles.levelRow} onPress={() => {
+              if (logoutConfirm) { onLogout(); return; }
+              if (deleteStep === 1) { setDeleteStep(2); return; }
+              setSaving(true); void deleteAccount().then(onLogout).catch(() => setMessage("탈퇴 요청을 처리하지 못했어요. 다시 시도해 주세요.")).finally(() => setSaving(false));
+            }}><Text style={styles.warning}>{logoutConfirm ? "로그아웃" : deleteStep === 1 ? "다음" : saving ? "처리 중…" : "계정과 기록 삭제"}</Text></Pressable>
+            {message ? <Text accessibilityRole="alert">{message}</Text> : null}
+          </View>
+        </View>
+      </Modal>
+      <Modal visible={notificationsOpen} transparent animationType="slide" onRequestClose={() => setNotificationsOpen(false)}>
+        <View style={styles.sheetBackdrop}>
+          <Pressable style={styles.sheetDismiss} accessibilityRole="button" accessibilityLabel="알림 설정 닫기" onPress={() => setNotificationsOpen(false)} />
+          <View style={styles.sheet} accessibilityViewIsModal>
+            <Text style={styles.sheetTitle}>알림 설정</Text>
+            <View style={styles.levelRow}>
+              <Text style={styles.levelText}>판단 결과 알림</Text>
+              <Switch accessibilityLabel="판단 결과 알림" value={notificationsEnabled} disabled={notificationsBusy} onValueChange={value => void toggleNotifications(value)} trackColor={{ false: "#EAECF0", true: "#175CD3" }} />
+            </View>
+            {message ? <Text accessibilityRole="alert">{message}</Text> : null}
+            <Pressable accessibilityRole="button" accessibilityLabel="알림 설정 완료" style={styles.levelRow} onPress={() => setNotificationsOpen(false)}><Text style={styles.levelText}>완료</Text></Pressable>
+          </View>
+        </View>
+      </Modal>
       <Modal visible={editing} transparent animationType="slide" onRequestClose={() => { if (!saving) setEditing(false); }}>
         <View style={styles.sheetBackdrop}>
           <Pressable style={styles.sheetDismiss} accessibilityRole="button" accessibilityLabel="읽기 수준 선택 닫기" onPress={() => { if (!saving) setEditing(false); }} />
@@ -110,7 +138,7 @@ export function ProfileScreen({ session, onLogout }: { session: AuthSession; onL
 }
 
 const styles = StyleSheet.create({
-  version: { fontSize: 13, color: "#98A2B3", textAlign: "center", marginTop: "auto", paddingTop: 24 },
+  warning: { color: "#D92D20", fontSize: 16, lineHeight: 22 },
   sheetBackdrop: { flex: 1, backgroundColor: "rgba(16,24,40,0.35)", justifyContent: "flex-end" },
   sheetDismiss: { flex: 1 },
   sheet: { padding: 20, paddingBottom: 32, backgroundColor: "#F8FAFC" },
