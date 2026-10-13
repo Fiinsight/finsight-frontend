@@ -35,7 +35,10 @@ export interface NewsBrief {
 // News detail (GET /news/{id}) - shape not finalized yet
 // ---------------------------------------------------------------------------
 
+export interface JudgementTarget { symbol: string | null; name: string | null; unavailableReason: string | null; }
+
 export interface NewsDetailRaw {
+  judgementTarget?: JudgementTarget;
   id?: number;
   title?: string;
   category?: string;
@@ -71,6 +74,7 @@ export interface NewsDetailRaw {
 }
 
 export interface NewsDetail {
+  judgementTarget?: JudgementTarget;
   id: number;
   title: string;
   category: string;
@@ -155,6 +159,8 @@ export interface JudgementAck {
 export type FeedbackVerdict = "CORRECT" | "WRONG" | "PARTIAL";
 export interface FeedbackReason { title: string; detail: string; }
 export interface JudgementHistoryItemRaw {
+  indexName?: string | null; indexChangePercent?: number | null;
+  conceptTerm?: string | null; conceptDefinition?: string | null; unavailableReason?: string | null;
   relatedSymbol?: string | null; relatedSymbolName?: string | null; expectedResultDate?: string | null; expectedResultAt?: string | null;
   headline?: string | null;
   verdict?: FeedbackVerdict | null;
@@ -183,6 +189,8 @@ export interface JudgementHistoryItemRaw {
 }
 
 export interface JudgementHistoryItem {
+  indexName?: string | null; indexChangePercent?: number | null;
+  conceptTerm?: string | null; conceptDefinition?: string | null; unavailableReason?: string | null;
   relatedSymbol?: string | null; relatedSymbolName?: string | null; expectedResultDate?: string | null; expectedResultAt?: string | null;
   headline?: string | null;
   verdict?: FeedbackVerdict | null;

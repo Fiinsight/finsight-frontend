@@ -33,7 +33,7 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
     retry: 0,
     staleTime: 10 * 60_000
   });
-  const symbol = newsQuery.data?.relatedSymbol?.trim() ?? "";
+  const symbol = item.relatedSymbol?.trim() || newsQuery.data?.relatedSymbol?.trim() || "";
   const indexSymbol = symbol === "KOSPI" || symbol === "KOSDAQ";
   const points = judgementClosingPoints(item);
   const chartQuery = useQuery({
@@ -52,7 +52,7 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
     staleTime: 10 * 60_000,
     retry: 0
   });
-  const storedName = newsQuery.data?.relatedSymbolName?.trim();
+  const storedName = item.relatedSymbolName?.trim() || newsQuery.data?.relatedSymbolName?.trim();
   const stockName = storedName && storedName !== symbol ? storedName : stockQuery.data?.find(stock => stock.symbol === symbol)?.name;
   const chartPoints = chartQuery.data?.points ?? [];
   const judgementDate = kstDate(item.judgedAt);
@@ -64,7 +64,7 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
   const waitingHeadline = delayed ? "결과를 확인하고 있어요" : expectedDate ? `${expectedDate} 장 마감 후(15:40 이후) 결과를 알려드려요` : "다음 거래일 장 마감 후 결과를 알려드려요";
   const headline = verdict === "CORRECT" ? hasReason ? "✓ 정확한 판단이에요!" : "예측 방향이 같았어요"
     : verdict === "WRONG" ? "다르게 움직였어요" : verdict === "PARTIAL" ? "방향은 맞았지만 변동이 작았어요"
-    : result.unavailable ? "결과를 비교할 수 없어요" : result.legacy ? "이전 방식으로 채점된 기록이에요(당일 비교)" : waitingHeadline;
+    : result.unavailable ? "판단 대상이 정해지지 않은 기사예요" : result.legacy ? "이전 방식으로 채점된 기록이에요(당일 비교)" : waitingHeadline;
   const tone = verdict === "CORRECT" ? "#ECFDF3" : verdict === "WRONG" ? "#FFF4ED" : "#F2F4F7";
   const percent = item.actualChangePercent == null ? "등락률 확인 불가" : `${item.actualChangePercent > 0 ? "+" : ""}${item.actualChangePercent.toFixed(2)}%`;
   const movement = item.actualDirection === "UP" ? "상승" : item.actualDirection === "DOWN" ? "하락" : "보합";
@@ -81,6 +81,11 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
         <View style={[styles.resultCard, { backgroundColor: tone }]} accessibilityRole="summary">
           <Text style={styles.resultHeadline}>{headline}</Text>
           {verdict ? <Text style={styles.feedback}>{`실제 ${stockName || symbol || "판단 대상"} ${item.comparisonDate} 종가는 판단일 대비 ${percent} ${movement}`}</Text> : result.pending ? <Text style={styles.muted}>휴장일이면 다음 거래일 장 마감 기준으로 알려드려요.</Text> : null}
+          {verdict && item.indexChangePercent != null && item.indexName ? <View style={styles.marketFigures} accessibilityRole="summary" accessibilityLabel="종목과 같은 날 시장 등락률 비교">
+            <Text style={styles.marketValue}>{stockName || symbol} {percent}</Text>
+            <Text style={styles.marketValue}>같은 날 {item.indexName} {item.indexChangePercent >= 0 ? "+" : ""}{item.indexChangePercent.toFixed(2)}%</Text>
+          </View> : null}
+          {result.unavailable ? <Text style={styles.muted}>{item.unavailableReason || "판단 대상이 정해지지 않은 기사예요"}. 대상이 표시된 다른 기사에서 판단해보세요.</Text> : null}
           <Text style={styles.choice}>{item.choice === "UP" ? "상승 예측" : item.choice === "DOWN" ? "하락 예측" : "중립 예측"}</Text>
         </View>
         {detailQuery.isError ? <TouchableOpacity accessibilityRole="button" accessibilityLabel="판단 결과 다시 시도" onPress={() => void detailQuery.refetch()}><Text style={styles.back}>최신 결과 다시 시도</Text></TouchableOpacity> : null}
@@ -103,6 +108,12 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
             <Text style={styles.bullet}>{verdict === "CORRECT" ? "✓" : "!"}</Text>
             <View style={styles.reasonCopy}><Text style={styles.reasonTitle}>{reason.title}</Text><Text style={styles.feedback}>{reason.detail}</Text></View>
           </View>) : <Text style={styles.feedback}>{result.feedbackText}</Text>}
+          {verdict && item.conceptTerm ? <TouchableOpacity accessibilityRole="button" accessibilityLabel={`${item.conceptTerm} 퀴즈로 확인하기`} style={styles.conceptLink}
+            onPress={() => navigation.navigate("NewsDetail", { newsId: item.newsId, readMode: "level", openQuiz: true, quizTerm: item.conceptTerm! })}>
+            <Text style={styles.reasonTitle}>배울 개념: {item.conceptTerm}</Text>
+            {item.conceptDefinition ? <Text style={styles.feedback}>{item.conceptDefinition}</Text> : null}
+            <Text style={styles.back}>퀴즈로 확인하기 →</Text>
+          </TouchableOpacity> : null}
           {storedReasons?.length ? <Text style={styles.muted}>가격 변화가 이 뉴스 때문이라고 단정할 수는 없어요.</Text> : null}
         </View> : null}
         {verdict && item.nextTip ? <View style={styles.tipCard}><Text style={styles.feedback}>💡 {item.nextTip}</Text></View> : null}
@@ -143,6 +154,9 @@ const styles = StyleSheet.create({
   container: { padding: 20, paddingBottom: 24, gap: 14 },
   resultCard: { borderRadius: 16, padding: 20, gap: 10 },
   resultHeadline: { fontSize: 20, fontWeight: "800", color: "#101828", lineHeight: 28 },
+  marketFigures: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
+  marketValue: { fontSize: 15, fontWeight: "700", color: "#344054", lineHeight: 22 },
+  conceptLink: { gap: 6, paddingVertical: 10 },
   reasonCopy: { flex: 1, gap: 5 },
   reasonTitle: { fontSize: 15, fontWeight: "700", color: "#101828" },
   tipCard: { backgroundColor: "#FFFAEB", padding: 16, borderRadius: 14 },
