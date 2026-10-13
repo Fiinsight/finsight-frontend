@@ -3,6 +3,8 @@ import { NavigationContainer } from "@react-navigation/native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
+import { useFonts } from "expo-font";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text } from "react-native";
 import { RootNavigator } from "./src/navigation/RootNavigator";
@@ -22,6 +24,7 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 60_000 } }
 });
 export default function App() {
+  const [fontsLoaded, fontError] = useFonts(Ionicons.font);
   const [signupFirst, setSignupFirst] = useState(false);
   const [showIntro, setShowIntro] = useState(true);
   const [onboardingDoneThisRun, setOnboardingDoneThisRun] = useState(false);
@@ -87,11 +90,12 @@ export default function App() {
     });
   }, [session]);
 
-  if (showIntro || !sessionLoaded) {
+  if (showIntro || !sessionLoaded || !fontsLoaded) {
     return (
       <LinearGradient colors={["#071B4A", "#0B3D91", "#1769D1"]} locations={[0, 0.52, 1]} style={styles.intro}>
         <Text style={styles.introTagline}>흩어지는 뉴스 속, 나만의 투자 인사이트</Text>
         <Text style={styles.introLogo}>FinSight</Text>
+        {fontError ? <Text accessibilityRole="alert" style={styles.introTagline}>아이콘을 불러오지 못했어요. 앱을 다시 열어 주세요.</Text> : null}
       </LinearGradient>
     );
   }
