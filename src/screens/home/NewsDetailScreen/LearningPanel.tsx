@@ -17,6 +17,7 @@ export function LearningPanel({ newsId, level, quizTerm, onTermPress, onReviewPr
       void client.invalidateQueries({ queryKey: ["learning-reviews"] });
       void client.invalidateQueries({ queryKey: ["learning-progress"] });
       void client.invalidateQueries({ queryKey: ["learning-recommendations"] });
+      void client.invalidateQueries({ queryKey: ["daily-learning-terms"] });
       const animation = result.correct
         ? Animated.sequence([Animated.timing(scale, { toValue: 1.035, duration: 130, useNativeDriver: true }), Animated.timing(scale, { toValue: 1, duration: 130, useNativeDriver: true })])
         : Animated.sequence([6, -6, 5, -5, 0].map((value) => Animated.timing(shake, { toValue: value, duration: 65, useNativeDriver: true })));
@@ -32,7 +33,7 @@ export function LearningPanel({ newsId, level, quizTerm, onTermPress, onReviewPr
       <Text style={styles.muted}>{data.mode === "EXCERPT" ? "원문에서 핵심 문장을 골라 보여드려요" : data.mode === "REWRITTEN" ? ({ beginner: "핵심 사실을 쉬운 말로 읽어보세요.", normal: "핵심 사실과 비교 기준을 확인해보세요.", analyst: "기사의 근거·수치·리스크를 나눠 살펴보세요." })[level] : "수준별 설명을 확인할 수 없습니다."}</Text>
       <Text style={styles.guide}>{data.readingGuide}</Text>
       <ArticleBody text={data.summary.replace(/\s*\(fallback\)/gi, "")} terms={data.glossary.map((g) => g.term)} onTermPress={onTermPress} />
-      <Text style={styles.heading}>알아둘 개념</Text>
+      <Text style={styles.heading}>알아둘 용어</Text>
       <Text style={styles.muted}>아래는 일반 용어 설명이며 기사에 추가된 사실이 아닙니다.</Text>
       {data.glossary.length ? data.glossary.map((g) => <View key={g.term}><Text style={styles.term}>{g.term}</Text><Text style={styles.body}>{g.definition}</Text></View>) : <Text>이 기사에서 학습할 용어를 확인할 수 없습니다.</Text>}
       {data.question ? <View style={styles.quiz} onLayout={event => onQuizLayout?.(event.nativeEvent.layout.y)}>
@@ -59,7 +60,7 @@ export function LearningPanel({ newsId, level, quizTerm, onTermPress, onReviewPr
             <Pressable accessibilityRole="button" accessibilityLabel="틀린 퀴즈 다시 풀기" style={styles.option} onPress={() => { answer.reset(); setSelected(null); scale.setValue(1); shake.setValue(0); }}><Text style={styles.link}>다시 풀기</Text></Pressable>
           </> : null}
         </View> : null}
-      </View> : <Text style={styles.muted}>이 기사에는 준비된 퀴즈이 없습니다.</Text>}
+      </View> : <Text style={styles.muted}>이 기사는 퀴즈로 낼 개념이 없어요</Text>}
     </View>
   );
 }
