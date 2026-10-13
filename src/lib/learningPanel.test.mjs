@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import ts from 'typescript';
 
-function render(correct, mode = 'EXCERPT') {
+function render(correct, mode = 'EXCERPT', hasQuestion = true) {
   const create = (type, props) => ({ type, props, children: props?.children });
   const Value = class { setValue() {} };
   let reset = false, reviewOpened = false;
@@ -15,7 +15,7 @@ function render(correct, mode = 'EXCERPT') {
       : name === 'react' ? { useRef: value => ({ current: value }), useState: () => [1, () => {}] }
       : name === 'react-native' ? { Animated: { Value, View: 'AnimatedView' }, Pressable: 'Pressable', Text: 'Text', View: 'View', StyleSheet: { create: s => s } }
       : name === '@tanstack/react-query' ? {
-        useQueryClient: () => ({}), useQuery: () => ({ data: { mode, glossary: [], summary: '', question: { term: '금리', prompt: '질문', options: ['정답', '오답', '다른 오답'] } } }),
+        useQueryClient: () => ({}), useQuery: () => ({ data: { mode, glossary: [], summary: '', question: hasQuestion ? { term: '금리', prompt: '질문', options: ['정답', '오답', '다른 오답'] } : null } }),
         useMutation: () => ({ data: { correct, definition: correct ? '오답' : '정답', message: '이 개념의 숙련도 추정에 반영했어요', termDefinition: '돈을 빌릴 때 내는 이자의 비율이에요' }, reset: () => { reset = true; } })
       } : {}
   });
@@ -52,4 +52,10 @@ test('excerpt disclosure is visible only for excerpts', () => {
   assert(labels('EXCERPT').includes('원문에서 핵심 문장을 골라 보여드려요'));
   assert(!labels('REWRITTEN').includes('원문에서 핵심 문장을 골라 보여드려요'));
   assert(labels('REWRITTEN').includes('핵심 사실과 비교 기준을 확인해보세요.'));
+});
+
+test('an article without an eligible concept explains the absent quiz', () => {
+  const labels=render(true,'EXCERPT',false).nodes.filter(node=>node.type==='Text').flatMap(node=>node.children ?? []);
+  assert(labels.includes('이 기사는 퀴즈로 낼 개념이 없어요'));
+  assert(!labels.includes('오늘의 퀴즈'));
 });

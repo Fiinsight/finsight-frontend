@@ -33,7 +33,7 @@ test('reading panel shows provenance and sends the selected answer to server gra
   assert.equal(submitted, 0);
   assert.deepEqual(Array.from(await mutation.mutationFn(1)), [115, 'analyst', '환율', 1]);
   mutation.onSuccess({ correct: false });
-  assert.deepEqual(invalidated, ['learning-reviews','learning-progress','learning-recommendations']);
+  assert.deepEqual(invalidated, ['learning-reviews','learning-progress','learning-recommendations','daily-learning-terms']);
 });
 
 test('only rejection of the current token expires a session, never network failures or stale requests', async () => {

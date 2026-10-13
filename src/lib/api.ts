@@ -531,7 +531,7 @@ export async function getLearningReviews(): Promise<LearningReview[]> {
 }
 
 export interface LearningProgressSummary {
-  mastery?: { strongest: ConceptMastery[]; weakest: ConceptMastery[]; totalAttempts: number };
+  mastery?: { strongest: ConceptMastery[]; weakest: ConceptMastery[]; totalAttempts: number; learningCount: number };
   today: { answeredCount: number; correctCount: number; accuracy: number | null };
   week: { from: string; to: string; answeredCount: number; correctCount: number; accuracy: number | null };
   activityStreakDays: number;
@@ -548,6 +548,7 @@ export interface ConceptMastery {
   attempts: number;
   lastAnsweredAt: string | null;
   level: ReadingLevel | null;
+  lastCorrect?: boolean | null;
 }
 export async function getLearningProgress(): Promise<LearningProgressSummary> {
   const session = await loadAuthSession();
@@ -558,8 +559,9 @@ export async function getLearningProgress(): Promise<LearningProgressSummary> {
   return (await api.get<LearningProgressSummary>("/learning/progress", { params: { readDays: readDays.join(","), reviewDays: reviewDays.join(",") } })).data;
 }
 
-export async function getDailyLearningTerms(): Promise<Array<{ term: string; definition: string }>> {
-  return (await api.get<Array<{ term: string; definition: string }>>("/learning/terms/today")).data;
+export interface DailyLearningTerm { term: string; definition: string; newsId: number; title: string; reason: string }
+export async function getDailyLearningTerms(): Promise<DailyLearningTerm[]> {
+  return (await api.get<DailyLearningTerm[]>("/learning/terms/today")).data;
 }
 
 

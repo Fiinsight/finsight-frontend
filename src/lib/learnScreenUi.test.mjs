@@ -8,7 +8,7 @@ const model = {};
 vm.runInNewContext(ts.transpileModule(fs.readFileSync(new URL('./readingProgressModel.ts', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, { exports: model, require: () => ({ kstDate }) });
 const { resumeLearningIds, DAILY_ARTICLE_GOAL } = model;
 
-function harness({ count = 1, completed = [], reviewItems, weak = [], pending = false, fetching = false, error = false, painPoint, goal, mastery, recommendations = [], suggestion = null, section } = {}) {
+function harness({ count = 1, completed = [], reviewItems, weak = [], pending = false, fetching = false, error = false, painPoint, goal, mastery, recommendations = [], suggestion = null, section, dailyItems } = {}) {
   const reviews = reviewItems ?? [{ newsId: 232, term: '코스피', definition: '시장 흐름을 보여주는 지수예요.', title: '기사 제목', level: 'analyst' }];
   const preferences = { level: 'beginner', focus: 'news', pace: 'micro', dailyGoal: '뉴스 하나 읽기', source: 'onboarding', painPoint };
   const values = [{ '2026-10-12': [100,101,102,103] }, 1, preferences, 4, true];
@@ -25,7 +25,7 @@ function harness({ count = 1, completed = [], reviewItems, weak = [], pending = 
     if (name === 'react') return React;
     if (name === 'react-native') return { SafeAreaView:'SafeAreaView', ScrollView:'ScrollView', Text:'Text', Pressable:'Pressable', View:'View', Modal:'Modal', StyleSheet:{create:value=>value} };
     if (name === '@react-navigation/native') return { useFocusEffect() {}, useIsFocused:()=>true, useRoute:()=>({params:{section}}), useNavigation:()=>({ navigate:(...args)=>navigation.push(args), setParams: value=>params.push(value) }) };
-    if (name === '@tanstack/react-query') return { useQuery: options => options.queryKey[0] === "learning-recommendations" ? query({items:recommendations}, "recommendations") : options.queryKey[0] === "daily-learning-terms" ? query([{term:"금리",definition:"이자 비율"},{term:"환율",definition:"통화 교환 비율"},{term:"물가",definition:"평균 가격"}], "terms") : options.queryKey[0] === 'learning-reviews' ? query(reviews, 'reviews') : query({today:{answeredCount:count,accuracy:1},week:{answeredCount:count,accuracy:1},activityStreakDays:3,completedNewsIds:completed,weakAreas:weak,goal,mastery,levelSuggestion:suggestion}, 'progress'), useQueryClient: () => ({ invalidateQueries() {} }), useMutation: () => ({ mutate(level) { changes.push(level); }, isPending:false, isError:false }), useQueries: ({queries}) => queries.map((options,index)=>query({id:options.queryKey[1],title:`복습할 기사 ${index}`,category:'국내증시',rawContent:'본문'}, 'article')) };
+    if (name === '@tanstack/react-query') return { useQuery: options => options.queryKey[0] === "learning-recommendations" ? query({items:recommendations}, "recommendations") : options.queryKey[0] === "daily-learning-terms" ? query(dailyItems ?? [{term:"금리",definition:"이자 비율",newsId:232,title:"금리 기사",reason:"지난번에 틀린 개념"},{term:"환율",definition:"통화 교환 비율",newsId:233,title:"환율 기사",reason:"처음 보는 개념"},{term:"물가",definition:"평균 가격",newsId:234,title:"물가 기사",reason:"익히는 중인 개념"}], "terms") : options.queryKey[0] === 'learning-reviews' ? query(reviews, 'reviews') : query({today:{answeredCount:count,accuracy:1},week:{answeredCount:count,accuracy:1},activityStreakDays:3,completedNewsIds:completed,weakAreas:weak,goal,mastery,levelSuggestion:suggestion}, 'progress'), useQueryClient: () => ({ invalidateQueries() {} }), useMutation: () => ({ mutate(level) { changes.push(level); }, isPending:false, isError:false }), useQueries: ({queries}) => queries.map((options,index)=>query({id:options.queryKey[1],title:`복습할 기사 ${index}`,category:'국내증시',rawContent:'본문'}, 'article')) };
     if (name.endsWith('/readingProgressModel')) return { resumeLearningIds, DAILY_ARTICLE_GOAL };
     if (name.endsWith('/onboarding')) return { getDefaultLearningPreferences:()=>preferences };
     if (name.endsWith('/GuideList')) return { GuideList:'GuideList' };
@@ -104,14 +104,28 @@ test('level suggestion changes only after the named button is pressed', () => {
 });
 
 test('concept mastery card renders strongest and weakest estimates with accessible bars', () => {
- const row={term:'환율',pKnown:.9,effectivePKnown:.73,attempts:8};
- const screen=harness({mastery:{strongest:[row],weakest:[{...row,term:'금리',effectivePKnown:.2}],totalAttempts:12}});
+ const row={term:'환율',pKnown:.9,effectivePKnown:.83,attempts:8};
+ const screen=harness({mastery:{strongest:[row],weakest:[{...row,term:'금리',effectivePKnown:.2}],totalAttempts:12,learningCount:2}});
  const tree=screen.render();const text=screen.text(tree);
  assert(text.includes('내 개념 숙련도'));assert(/최근 퀴즈\s+12\s*회 기준 추정/.test(text));
- assert(/73\s*%/.test(text));assert(/20\s*%/.test(text));
+ assert(/83\s*%/.test(text));assert(/20\s*%/.test(text));
  const bars=tree.filter(node=>node.props?.accessibilityRole==='progressbar');
- assert.equal(bars.length,2);assert.equal(bars[0].props.accessibilityValue.now,73);
+ assert.equal(bars.length,2);assert.equal(bars[0].props.accessibilityValue.now,83);
+ assert(text.includes('80% 이상·3번 이상 풀면 잘 아는 개념이에요'));
+ assert(/익히는 중\s+2\s*개/.test(text));
  assert(harness({mastery:{strongest:[],weakest:[],totalAttempts:0}}).text(harness().render()).includes('퀴즈를 풀면'));
+});
+
+test('empty mastery groups are not padded and daily choices show reasons and link to their source', () => {
+ const empty=harness({mastery:{strongest:[],weakest:[],totalAttempts:4,learningCount:2}});
+ const nodes=empty.render();assert.equal(nodes.filter(node=>node.type==='Text' && node.children.includes('아직 충분히 풀지 않았어요')).length,2);
+ assert.equal(nodes.filter(node=>node.props?.accessibilityRole==='progressbar').length,0);
+ const daily=harness({painPoint:'terms'});const initial=daily.render();
+ for(const reason of ['지난번에 틀린 개념','처음 보는 개념','익히는 중인 개념']) assert(daily.text(initial).includes(reason));
+ button(initial,'금리 뜻 보기').props.onPress();const sheet=daily.render();assert(daily.text(sheet).includes('이자 비율'));
+ button(sheet,'금리 오늘 기사에서 읽기').props.onPress();
+ assert.equal(daily.navigation.at(-1)[0],'NewsDetail');assert.equal(daily.navigation.at(-1)[1].newsId,232);
+ const hidden=harness({painPoint:'evidence'});assert(!hidden.text(hidden.render()).includes('오늘의 용어 3개'));
 });
 
 test('recommendation cards show actual behavior reason and open the selected article', () => {
