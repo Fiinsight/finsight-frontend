@@ -269,6 +269,12 @@ function normalizeHistoryItem(raw: JudgementHistoryItemRaw, index: number): Judg
   const choice = raw.choice ?? "NEUTRAL";
 
   return {
+    headline: raw.headline ?? null,
+    verdict: ["CORRECT", "WRONG", "PARTIAL"].includes(raw.verdict ?? "") ? raw.verdict : null,
+    nextTip: raw.nextTip ?? null,
+    feedbackGeneratedAt: raw.feedbackGeneratedAt ?? null,
+    feedbackReasons: Array.isArray(raw.reasons) && raw.reasons.length >= 2 && raw.reasons.length <= 3 && raw.reasons.every(reason => typeof reason === "object" && reason !== null && typeof reason.title === "string" && reason.title.trim() && typeof reason.detail === "string" && reason.detail.trim()) ? raw.reasons as import("../types/api").FeedbackReason[] : null,
+    reasonText: raw.reasonText ?? "",
     id: raw.id ?? raw.judgementId ?? index,
     newsId: raw.newsId ?? index,
     newsTitle: raw.newsTitle ?? raw.title ?? "",
@@ -278,11 +284,16 @@ function normalizeHistoryItem(raw: JudgementHistoryItemRaw, index: number): Judg
     comparisonDate: raw.comparisonDate ?? null,
     judgementClose: typeof raw.judgementClose === "number" && Number.isFinite(raw.judgementClose) ? raw.judgementClose : null,
     comparisonClose: typeof raw.comparisonClose === "number" && Number.isFinite(raw.comparisonClose) ? raw.comparisonClose : null,
-    correct: judgementResult({ choice, actualDirection, actualChangePercent }).correct,
+    correct: judgementResult({ choice, actualDirection, actualChangePercent, comparisonDate: raw.comparisonDate }).correct,
     feedbackText: raw.feedbackText ?? "",
-    reasons: Array.isArray(raw.reasons) ? raw.reasons.filter((reason): reason is string => typeof reason === "string" && reason.trim().length > 0) : (raw.reasonText?.split(/\n+/).map((reason) => reason.trim()).filter(Boolean) ?? []),
+    reasons: raw.reasonText ? raw.reasonText.split(/\n+/).map(reason => reason.trim()).filter(Boolean) : Array.isArray(raw.reasons) ? raw.reasons.filter((reason): reason is string => typeof reason === "string" && reason.trim().length > 0) : (raw.reasonText?.split(/\n+/).map((reason) => reason.trim()).filter(Boolean) ?? []),
     judgedAt: raw.judgedAt ?? raw.createdAt ?? ""
   };
+}
+
+export async function getJudgementDetail(id: number, signal?: AbortSignal): Promise<JudgementHistoryItem> {
+  const { data } = await api.get<JudgementHistoryItemRaw>(`/judgements/${id}`, { signal });
+  return normalizeHistoryItem(data, id);
 }
 
 export async function getJudgementHistory(): Promise<JudgementHistoryItem[]> {

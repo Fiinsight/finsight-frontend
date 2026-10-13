@@ -77,3 +77,19 @@ export function judgementClosingPoints(item: Pick<JudgementHistoryItem, "judgedA
       || typeof item.comparisonClose !== "number" || !Number.isFinite(item.comparisonClose) || item.comparisonClose <= 0) return null;
   return [{date: day, value: item.judgementClose}, {date: comparison, value: item.comparisonClose}];
 }
+
+export function feedbackVerdict(item: JudgementHistoryItem) {
+  const result = judgementResult(item);
+  if (result.pending || result.unavailable || result.legacy) return null;
+  if (item.verdict) return item.verdict;
+  if (result.correct && item.actualChangePercent != null && Math.abs(item.actualChangePercent) <= 1 + 1e-9) return "PARTIAL";
+  return result.correct ? "CORRECT" : "WRONG";
+}
+export function feedbackVersion(item: JudgementHistoryItem) {
+  if (!item.comparisonDate || judgementResult(item).pending || judgementResult(item).unavailable) return null;
+  return item.feedbackGeneratedAt || item.comparisonDate;
+}
+export function hasUnreadFeedback(item: JudgementHistoryItem, seen: Record<string, string>) {
+  const version = feedbackVersion(item);
+  return version != null && seen[String(item.id)] !== version;
+}
