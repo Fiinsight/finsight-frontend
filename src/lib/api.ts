@@ -1,3 +1,4 @@
+import { scheduleJudgementReminder } from "./judgementNotifications";
 import { getDefaultLearningPreferences, goalTypeFor, type GoalType, type LearningPainPoint } from "./learningPreferences";
 import { getJudgementViewLog, getReadingLog } from "./readingProgress";
 import axios from "axios";
@@ -250,12 +251,17 @@ export async function explainTerm(payload: TermExplainRequest): Promise<TermExpl
 // ---------------------------------------------------------------------------
 
 export async function submitJudgement(request: JudgementRequest): Promise<JudgementAck> {
+  const session = await loadAuthSession();
   const { data } = await api.post<JudgementResponseRaw>("/judgements", request);
-  return {
+  const ack: JudgementAck = {
+    judgementId: data.judgementId, expectedResultDate: data.expectedResultDate, expectedResultAt: data.expectedResultAt,
     newsId: data.newsId ?? request.newsId,
     choice: data.choice ?? request.choice,
-    message: data.feedback ?? "판단이 기록되었습니다. 다음날 이후 '기록' 탭에서 실제 결과를 확인해보세요."
+    message: data.feedback ?? "판단이 기록되었습니다. 다음 거래일 이후 기록 탭에서 실제 결과를 확인해보세요."
   };
+  if (session) try { await scheduleJudgementReminder(session.userId,ack); }
+  catch { ack.notificationWarning="판단은 저장됐지만 기기 알림을 예약하지 못했어요. 앱에서 결과를 확인해 주세요."; }
+  return ack;
 }
 
 // ---------------------------------------------------------------------------
@@ -269,6 +275,8 @@ function normalizeHistoryItem(raw: JudgementHistoryItemRaw, index: number): Judg
   const choice = raw.choice ?? "NEUTRAL";
 
   return {
+    relatedSymbol: raw.relatedSymbol ?? null, relatedSymbolName: raw.relatedSymbolName ?? null,
+    expectedResultDate: raw.expectedResultDate ?? null, expectedResultAt: raw.expectedResultAt ?? null,
     headline: raw.headline ?? null,
     verdict: ["CORRECT", "WRONG", "PARTIAL"].includes(raw.verdict ?? "") ? raw.verdict : null,
     nextTip: raw.nextTip ?? null,
@@ -296,8 +304,8 @@ export async function getJudgementDetail(id: number, signal?: AbortSignal): Prom
   return normalizeHistoryItem(data, id);
 }
 
-export async function getJudgementHistory(): Promise<JudgementHistoryItem[]> {
-  const { data } = await api.get<JudgementHistoryItemRaw[]>("/judgements/history");
+export async function getJudgementHistory(signal?: AbortSignal): Promise<JudgementHistoryItem[]> {
+  const { data } = await api.get<JudgementHistoryItemRaw[]>("/judgements/history", { signal });
   return data.map(normalizeHistoryItem);
 }
 

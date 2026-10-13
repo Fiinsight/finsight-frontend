@@ -20,7 +20,7 @@ export function JudgementScreen({ route, navigation }: Props) {
   const { newsId } = route.params;
   const queryClient = useQueryClient();
   const draft = useAppStore((state) => state.judgementDraftByNewsId[newsId]);
-  const history = useQuery({queryKey: ["judgement-history", "existing"], queryFn: getJudgementHistory, retry: 0, staleTime: 0});
+  const history = useQuery({queryKey: ["judgement-history", "existing"], queryFn: ({ signal }) => getJudgementHistory(signal), retry: 0, staleTime: 0});
   const existing = history.data?.find((item) => item.newsId === newsId);
   const confirmed = Boolean(existing?.actualDirection);
   const choice = confirmed ? existing?.choice : draft?.choice ?? existing?.choice;

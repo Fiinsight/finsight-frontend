@@ -10,6 +10,8 @@ export async function getSeenFeedback(owner: number): Promise<Record<string, str
     return Object.fromEntries(Object.entries(value).filter((entry): entry is [string, string] => { const [id, version] = entry; return /^\d+$/.test(id) && typeof version === "string"; }));
   } catch { return {}; }
 }
+const listeners = new Set<(owner:number,seen:Record<string,string>)=>void>();
+export function subscribeFeedbackSeen(listener:(owner:number,seen:Record<string,string>)=>void) { listeners.add(listener); return ()=>{listeners.delete(listener);}; }
 let pending = Promise.resolve();
 export function markFeedbackSeen(item: JudgementHistoryItem): Promise<void> {
   const version = feedbackVersion(item);
@@ -19,7 +21,9 @@ export function markFeedbackSeen(item: JudgementHistoryItem): Promise<void> {
     const owner = await session;
     if (!owner) return;
     const seen = await getSeenFeedback(owner.userId);
-    await storageSetItem(key(owner.userId), JSON.stringify({ ...seen, [String(item.id)]: version }));
+    const next={ ...seen, [String(item.id)]: version };
+    await storageSetItem(key(owner.userId), JSON.stringify(next));
+    listeners.forEach(listener=>listener(owner.userId,next));
   });
   return pending;
 }

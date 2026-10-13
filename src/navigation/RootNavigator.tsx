@@ -1,3 +1,5 @@
+import { JudgementResultsProvider, useJudgementResults } from "../components/JudgementResultsProvider";
+import { HistoryResultDot } from "../components/JudgementResultBanner";
 import type { ReactNode } from "react";
 import { View } from "react-native";
 import { useIsFocused } from "@react-navigation/native";
@@ -35,13 +37,17 @@ function AccessibleTab({ children }: { children: ReactNode }) {
   return <View style={{ flex: 1 }} accessibilityElementsHidden={!focused} importantForAccessibility={focused ? "auto" : "no-hide-descendants"} aria-hidden={!focused}>{children}</View>;
 }
 
-export function RootNavigator({ session, onLogout }: { session: AuthSession; onLogout: () => void }) {
+export function RootNavigator(props: { session: AuthSession; onLogout: () => void }) {
+  return <JudgementResultsProvider key={props.session.userId} owner={props.session.userId}><RootTabs {...props} /></JudgementResultsProvider>;
+}
+function RootTabs({ session, onLogout }: { session: AuthSession; onLogout: () => void }) {
+  const { unseen }=useJudgementResults();
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarButton: (props) => <PlatformPressable {...props} href={({ HomeTab: "/", ChartTab: "/chart", HistoryTab: "/history", LearnTab: "/learn", ProfileTab: "/profile" })[route.name]} />,
-        tabBarAccessibilityLabel: ({ HomeTab: "홈", ChartTab: "차트", HistoryTab: "기록", LearnTab: "학습", ProfileTab: "프로필" })[route.name],
+        tabBarAccessibilityLabel: route.name === "HistoryTab" && unseen.length ? "기록, 안 본 판단 결과 있음" : ({ HomeTab: "홈", ChartTab: "차트", HistoryTab: "기록", LearnTab: "학습", ProfileTab: "프로필" })[route.name],
         tabBarActiveTintColor: "#202124",
         tabBarInactiveTintColor: "#C7C9CE",
         tabBarStyle: {
@@ -60,7 +66,7 @@ export function RootNavigator({ session, onLogout }: { session: AuthSession; onL
           const name = !focused && inactiveTabIcon[routeName]
             ? inactiveTabIcon[routeName]
             : tabIcon[routeName];
-          return <Ionicons name={name} size={size} color={color} />;
+          return <View><Ionicons name={name} size={size} color={color} />{routeName === "HistoryTab" && unseen.length > 0 ? <HistoryResultDot /> : null}</View>;
         }
       })}
     >

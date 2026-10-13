@@ -1,3 +1,4 @@
+import { resultDateLabel } from "../../../lib/judgementResults";
 import { useEffect, useState } from "react";
 import { getLearningPreferences } from "../../../lib/api";
 import { CommonActions } from "@react-navigation/native";
@@ -23,6 +24,7 @@ export function FeedbackScreen({ route, navigation }: Props) {
   const [promptMemo, setPromptMemo] = useState(false);
   useEffect(() => { void getLearningPreferences().then(value => setPromptMemo(value.painPoint === "reflection")); }, []);
   const { ack } = route.params;
+  const resultDate=resultDateLabel(ack.expectedResultDate);
   const finish = () => navigation.getParent()?.dispatch(CommonActions.reset({ index: 0, routes: [{ name: "HomeTab", state: { index: 0, routes: [{ name: "Home" }] } }] }));
 
   return (
@@ -41,9 +43,10 @@ export function FeedbackScreen({ route, navigation }: Props) {
         <View style={styles.noticeCard}>
           <Ionicons name="time-outline" size={18} color="#175CD3" />
           <Text style={styles.noticeText}>
-            다음 거래일 장 마감 후 실제 시세가 확인되면 결과와 피드백을 <Text style={styles.noticeStrong}>기록 탭</Text>에서 볼 수 있어요. 시세를 확인할 수 없으면 결과를 확정하지 않아요.
+            {resultDate ? `${resultDate} 장 마감 후(15:40 이후) 결과를 알려드릴게요.` : "다음 거래일 장 마감 후(15:40 이후) 결과를 알려드릴게요."} 시세가 늦어지면 결과를 확인하고 있다고 안내해요.
           </Text>
         </View>
+        {ack.notificationWarning ? <Text accessibilityRole="alert" style={styles.message}>{ack.notificationWarning}</Text> : null}
       </View>
 
       <BottomActionBar label="완료" onPress={finish} />
