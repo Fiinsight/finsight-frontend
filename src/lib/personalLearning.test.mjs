@@ -33,7 +33,7 @@ test('reading panel shows provenance and sends the selected answer to server gra
   assert.equal(submitted, 0);
   assert.deepEqual(Array.from(await mutation.mutationFn(1)), [115, 'analyst', '환율', 1]);
   mutation.onSuccess({ correct: false });
-  assert.deepEqual(invalidated, ['learning-reviews','learning-progress']);
+  assert.deepEqual(invalidated, ['learning-reviews','learning-progress','learning-recommendations']);
 });
 
 test('only rejection of the current token expires a session, never network failures or stale requests', async () => {
@@ -100,4 +100,15 @@ test('profile updates reading level only after successful server persistence', a
   assert.equal(values[0], 'beginner');
   assert.equal(values[6], false);
   assert.match(values[8], /저장했어요/);
+});
+
+test('recommendation request forwards only this device owner recent reading IDs', async () => {
+  const time=Date.parse('2026-10-13T04:00:00Z');let requested,reader;
+  const history=compile('./historyRecords.ts',{});
+  const http={get:async(path,options)=>{requested={path,options};return {data:{items:[],basis:'RULE_RECENT'}};},interceptors:{request:{use(){}},response:{use(){}}}};
+  const FixedDate=class extends Date {constructor(...args){super(...(args.length?args:[time]));}static now(){return time;}};
+  const api=compile('./api.ts',{Date:FixedDate,process:{env:{}},require:name=>name==='axios'?{create:()=>http}:name==='expo'?{getExpoGoProjectConfig:()=>({})}:name==='./historyRecords'?history:name==='./auth'?{loadAuthSession:async()=>({userId:42})}:name==='./readingProgress'?{getReadingLog:async owner=>{reader=owner;return {'2026-09-12':[100],'2026-09-13':[101,102],'2026-10-13':[102,103],'2026-10-14':[999]};}}:{}});
+  await api.getLearningRecommendations();
+  assert.equal(reader,42);assert.equal(requested.path,'/learning/recommendations');
+  assert.equal(requested.options.params.readNewsIds,'101,102,103');
 });

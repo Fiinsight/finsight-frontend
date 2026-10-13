@@ -12,7 +12,7 @@ import { countDailyReads, DAILY_ARTICLE_GOAL, localDateKey, resumeLearningIds, t
 import { DailyTips } from "./DailyTips";
 import { GuideList } from "./GuideList";
 import { getDefaultLearningPreferences, type LearningPreferences } from "../../../lib/onboarding";
-import { getDailyLearningTerms, setDefaultReadingLevel, getLearningPreferences, getLearningReviews, getLearningProgress, getNewsDetail } from "../../../lib/api";
+import { getLearningRecommendations, getDailyLearningTerms, setDefaultReadingLevel, getLearningPreferences, getLearningReviews, getLearningProgress, getNewsDetail } from "../../../lib/api";
 import { TabScreenHeader } from "../../../components/TabScreenHeader";
 
 export function LearnScreen() {
@@ -22,6 +22,7 @@ export function LearnScreen() {
   const [ownerId, setOwnerId] = useState<number | null>(null);
   const reviews = useQuery({ queryKey: ["learning-reviews", ownerId], queryFn: getLearningReviews, enabled: ownerId !== null && isFocused, retry: 0, staleTime: 60_000, refetchOnWindowFocus: false });
   const progress = useQuery({ queryKey: ["learning-progress", ownerId], queryFn: getLearningProgress, enabled: ownerId !== null && isFocused, retry: 0, staleTime: 60_000, refetchOnWindowFocus: false });
+  const recommendations = useQuery({ queryKey: ["learning-recommendations", ownerId], queryFn: getLearningRecommendations, enabled: ownerId !== null && isFocused, retry: 0, staleTime: 60_000, refetchOnWindowFocus: false });
   const resumeIds = progress.data ? resumeLearningIds(readingLog, progress.data.completedNewsIds) : [];
   const resumeArticles = useQueries({ queries: resumeIds.map((newsId) => ({ queryKey: ["news-detail", newsId], queryFn: () => getNewsDetail(newsId), enabled: isFocused, retry: 0, staleTime: 60_000 })) });
   const accuracy = (value: number | null) => value === null ? "아직 기록이 없어요" : `${Math.round(value * 100)}%`;
@@ -171,6 +172,15 @@ export function LearnScreen() {
                 })}
               </View>)}
             </> : <Text style={styles.auxiliary}>퀴즈를 풀면 개념별 숙련도를 추정해드려요.</Text>}
+        </View>
+
+        <View style={styles.section}>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>학습을 이어갈 기사</Text>
+          {recommendations.isPending ? <View style={[styles.card, { minHeight: 140 }]}><View style={[styles.skeleton, styles.titleSkeleton]} /><View style={[styles.skeleton, styles.shortSkeleton]} /></View>
+            : recommendations.isError ? <View style={styles.card}><Text style={styles.auxiliary}>추천 기사를 확인하지 못했어요.</Text><Pressable accessibilityRole="button" accessibilityLabel="추천 기사 다시 시도" style={styles.retryButton} onPress={() => void recommendations.refetch()}><Text style={styles.link}>다시 시도</Text></Pressable></View>
+            : recommendations.data?.items?.length ? recommendations.data.items.slice(0, 3).map(item => <Pressable key={item.newsId} style={styles.card} accessibilityRole="button" accessibilityLabel={`${item.title} 추천 기사 읽기`} onPress={() => navigation.navigate("NewsDetail", { newsId: item.newsId, readMode: "level", readingLevel: preferences.level })}>
+              <Text style={styles.categoryChip}>{item.category ?? "뉴스"}</Text><Text style={styles.articleTitle} numberOfLines={2}>{item.title}</Text><Text style={styles.body} numberOfLines={2}>{item.summary}</Text><Text style={styles.auxiliary} numberOfLines={2}>{item.reason}</Text>
+            </Pressable>) : <Text style={styles.auxiliary}>새 추천 기사가 아직 없어요.</Text>}
         </View>
 
         <GuideList focus={preferences.focus} level={preferences.level} />
