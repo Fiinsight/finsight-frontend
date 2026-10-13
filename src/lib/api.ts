@@ -1,7 +1,7 @@
 import { getDefaultLearningPreferences, goalTypeFor, type GoalType, type LearningPainPoint } from "./learningPreferences";
 import { getJudgementViewLog, getReadingLog } from "./readingProgress";
 import axios from "axios";
-import { judgementResult, previousRange, type RecordRange } from "./historyRecords";
+import { judgementResult, previousRange, kstDate, type RecordRange } from "./historyRecords";
 import Constants from "expo-constants";
 import { getExpoGoProjectConfig } from "expo";
 import type {
@@ -552,4 +552,18 @@ export async function getLearningProgress(): Promise<LearningProgressSummary> {
 
 export async function getDailyLearningTerms(): Promise<Array<{ term: string; definition: string }>> {
   return (await api.get<Array<{ term: string; definition: string }>>("/learning/terms/today")).data;
+}
+
+
+export interface LearningRecommendation {
+  newsId: number; title: string; category: string | null; summary: string; reason: string;
+  reasonNewsId: number | null; reasonTitle: string | null; basis: string; score: number | null;
+}
+export async function getLearningRecommendations(): Promise<{items: LearningRecommendation[]; basis: string}> {
+  const session = await loadAuthSession();
+  const log = session ? await getReadingLog(session.userId) : {};
+  const today = kstDate(new Date());
+  const from = kstDate(new Date(Date.now() - 30 * 86400000));
+  const ids = [...new Set(Object.entries(log).filter(([day]) => day >= from && day <= today).sort(([a],[b]) => a.localeCompare(b)).flatMap(([,values]) => values))].slice(-200);
+  return (await api.get("/learning/recommendations", {params: {readNewsIds: ids.join(",")}})).data;
 }

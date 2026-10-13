@@ -64,7 +64,10 @@ export function NewsDetailScreen({ route, navigation }: Props) {
     // Opening a loaded article counts as reading it; the daily goal is three
     // distinct articles, not a timed dwell requirement.
     if (!preferencesReady || !data?.rawContent.trim() || !isFocused) return;
-    void recordArticleRead(newsId).then(() => client.invalidateQueries({ queryKey: ["learning-progress"] }));
+    void recordArticleRead(newsId).then(() => {
+      void client.invalidateQueries({ queryKey: ["learning-progress"] });
+      void client.invalidateQueries({ queryKey: ["learning-recommendations"] });
+    });
   }, [data?.id, isFocused, newsId, preferencesReady, client]);
 
   if (!data || !preferencesReady) {
