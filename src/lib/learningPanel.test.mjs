@@ -7,7 +7,7 @@ import ts from 'typescript';
 function render(correct, mode = 'EXCERPT') {
   const create = (type, props) => ({ type, props, children: props?.children });
   const Value = class { setValue() {} };
-  let reset = false;
+  let reset = false, reviewOpened = false;
   const exports = {};
   const source = readFileSync(new URL('../screens/home/NewsDetailScreen/LearningPanel.tsx', import.meta.url), 'utf8');
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText, {
@@ -15,20 +15,20 @@ function render(correct, mode = 'EXCERPT') {
       : name === 'react' ? { useRef: value => ({ current: value }), useState: () => [1, () => {}] }
       : name === 'react-native' ? { Animated: { Value, View: 'AnimatedView' }, Pressable: 'Pressable', Text: 'Text', View: 'View', StyleSheet: { create: s => s } }
       : name === '@tanstack/react-query' ? {
-        useQueryClient: () => ({}), useQuery: () => ({ data: { mode, glossary: [], summary: '', question: { prompt: '질문', options: ['정답', '오답', '다른 오답'] } } }),
-        useMutation: () => ({ data: { correct, definition: correct ? '오답' : '정답', message: '저장' }, reset: () => { reset = true; } })
+        useQueryClient: () => ({}), useQuery: () => ({ data: { mode, glossary: [], summary: '', question: { term: '금리', prompt: '질문', options: ['정답', '오답', '다른 오답'] } } }),
+        useMutation: () => ({ data: { correct, definition: correct ? '오답' : '정답', message: '이 개념의 숙련도 추정에 반영했어요', termDefinition: '돈을 빌릴 때 내는 이자의 비율이에요' }, reset: () => { reset = true; } })
       } : {}
   });
-  const tree = exports.LearningPanel({ newsId: 1, level: 'normal', onTermPress() {} });
+  const tree = exports.LearningPanel({ newsId: 1, level: 'normal', onTermPress() {}, onReviewPress() { reviewOpened = true; } });
   const visit = node => Array.isArray(node) ? node.flatMap(visit) : node && typeof node === 'object' ? [node, ...visit(node.children)] : [];
-  return { nodes: visit(tree), reset: () => reset };
+  return { nodes: visit(tree), reset: () => reset, reviewOpened: () => reviewOpened };
 }
 
 test('quiz locks answered options and marks chosen right/wrong plus the correct option', () => {
   for (const correct of [true, false]) {
     const rendered = render(correct);
     const buttons = rendered.nodes.filter(n => n.type === 'Pressable');
-    assert.equal(buttons.length, 4);
+    assert.equal(buttons.length, correct ? 3 : 5);
     assert(buttons.slice(0,3).every(n => n.props.disabled));
     const backgrounds = buttons.slice(0,3).map(n => n.props.style.filter(Boolean).at(-1).backgroundColor);
     assert.equal(backgrounds[correct ? 1 : 0], '#DCFCE7');
@@ -37,8 +37,13 @@ test('quiz locks answered options and marks chosen right/wrong plus the correct 
     assert(labels.includes(' ✓'));
     if (!correct) assert(labels.includes(' ✕'));
     assert(labels.includes('오늘의 퀴즈'));
-    buttons[3].props.onPress();
-    assert(rendered.reset());
+    assert(!labels.includes('이 개념의 숙련도 추정에 반영했어요')); assert(labels.includes('돈을 빌릴 때 내는 이자의 비율이에요'));
+    assert(labels.includes(correct ? '정답이에요!' : '아쉬워요'));
+    if (!correct) {
+      assert(labels.includes("'금리'를 다시 볼 개념에 담았어요 · 학습 탭에서 보기 →"));
+      buttons[3].props.onPress(); assert(rendered.reviewOpened());
+      buttons[4].props.onPress(); assert(rendered.reset());
+    } else { assert(!labels.includes('다시 풀기')); }
   }
 });
 

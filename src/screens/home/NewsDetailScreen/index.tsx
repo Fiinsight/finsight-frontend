@@ -1,4 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { useIsFocused } from "@react-navigation/native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
@@ -7,7 +8,7 @@ import { BottomActionBar } from "../../../components/BottomActionBar";
 import { LevelTabs } from "../../../components/LevelTabs";
 import { TermPopup } from "../../../components/TermPopup";
 import { getLearningPreferences, getNewsDetail } from "../../../lib/api";
-import type { NewsFlowParamList } from "../../../navigation/types";
+import type { NewsFlowParamList, RootTabParamList } from "../../../navigation/types";
 import { useAppStore } from "../../../store/useAppStore";
 import type { NewsDetail, ReadingLevel } from "../../../types/api";
 import { LearningPanel } from "./LearningPanel";
@@ -26,6 +27,13 @@ type Props = NativeStackScreenProps<NewsFlowParamList, "NewsDetail">;
 export function NewsDetailScreen({ route, navigation }: Props) {
   const client = useQueryClient();
   const scroll = useRef<ScrollView>(null);
+  const quizLayout = useRef<{ panel?: number; quiz?: number }>({});
+  const scrollToQuiz = () => {
+    if (route.params.openQuiz && quizLayout.current.panel !== undefined && quizLayout.current.quiz !== undefined) {
+      scroll.current?.scrollTo({ y: quizLayout.current.panel + quizLayout.current.quiz, animated: true });
+      navigation.setParams({ openQuiz: undefined });
+    }
+  };
   const { newsId } = route.params;
   const isFocused = useIsFocused();
   const [bodyTab, setBodyTab] = useState<BodyTab>(route.params.readMode ?? "raw");
@@ -103,7 +111,9 @@ export function NewsDetailScreen({ route, navigation }: Props) {
         {hasContent ? (bodyTab === "raw" ? <View style={styles.bodyCard}>
           <Pressable accessibilityRole="switch" accessibilityState={{ checked: showTerms }} accessibilityLabel="용어 밑줄 표시" onPress={() => setShowTerms(!showTerms)}><Text style={styles.backText}>용어 밑줄 {showTerms ? "켜짐" : "꺼짐"}</Text></Pressable>
           <ArticleBody text={rawExcerpt} terms={showTerms ? detail.keyTerms : []} onTermPress={setSelectedTerm} />
-        </View> : <LearningPanel key={`${newsId}-${readingLevel}`} newsId={newsId} level={readingLevel} onTermPress={setSelectedTerm} />) : null}
+        </View> : <View onLayout={event => { quizLayout.current.panel = event.nativeEvent.layout.y; scrollToQuiz(); }}><LearningPanel key={`${newsId}-${readingLevel}-${route.params.quizTerm ?? ""}`} newsId={newsId} level={readingLevel} quizTerm={route.params.quizTerm} onTermPress={setSelectedTerm}
+          onQuizLayout={y => { quizLayout.current.quiz = y; scrollToQuiz(); }}
+          onReviewPress={() => navigation.getParent<BottomTabNavigationProp<RootTabParamList>>()?.navigate("LearnTab", { screen: "Learn", params: { section: "reviews" } })} /></View>) : null}
 
         {hasContent && bodyTab === "raw" ? (
           <LocalMlPanel

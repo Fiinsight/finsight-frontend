@@ -5,12 +5,12 @@ import { answerLearningQuestion, getNewsLesson } from "../../../lib/api";
 import type { ReadingLevel } from "../../../types/api";
 import { ArticleBody } from "./ArticleBody";
 
-export function LearningPanel({ newsId, level, onTermPress }: { newsId: number; level: ReadingLevel; onTermPress: (term: string) => void }) {
+export function LearningPanel({ newsId, level, quizTerm, onTermPress, onReviewPress, onQuizLayout }: { newsId: number; level: ReadingLevel; quizTerm?: string; onTermPress: (term: string) => void; onReviewPress: () => void; onQuizLayout?: (y: number) => void }) {
   const client = useQueryClient();
   const [selected, setSelected] = useState<number | null>(null);
   const scale = useRef(new Animated.Value(1)).current;
   const shake = useRef(new Animated.Value(0)).current;
-  const lesson = useQuery({ queryKey: ["news-lesson", newsId, level], queryFn: () => getNewsLesson(newsId, level), retry: 0, staleTime: 10 * 60_000 });
+  const lesson = useQuery({ queryKey: ["news-lesson", newsId, level, quizTerm ?? null], queryFn: () => getNewsLesson(newsId, level, quizTerm), retry: 0, staleTime: 10 * 60_000 });
   const answer = useMutation({
     mutationFn: (index: number) => answerLearningQuestion(newsId, level, lesson.data!.question!.term, index),
     onSuccess: (result) => {
@@ -35,7 +35,7 @@ export function LearningPanel({ newsId, level, onTermPress }: { newsId: number; 
       <Text style={styles.heading}>알아둘 개념</Text>
       <Text style={styles.muted}>아래는 일반 용어 설명이며 기사에 추가된 사실이 아닙니다.</Text>
       {data.glossary.length ? data.glossary.map((g) => <View key={g.term}><Text style={styles.term}>{g.term}</Text><Text style={styles.body}>{g.definition}</Text></View>) : <Text>이 기사에서 학습할 용어를 확인할 수 없습니다.</Text>}
-      {data.question ? <>
+      {data.question ? <View style={styles.quiz} onLayout={event => onQuizLayout?.(event.nativeEvent.layout.y)}>
         <Text style={styles.heading}>오늘의 퀴즈</Text>
         <Text style={styles.body}>Q. {data.question.prompt}</Text>
         {data.question.options.map((option, index) => {
@@ -53,15 +53,19 @@ export function LearningPanel({ newsId, level, onTermPress }: { newsId: number; 
         })}
         {answer.isPending ? <Text>답변을 저장하는 중이에요.</Text> : null}
         {answer.isError ? <Text style={styles.muted}>답변을 저장하지 못했습니다. 다시 선택해 주세요.</Text> : null}
-        {answer.data ? <View accessibilityLiveRegion="polite"><Text style={styles.term}>{answer.data.correct ? "정답이에요!" : "다시 살펴볼까요?"}</Text><Text style={styles.body}>{answer.data.definition}</Text><Text style={styles.muted}>{answer.data.message}</Text>
-          <Pressable accessibilityRole="button" style={styles.option} onPress={() => { answer.reset(); setSelected(null); scale.setValue(1); shake.setValue(0); }}><Text style={styles.link}>다시 풀기</Text></Pressable>
+        {answer.data ? <View accessibilityLiveRegion="polite" style={styles.quiz}><Text style={styles.term}>{answer.data.correct ? "정답이에요!" : "아쉬워요"}</Text><Text style={styles.body}>{answer.data.termDefinition ?? answer.data.definition}</Text>
+          {!answer.data.correct ? <>
+            <Pressable accessibilityRole="button" accessibilityLabel={`${data.question.term} 다시 볼 개념을 학습 탭에서 보기`} onPress={onReviewPress}><Text style={styles.link}>{`'${data.question.term}'를 다시 볼 개념에 담았어요 · 학습 탭에서 보기 →`}</Text></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="틀린 퀴즈 다시 풀기" style={styles.option} onPress={() => { answer.reset(); setSelected(null); scale.setValue(1); shake.setValue(0); }}><Text style={styles.link}>다시 풀기</Text></Pressable>
+          </> : null}
         </View> : null}
-      </> : <Text style={styles.muted}>이 기사에는 준비된 퀴즈이 없습니다.</Text>}
+      </View> : <Text style={styles.muted}>이 기사에는 준비된 퀴즈이 없습니다.</Text>}
     </View>
   );
 }
 const styles = StyleSheet.create({
   card: { padding: 16, gap: 14, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#EAECF0", borderRadius: 8 },
+  quiz: { gap: 14 },
   heading: { fontSize: 16, fontWeight: "700", color: "#101828" },
   muted: { fontSize: 12, lineHeight: 19, color: "#667085" },
   body: { fontSize: 14, lineHeight: 22, color: "#344054" },
@@ -72,5 +76,5 @@ const styles = StyleSheet.create({
   wrong: { backgroundColor: "#FEE2E2", borderColor: "#B91C1C" },
   correctText: { color: "#166534" },
   wrongText: { color: "#991B1B" },
-  link: { color: "#175CD3", fontWeight: "700" }
+  link: { color: "#175CD3", fontSize: 14, lineHeight: 22, fontWeight: "700" }
 });
