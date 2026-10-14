@@ -77,7 +77,7 @@ test('old mismatched target hides its praise and price chart while keeping a ret
 });
 test('upward outcome shows why it rose and the explanation of an earnings expectation',()=>{
  const {tree}=render({...base,choice:'UP',actualDirection:'UP',actualChangePercent:2,feedbackReasons:[{title:'기사 신호',detail:'기사에서 매출 증가를 전했어요. 실적 개선 소식은 이익 기대를 높여 상승 요인으로 연결될 수 있어요.'},...reasons.slice(1)]});
- const text=texts(tree).join(' ');assert.match(text,/왜 올랐을까요/);assert.match(text,/이익 기대/);
+ const text=texts(tree).join(' ');assert.match(text,/왜 맞았을까요/);assert.match(text,/이익 기대/);
 });
 
 test('unknown, legacy and mismatched outcomes show review explanations and limits without a chart or praise',()=>{
@@ -97,8 +97,8 @@ test('prediction and measured result appear before reason and explanation, even 
   ['UP','UP',2,'상승 예측이 맞았어요'],['UP','DOWN',-2,'상승 예측과 달랐어요'],['DOWN','DOWN',-2,'하락 예측이 맞았어요']]){
   const {tree}=render({...base,choice,actualDirection:direction,actualChangePercent:percent,verdict:choice===direction?'CORRECT':'WRONG'});
   const text=texts(tree);assert(text.includes(headline));assert(text.includes(`${direction==='UP'?'상승':'하락'} ${percent>0?'+':''}${percent.toFixed(2)}%`));
-  assert(text.indexOf(headline)<text.indexOf('내 예측'));assert(text.indexOf('실제 결과')<text.indexOf('내가 남긴 판단 근거'));
-  assert(text.indexOf('내가 남긴 판단 근거')<text.indexOf(direction==='UP'?'왜 올랐을까요?':'왜 내렸을까요?'));
+  assert(text.indexOf(headline)<text.indexOf('내 예측'));assert(text.indexOf('실제 결과')<text.indexOf('내 근거 점검'));
+  assert(text.indexOf('내 근거 점검')<text.indexOf(choice===direction?'왜 맞았을까요?':'왜 빗나갔을까요?'));
   assert(text.includes(base.reasonText));
  }
  const {tree}=render({...base,actualDirection:'UNKNOWN',gradingIssue:'TARGET_MISMATCH',verdict:'CORRECT'});
@@ -109,4 +109,28 @@ test('prediction and measured result appear before reason and explanation, even 
 test('conflicting stored feedback is hidden while measured outcome stays visible',()=>{
  const {tree}=render({...base,choice:'UP',verdict:'CORRECT',feedbackText:'정확한 판단! 상승이 맞았어요.',feedbackReasons:[{title:'기사 신호',detail:'상승이 맞았어요.'},...reasons.slice(1)]});
  const text=texts(tree).join(' ');assert.match(text,/상승 예측과 달랐어요/);assert(!text.includes('상승이 맞았어요.'));assert.match(text,/저장된 설명 문구가 실제 방향 비교와 달라/);
+});
+
+
+test('new and legacy reason coaching is visible under the user rationale and pending hides it',()=>{
+ for(const title of ['내 근거 점검','판단 근거','내 판단 돌아보기','근거 남기기']){
+  const detail='방향은 맞혔지만 근거가 약해 운이 섞였을 수 있어요.';
+  const feedbackReasons=[reasons[0],{title,detail},reasons[2]];
+  const tree=render({...base,feedbackReasons}).tree;
+  const card=tree.find(n=>n.type==='View'&&texts(nodes(n))[0]==='내 근거 점검');
+  assert(texts(nodes(card)).includes(base.reasonText));assert(texts(nodes(card)).includes(detail));
+  assert.equal(texts(tree).filter(t=>t===detail).length,1);
+  assert(texts(tree).includes('다음엔 이렇게'));
+  const pending=render({...base,actualDirection:null,verdict:null,feedbackReasons}).tree;
+  assert(texts(pending).includes(base.reasonText));assert(!texts(pending).includes(detail));
+ }
+});
+
+test('wrong and partial headings describe the verdict and keep article and market titles',()=>{
+ for(const [verdict,override,heading] of [
+  ['WRONG',{choice:'UP'},'왜 빗나갔을까요?'],
+  ['PARTIAL',{actualChangePercent:-.7},'왜 변동이 작았을까요?']]){
+  const tree=render({...base,...override,verdict}).tree;
+  assert(texts(tree).includes(heading));assert(texts(tree).includes('기사 근거'));assert(texts(tree).includes('실제 시장'));
+ }
 });
