@@ -25,11 +25,11 @@ export function HistoryItem({ item, onPress, unread = false }: { item: Judgement
         {item.newsTitle}
       </Text>
       <View style={styles.row}>
-        <Text style={[styles.choice, { color: choiceColor[item.choice] }]}>{choiceLabel[item.choice]}</Text>
+        <Text style={[styles.choice, { color: choiceColor[item.choice] }]}>내 예측: {choiceLabel[item.choice]}</Text>
         <Text style={result.pending ? styles.pending : styles.result}>{result.label}</Text>
         {result.correct !== null ? (
           <View style={[styles.badge, { backgroundColor: partial ? "#F2F4F7" : result.correct ? "#ECFDF3" : "#FEF3F2" }]}>
-            <Text style={[styles.badgeText, { color: partial ? "#667085" : result.correct ? "#12B76A" : "#D92D20" }]}>{partial ? "소폭 변동" : result.correct ? "적중" : "불일치"}</Text>
+            <Text style={[styles.badgeText, { color: partial ? "#667085" : result.correct ? "#12B76A" : "#D92D20" }]}>{partial ? "방향 같음·소폭 변동" : result.correct ? "맞음" : "틀림"}</Text>
           </View>
         ) : null}
       </View>

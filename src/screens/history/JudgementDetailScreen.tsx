@@ -60,17 +60,20 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
   const chartPoints = chartQuery.data?.points ?? [];
   const judgementDate = kstDate(item.judgedAt);
   const verdict = feedbackVerdict(item);
-  const hasReason = Boolean(item.reasonText?.trim() || item.reasons.length);
+  const choiceName = item.choice === "UP" ? "상승" : item.choice === "DOWN" ? "하락" : "중립";
   const expectedDate = item.expectedResultDate ? resultDateLabel(item.expectedResultDate) : null;
   const delayed = !!item.expectedResultAt && Number.isFinite(Date.parse(item.expectedResultAt)) && Date.parse(item.expectedResultAt) <= Date.now();
-  const waitingHeadline = delayed ? "결과를 확인하고 있어요" : expectedDate ? `${expectedDate} 장 마감 후(15:40 이후) 결과를 알려드려요` : "다음 거래일 장 마감 후 결과를 알려드려요";
-  const headline = verdict === "CORRECT" ? hasReason ? "✓ 정확한 판단이에요!" : "예측 방향이 같았어요"
-    : verdict === "WRONG" ? "다르게 움직였어요" : verdict === "PARTIAL" ? "방향은 맞았지만 변동이 작았어요"
-    : reviewOnly ? "기사와 내 판단을 다시 살펴봐요" : waitingHeadline;
+  const waitingHeadline = delayed ? "채점이 지연되고 있어요" : "아직 채점 전이에요";
+  const headline = verdict === "CORRECT" ? `${choiceName} 예측이 맞았어요`
+    : verdict === "WRONG" ? `${choiceName} 예측과 달랐어요` : verdict === "PARTIAL" ? `${choiceName} 방향은 같았어요 · 소폭 변동`
+    : reviewOnly ? "아직 채점되지 않았어요" : waitingHeadline;
   const tone = verdict === "CORRECT" ? "#ECFDF3" : verdict === "WRONG" ? "#FFF4ED" : "#F2F4F7";
   const percent = item.actualChangePercent == null ? "등락률 확인 불가" : `${item.actualChangePercent > 0 ? "+" : ""}${item.actualChangePercent.toFixed(2)}%`;
-  const movement = item.actualDirection === "UP" ? "상승" : item.actualDirection === "DOWN" ? "하락" : "보합";
-  const storedReasons = result.pending ? null : item.feedbackReasons;
+  const movement = item.actualDirection === "UP" ? "상승" : item.actualDirection === "DOWN" ? "하락" : "중립";
+  const feedbackMatchesResult = !verdict || !item.verdict || item.verdict === verdict;
+  const storedReasons = result.pending || !feedbackMatchesResult ? null : item.feedbackReasons;
+  const feedbackText = feedbackMatchesResult ? result.feedbackText : "저장된 설명 문구가 실제 방향 비교와 달라 표시하지 않았어요. 위 결과는 내 예측과 저장된 실제 방향을 비교한 값이에요.";
+  const explanationReasons = storedReasons?.filter(reason => !["판단 근거", "내 판단 돌아보기", "근거 남기기"].includes(reason.title));
   const pricePoints = points && (chartPoints.length === 0 || points[0].date < chartPoints[0].date || points[1].date > chartPoints[chartPoints.length - 1].date) ? points : chartPoints;
 
   return (
@@ -81,19 +84,25 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
         <Text style={styles.eyebrow}>판단 기록 상세</Text>
         <Text style={styles.title}>{item.newsTitle}</Text>
         <View style={[styles.resultCard, { backgroundColor: tone }]} accessibilityRole="summary">
+          <Text style={styles.eyebrow}>채점 결과</Text>
           <Text style={styles.resultHeadline}>{headline}</Text>
-          {verdict ? <Text style={styles.feedback}>{`실제 ${stockName || symbol || "판단 대상"} ${item.comparisonDate} 종가는 판단일 대비 ${percent} ${movement}`}</Text> : result.pending ? <Text style={styles.muted}>휴장일이면 다음 거래일 장 마감 기준으로 알려드려요.</Text> : null}
+          <View style={styles.outcomeRow} accessibilityRole="summary" accessibilityLabel="내 예측과 실제 결과 비교">
+            <View style={styles.outcomeCell}><Text style={styles.muted}>내 예측</Text><Text style={styles.outcomeValue}>{choiceName}</Text></View>
+            <Text style={styles.outcomeArrow}>→</Text>
+            <View style={styles.outcomeCell}><Text style={styles.muted}>실제 결과</Text><Text style={styles.outcomeValue}>{verdict ? `${movement} ${percent}` : "확인 전"}</Text></View>
+          </View>
+          {verdict ? <Text style={styles.muted}>{`${stockName || symbol || "판단 대상"} · ${judgementDate} → ${item.comparisonDate} 종가 비교`}</Text> : null}
+          {verdict === "PARTIAL" ? <Text style={styles.muted}>변동 폭이 1% 이하인 결과예요.</Text> : null}
+          {result.pending ? <Text style={styles.muted}>{expectedDate ? `예정 비교일: ${expectedDate} · 장 마감 종가가 필요해요.` : "다음 거래일의 장 마감 종가가 필요해요."}</Text> : null}
           {verdict && item.indexChangePercent != null && item.indexName ? <View style={styles.marketFigures} accessibilityRole="summary" accessibilityLabel="종목과 같은 날 시장 등락률 비교">
             <Text style={styles.marketValue}>{stockName || symbol} {percent}</Text>
             <Text style={styles.marketValue}>같은 날 {item.indexName} {item.indexChangePercent >= 0 ? "+" : ""}{item.indexChangePercent.toFixed(2)}%</Text>
           </View> : null}
           {reviewOnly ? <Text style={styles.muted}>{item.unavailableReason || (result.legacy ? "당일 가격으로 비교한 기록이라 다음 거래일 적중 통계에는 포함하지 않아요." : "비교할 가격이 없어 적중 여부 대신 기사 내용으로 복습해요.")}</Text> : null}
-          <Text style={styles.choice}>{item.choice === "UP" ? "상승 예측" : item.choice === "DOWN" ? "하락 예측" : "중립 예측"}</Text>
         </View>
         {detailQuery.isError ? <TouchableOpacity accessibilityRole="button" accessibilityLabel="판단 결과 다시 시도" onPress={() => void detailQuery.refetch()}><Text style={styles.back}>최신 결과 다시 시도</Text></TouchableOpacity> : null}
-        {result.pending || !storedReasons?.length ? (
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>판단 근거</Text>
+          <Text style={styles.sectionTitle}>내가 남긴 판단 근거</Text>
           {item.reasons.length > 0 ? item.reasons.map((reason, index) => (
             <View key={`${reason}-${index}`} style={styles.reasonRow}>
               <Text style={styles.bullet}>•</Text>
@@ -102,14 +111,12 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
           )) : <Text style={styles.muted}>남긴 판단 근거가 없어요.</Text>}
         </View>
 
-        ) : null}
-
-        {!result.pending && result.feedbackText ? <View style={styles.feedbackCard}>
-          <Text style={styles.sectionTitle}>{reviewOnly ? "이 기사에서 짚어볼 점" : storedReasons?.length ? item.actualDirection === "UP" ? "왜 올랐을까요?" : item.actualDirection === "DOWN" ? "왜 내렸을까요?" : "왜 크게 움직이지 않았을까요?" : "피드백"}</Text>
-          {storedReasons?.length ? storedReasons.map((reason, index) => <View key={`${reason.title}-${index}`} style={styles.reasonRow}>
-            <Text style={styles.bullet}>{reviewOnly ? "•" : verdict === "CORRECT" ? "✓" : "!"}</Text>
+        {!result.pending && feedbackText ? <View style={styles.feedbackCard}>
+          <Text style={styles.sectionTitle}>{reviewOnly ? "기사에서 볼 근거" : storedReasons?.length ? item.actualDirection === "UP" ? "왜 올랐을까요?" : item.actualDirection === "DOWN" ? "왜 내렸을까요?" : "왜 크게 움직이지 않았을까요?" : "피드백"}</Text>
+          {explanationReasons?.length ? explanationReasons.map((reason, index) => <View key={`${reason.title}-${index}`} style={styles.reasonRow}>
+            <Text style={styles.bullet}>•</Text>
             <View style={styles.reasonCopy}><Text style={styles.reasonTitle}>{reason.title}</Text><Text style={styles.feedback}>{reason.detail}</Text></View>
-          </View>) : <Text style={styles.feedback}>{result.feedbackText}</Text>}
+          </View>) : <Text style={styles.feedback}>{feedbackText}</Text>}
           {reviewOnly ? <TouchableOpacity accessibilityRole="button" accessibilityLabel="이 기사 다시 읽기" onPress={() => navigation.navigate("NewsDetail", { newsId: item.newsId })}><Text style={styles.back}>이 기사 다시 읽기 →</Text></TouchableOpacity> : null}
           {verdict && item.conceptTerm ? <TouchableOpacity accessibilityRole="button" accessibilityLabel={`${item.conceptTerm} 퀴즈로 확인하기`} style={styles.conceptLink}
             onPress={() => navigation.navigate("NewsDetail", { newsId: item.newsId, readMode: "level", openQuiz: true, quizTerm: item.conceptTerm! })}>
@@ -119,7 +126,7 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
           </TouchableOpacity> : null}
           {storedReasons?.length ? <Text style={styles.muted}>{reviewOnly ? "기사에서 확인한 사실과 가능한 영향 경로를 정리했어요." : "가격 변화가 이 뉴스 때문이라고 단정할 수는 없어요."}</Text> : null}
         </View> : null}
-        {!result.pending && item.nextTip ? <View style={styles.tipCard}><Text style={styles.feedback}>💡 {item.nextTip}</Text></View> : null}
+        {!result.pending && feedbackMatchesResult && item.nextTip ? <View style={styles.tipCard}><Text style={styles.feedback}>💡 {item.nextTip}</Text></View> : null}
         {canShowPrices ? (
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>판단 전후 가격 흐름</Text>
@@ -157,6 +164,10 @@ const styles = StyleSheet.create({
   container: { padding: 20, paddingBottom: 24, gap: 14 },
   resultCard: { borderRadius: 16, padding: 20, gap: 10 },
   resultHeadline: { fontSize: 20, fontWeight: "800", color: "#101828", lineHeight: 28 },
+  outcomeRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8 },
+  outcomeCell: { flex: 1, gap: 5 },
+  outcomeValue: { fontSize: 19, fontWeight: "800", color: "#101828", lineHeight: 27 },
+  outcomeArrow: { fontSize: 22, color: "#667085" },
   marketFigures: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   marketValue: { fontSize: 15, fontWeight: "700", color: "#344054", lineHeight: 22 },
   conceptLink: { gap: 6, paddingVertical: 10 },

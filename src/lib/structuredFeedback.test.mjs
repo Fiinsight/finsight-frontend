@@ -31,11 +31,11 @@ test('legacy null renders paragraph, waiting shows only user reason, no-reason c
  const legacy=render({...base,feedbackReasons:null,nextTip:null}).tree;
  assert(texts(legacy).includes(base.feedbackText));assert(!texts(legacy).includes('기사 근거'));
  const pending=render({...base,actualDirection:null,comparisonDate:null,verdict:null,feedbackText:'',feedbackReasons:null}).tree;
- assert(texts(pending).includes('다음 거래일 장 마감 후 결과를 알려드려요'));assert(!pending.some(n=>n.type==='MiniLineChart'));assert(!texts(pending).includes('기사 근거'));
+ assert(texts(pending).includes('아직 채점 전이에요'));assert(!pending.some(n=>n.type==='MiniLineChart'));assert(!texts(pending).includes('기사 근거'));
  const none=render({...base,reasonText:'',reasons:[]}).tree;assert(!texts(none).some(s=>s.includes('정확한 판단')));
- const unavailable=render({...base,actualDirection:'UNKNOWN',comparisonDate:null,verdict:null,feedbackReasons:null}).tree;assert(texts(unavailable).includes('기사와 내 판단을 다시 살펴봐요'));assert(!texts(unavailable).some(s=>s.includes('당일 비교')));
+ const unavailable=render({...base,actualDirection:'UNKNOWN',comparisonDate:null,verdict:null,feedbackReasons:null}).tree;assert(texts(unavailable).includes('아직 채점되지 않았어요'));assert(!texts(unavailable).some(s=>s.includes('당일 비교')));
  assert.equal(history.feedbackVerdict({...base,verdict:null,choice:'UP',actualDirection:'UP',actualChangePercent:1.0000000000000002}),'PARTIAL');
- const arrival=render({...base,actualDirection:null},base).tree;assert(texts(arrival).includes('✓ 정확한 판단이에요!'));
+ const arrival=render({...base,actualDirection:null},base).tree;assert(texts(arrival).includes('하락 예측이 맞았어요'));
 });
 test('API maps feedback reasons separately from the user reason and preserves legacy null',async()=>{
  let payload= {judgementId:10,...base,reasons};const http={get:async()=>({data:payload}),interceptors:{request:{use(){}},response:{use(){}}}},exports={};
@@ -72,7 +72,7 @@ test('result uses stored target, compares the real index figure and opens the se
 
 test('old mismatched target hides its praise and price chart while keeping a return to article',()=>{
  const {tree,navigation}=render({...base,gradingIssue:'TARGET_MISMATCH',comparisonDate:null,verdict:null,feedbackReasons:null,reasonText:'',reasons:[],feedbackText:'잘 연결한 판단입니다.'});
- const text=texts(tree).join(' ');assert.match(text,/기사와 내 판단을 다시 살펴봐요/);assert(!text.includes('잘 연결한'));assert(!tree.some(n=>n.type==='MiniLineChart'));
+ const text=texts(tree).join(' ');assert.match(text,/아직 채점되지 않았어요/);assert(!text.includes('잘 연결한'));assert(!tree.some(n=>n.type==='MiniLineChart'));
  tree.find(n=>n.props?.accessibilityLabel==='이 기사 다시 읽기').props.onPress();assert.equal(navigation[0][0],'NewsDetail');
 });
 test('upward outcome shows why it rose and the explanation of an earnings expectation',()=>{
@@ -85,8 +85,28 @@ test('unknown, legacy and mismatched outcomes show review explanations and limit
  for(const status of [{actualDirection:'UNKNOWN',comparisonDate:null},{gradingIssue:'LEGACY_COMPARISON',comparisonDate:null},{gradingIssue:'TARGET_MISMATCH'}]){
   const item={...base,...status,verdict:null,feedbackReasons:review,unavailableReason:'저장된 비교 자료가 부족해 적중 통계에 포함하지 않아요.',nextTip:'기사 사실과 예상 방향을 나눠보세요.'};
   const {tree,navigation}=render(item);const text=texts(tree).join(' ');
-  assert.match(text,/이 기사에서 짚어볼 점/);assert.match(text,/성장 기대와 비용 부담/);assert.match(text,/적중 통계에 포함하지 않아요/);assert.match(text,/기사 사실과 예상 방향/);
+  assert.match(text,/기사에서 볼 근거/);assert.match(text,/성장 기대와 비용 부담/);assert.match(text,/적중 통계에 포함하지 않아요/);assert.match(text,/기사 사실과 예상 방향/);
   assert(!text.includes('정확한 판단'));assert(!text.includes('왜 내렸을까요'));assert(!tree.some(n=>n.type==='MiniLineChart'));
   tree.find(n=>n.props?.accessibilityLabel==='이 기사 다시 읽기').props.onPress();assert.equal(navigation[0][0],'NewsDetail');
  }
+});
+
+
+test('prediction and measured result appear before reason and explanation, even when verdict copy conflicts',()=>{
+ for(const [choice,direction,percent,headline] of [
+  ['UP','UP',2,'상승 예측이 맞았어요'],['UP','DOWN',-2,'상승 예측과 달랐어요'],['DOWN','DOWN',-2,'하락 예측이 맞았어요']]){
+  const {tree}=render({...base,choice,actualDirection:direction,actualChangePercent:percent,verdict:choice===direction?'CORRECT':'WRONG'});
+  const text=texts(tree);assert(text.includes(headline));assert(text.includes(`${direction==='UP'?'상승':'하락'} ${percent>0?'+':''}${percent.toFixed(2)}%`));
+  assert(text.indexOf(headline)<text.indexOf('내 예측'));assert(text.indexOf('실제 결과')<text.indexOf('내가 남긴 판단 근거'));
+  assert(text.indexOf('내가 남긴 판단 근거')<text.indexOf(direction==='UP'?'왜 올랐을까요?':'왜 내렸을까요?'));
+  assert(text.includes(base.reasonText));
+ }
+ const {tree}=render({...base,actualDirection:'UNKNOWN',gradingIssue:'TARGET_MISMATCH',verdict:'CORRECT'});
+ const text=texts(tree);assert(text.includes('아직 채점되지 않았어요'));assert(text.includes('확인 전'));assert(!text.some(t=>t.includes('예측이 맞았어요')));
+});
+
+
+test('conflicting stored feedback is hidden while measured outcome stays visible',()=>{
+ const {tree}=render({...base,choice:'UP',verdict:'CORRECT',feedbackText:'정확한 판단! 상승이 맞았어요.',feedbackReasons:[{title:'기사 신호',detail:'상승이 맞았어요.'},...reasons.slice(1)]});
+ const text=texts(tree).join(' ');assert.match(text,/상승 예측과 달랐어요/);assert(!text.includes('상승이 맞았어요.'));assert.match(text,/저장된 설명 문구가 실제 방향 비교와 달라/);
 });
