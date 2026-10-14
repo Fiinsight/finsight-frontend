@@ -47,7 +47,8 @@ test('non-trading judgement day gets a vertical marker without fabricated price'
 
 test('legacy confirmed result shows prior method and hides future-closing message', () => {
   const rendered = text(render({ ...base, comparisonDate: null, judgementClose: null, comparisonClose: null }));
-  assert.match(rendered, /이전 방식으로 채점된 기록이에요\(당일 비교\)/);
+  assert.match(rendered, /기사와 내 판단을 다시 살펴봐요/);
+  assert.match(rendered, /다음 거래일 적중 통계에는 포함하지 않아요/);
   assert(!rendered.includes('결과 비교 종가는 다음 판정 때 저장돼요'));
-  assert(!rendered.includes('적중'));
+  assert(!rendered.includes('정확한 판단'));assert(!rendered.includes('판단 전후 가격 흐름'));
 });

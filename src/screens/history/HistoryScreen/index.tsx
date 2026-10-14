@@ -94,7 +94,7 @@ export function HistoryScreen({ navigation, route }: Props) {
           const summary = judgementSummary(group.items);
           return <View key={group.key} style={styles.group}>
             <View style={styles.groupHeader}><Text style={styles.sectionTitle}>{group.label}</Text>
-              <Text style={styles.groupSummary}>{`판단 ${summary.total}건 · 적중 ${summary.total - summary.pending - summary.unavailable - summary.legacy === 0 ? "-" : summary.hits} · 결과 대기 ${summary.pending}${summary.unavailable ? ` · 확인 불가 ${summary.unavailable}` : ""}`}</Text>
+              <Text style={styles.groupSummary}>{`판단 ${summary.total}건 · 적중 ${summary.total - summary.pending - summary.unavailable - summary.legacy === 0 ? "-" : summary.hits} · 결과 대기 ${summary.pending}${summary.unavailable + summary.legacy ? ` · 기사 복습 ${summary.unavailable + summary.legacy}` : ""}`}</Text>
             </View>
             {group.items.map((item) => <HistoryItem key={item.id} item={item} unread={hasUnreadFeedback(item, seen)} onPress={() => navigation.navigate("JudgementDetail", { item })} />)}
           </View>;

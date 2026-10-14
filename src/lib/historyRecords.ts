@@ -45,7 +45,7 @@ export function groupRecords<T>(items: T[], date: (item: T) => string, today: st
   return [...groups.values()];
 }
 
-export function judgementResult(item: Pick<JudgementHistoryItem, "choice" | "actualDirection" | "actualChangePercent"> & { feedbackText?: string; comparisonDate?: string | null; gradingIssue?: string | null; unavailableReason?: string | null }) {
+export function judgementResult(item: Pick<JudgementHistoryItem, "choice" | "actualDirection" | "actualChangePercent"> & { feedbackText?: string; feedbackReasons?: JudgementHistoryItem["feedbackReasons"]; comparisonDate?: string | null; gradingIssue?: string | null; unavailableReason?: string | null }) {
   const direction = item.actualDirection;
   const pending = !direction;
   const invalidTarget = item.gradingIssue === "TARGET_MISMATCH";
@@ -54,8 +54,9 @@ export function judgementResult(item: Pick<JudgementHistoryItem, "choice" | "act
   const correct = pending || unavailable || legacy ? null : direction === item.choice;
   const percent = item.actualChangePercent;
   const change = percent !== null && Number.isFinite(percent) ? ` ${percent > 0 ? "+" : ""}${percent.toFixed(2)}%` : "";
-  const label = pending ? "결과 대기" : invalidTarget ? "채점 대상 확인 필요" : unavailable ? "비교 불가" : legacy ? "당일 비교 기록" : `실제 ${direction === "UP" ? "상승" : direction === "DOWN" ? "하락" : "중립"}${change}`;
-  const feedbackText = invalidTarget ? item.unavailableReason || "이 기사와 채점 종목의 연결을 다시 확인해야 해요. 이전 적중 여부와 피드백은 학습 근거로 사용하지 않아요." : legacy && !unavailable ? "이 기록은 판단한 날의 가격으로 비교돼 다음 거래일 예측의 결과로 해석하기 어려워요. 대상과 비교 종가가 확인된 새 판단에서 설명을 확인해보세요." : unavailable ? "관련 종목이 없어 결과를 비교하지 않았어요" : (item.feedbackText ?? "").replace(/\bUP\b/g, "상승").replace(/\bDOWN\b/g, "하락").replace(/\bNEUTRAL\b/g, "중립").replace(/\bUNKNOWN\b/g, "비교 불가");
+  const label = pending ? "결과 대기" : unavailable ? "기사 복습" : legacy ? "당일 흐름 참고" : `실제 ${direction === "UP" ? "상승" : direction === "DOWN" ? "하락" : "중립"}${change}`;
+  const reviewText = !pending && (unavailable || legacy) ? item.feedbackReasons?.[0]?.detail : null;
+  const feedbackText = reviewText || (invalidTarget ? item.unavailableReason || "이 기사와 채점 종목의 연결을 다시 확인해야 해요. 이전 적중 여부와 피드백은 학습 근거로 사용하지 않아요." : legacy && !unavailable ? "이 기록은 판단한 날의 가격으로 비교돼 다음 거래일 예측의 결과로 해석하기 어려워요. 대상과 비교 종가가 확인된 새 판단에서 설명을 확인해보세요." : unavailable ? "관련 종목이 없어 결과를 비교하지 않았어요" : (item.feedbackText ?? "").replace(/\bUP\b/g, "상승").replace(/\bDOWN\b/g, "하락").replace(/\bNEUTRAL\b/g, "중립").replace(/\bUNKNOWN\b/g, "비교 불가"));
   return { label, correct, pending, unavailable, legacy, feedbackText };
 }
 
