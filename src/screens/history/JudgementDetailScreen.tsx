@@ -110,7 +110,7 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
               <Text style={styles.bullet}>•</Text>
               <Text style={styles.reason}>{reason}</Text>
             </View>
-          )) : <Text style={styles.muted}>남긴 판단 근거가 없어요.</Text>}
+          )) : !coachingReasons?.length ? <Text style={styles.muted}>남긴 판단 근거가 없어요.</Text> : null}
           {coachingReasons?.length ? <View style={styles.coaching}>
             {coachingReasons.map((reason,index) => <Text key={`${reason.title}-${index}`} style={styles.feedback}>{reason.detail}</Text>)}
           </View> : null}

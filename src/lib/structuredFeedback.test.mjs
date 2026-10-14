@@ -134,3 +134,19 @@ test('wrong and partial headings describe the verdict and keep article and marke
   assert(texts(tree).includes(heading));assert(texts(tree).includes('기사 근거'));assert(texts(tree).includes('실제 시장'));
  }
 });
+
+
+test('empty user reason is explained once by coaching while pending keeps its placeholder',()=>{
+ const item={...base,actualDirection:'UNKNOWN',comparisonDate:null,verdict:null,reasonText:'',reasons:[],feedbackReasons:[
+  {title:'기사의 핵심과 의미',detail:'이 기사에는 뚜렷한 호재·악재 방향 신호가 없어 중립으로 읽혀요.'},
+  {title:'내 판단 돌아보기',detail:'다음엔 판단 근거를 한 줄 남겨보세요(사실 → 이익·수요·금리 → 방향).'}]};
+ const text=texts(render(item).tree);
+ assert(!text.includes('남긴 판단 근거가 없어요.'));
+ assert(text.includes('이 기사에는 뚜렷한 호재·악재 방향 신호가 없어 중립으로 읽혀요.'));
+ assert.equal(text.filter(t=>t.includes('다음엔 판단 근거를 한 줄 남겨보세요')).length,1);
+ const pending=texts(render({...item,actualDirection:null}).tree);
+ assert(pending.includes('남긴 판단 근거가 없어요.'));
+ assert(!pending.some(t=>t.includes('다음엔 판단 근거를 한 줄 남겨보세요')));
+ const noCoach=texts(render({...item,feedbackReasons:null}).tree);
+ assert(noCoach.includes('남긴 판단 근거가 없어요.'));
+});
