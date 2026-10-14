@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { kstDate, recentRange, previousRange, attendanceWeek, groupRecords, judgementResult, judgementSummary } from './historyRecords.ts';
+import { kstDate, recentRange, previousRange, attendanceWeek, groupRecords, judgementResult, judgementSummary, feedbackVerdict } from './historyRecords.ts';
 
 test('KST dates, year boundaries and seven-day windows skip empty weeks directly', () => {
   assert.equal(kstDate('2026-10-05T15:00:00Z'), '2026-10-06');
@@ -67,4 +67,12 @@ test('article review is useful in history without turning ungraded records into 
   const row={choice:'UP',actualChangePercent:2,...status,feedbackReasons};
   assert.equal(judgementResult(row).feedbackText,feedbackReasons[0].detail);assert.equal(judgementResult(row).correct,null);assert.equal(judgementSummary([row]).hits,0);
  }
+});
+
+
+test('verdict follows saved prediction versus actual direction rather than conflicting old copy',()=>{
+ const item={choice:'UP',actualDirection:'DOWN',actualChangePercent:-2,comparisonDate:'2026-10-07',verdict:'CORRECT'};
+ assert.equal(feedbackVerdict(item),'WRONG');assert.equal(feedbackVerdict({...item,actualDirection:'UP',actualChangePercent:2,verdict:'WRONG'}),'CORRECT');
+ assert.equal(feedbackVerdict({...item,actualDirection:'UP',actualChangePercent:.8}),'PARTIAL');
+ assert.equal(feedbackVerdict({...item,gradingIssue:'TARGET_MISMATCH'}),null);assert.equal(feedbackVerdict({...item,comparisonDate:null}),null);
 });
