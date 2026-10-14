@@ -45,7 +45,7 @@ test('legacy unknown feedback cannot claim a mismatch or expose enum codes',()=>
   const result=judgementResult({choice:'UP',actualDirection:'UNKNOWN',actualChangePercent:null,feedbackText:'UP 예측은 UNKNOWN과 달랐습니다'});
   assert.equal(result.correct,null);
   assert.equal(result.feedbackText,'관련 종목이 없어 결과를 비교하지 않았어요');
-  assert.equal(judgementResult({choice:'UP',actualDirection:'DOWN',actualChangePercent:-1,feedbackText:'UP과 DOWN'}).feedbackText,'상승과 하락');
+  assert.equal(judgementResult({choice:'UP',actualDirection:'DOWN',actualChangePercent:-1,comparisonDate:'2026-10-07',feedbackText:'UP과 DOWN'}).feedbackText,'상승과 하락');
 });
 
 test('old confirmed outcomes without comparison date never count as hits', () => {
@@ -54,4 +54,9 @@ test('old confirmed outcomes without comparison date never count as hits', () =>
   assert.equal(judgementResult(legacy).legacy, true);
   assert.equal(judgementResult(legacy).correct, null);
   assert.deepEqual(judgementSummary([legacy, current]), { total: 2, hits: 1, pending: 0, unavailable: 0, legacy: 1 });
+});
+
+test('mismatched targets exclude old success and praise from history summaries',()=>{
+ const row={choice:'UP',actualDirection:'UP',actualChangePercent:2,comparisonDate:'2026-10-07',gradingIssue:'TARGET_MISMATCH',feedbackText:'잘 연결한 정확한 판단'};
+ const result=judgementResult(row);assert.equal(result.correct,null);assert.equal(result.label,'채점 대상 확인 필요');assert(!result.feedbackText.includes('정확한 판단'));assert.equal(judgementSummary([row]).hits,0);
 });

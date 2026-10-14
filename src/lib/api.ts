@@ -276,6 +276,7 @@ function normalizeHistoryItem(raw: JudgementHistoryItemRaw, index: number): Judg
   const choice = raw.choice ?? "NEUTRAL";
 
   return {
+    gradingIssue: raw.gradingIssue === "TARGET_MISMATCH" || raw.gradingIssue === "LEGACY_COMPARISON" ? raw.gradingIssue : null,
     indexName: raw.indexName ?? null, indexChangePercent: typeof raw.indexChangePercent === "number" && Number.isFinite(raw.indexChangePercent) ? raw.indexChangePercent : null,
     conceptTerm: raw.conceptTerm ?? null, conceptDefinition: raw.conceptDefinition ?? null, unavailableReason: raw.unavailableReason ?? null,
     relatedSymbol: raw.relatedSymbol ?? null, relatedSymbolName: raw.relatedSymbolName ?? null,
@@ -295,7 +296,7 @@ function normalizeHistoryItem(raw: JudgementHistoryItemRaw, index: number): Judg
     comparisonDate: raw.comparisonDate ?? null,
     judgementClose: typeof raw.judgementClose === "number" && Number.isFinite(raw.judgementClose) ? raw.judgementClose : null,
     comparisonClose: typeof raw.comparisonClose === "number" && Number.isFinite(raw.comparisonClose) ? raw.comparisonClose : null,
-    correct: judgementResult({ choice, actualDirection, actualChangePercent, comparisonDate: raw.comparisonDate }).correct,
+    correct: judgementResult({ choice, actualDirection, actualChangePercent, comparisonDate: raw.comparisonDate, gradingIssue: raw.gradingIssue }).correct,
     feedbackText: raw.feedbackText ?? "",
     reasons: raw.reasonText ? raw.reasonText.split(/\n+/).map(reason => reason.trim()).filter(Boolean) : Array.isArray(raw.reasons) ? raw.reasons.filter((reason): reason is string => typeof reason === "string" && reason.trim().length > 0) : (raw.reasonText?.split(/\n+/).map((reason) => reason.trim()).filter(Boolean) ?? []),
     judgedAt: raw.judgedAt ?? raw.createdAt ?? ""

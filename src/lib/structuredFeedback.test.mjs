@@ -69,3 +69,13 @@ test('result uses stored target, compares the real index figure and opens the se
  tree.find(n=>n.props?.accessibilityLabel==='금리 퀴즈로 확인하기').props.onPress();assert.equal(navigation[0][0],'NewsDetail');assert.equal(navigation[0][1].quizTerm,'금리');assert.equal(navigation[0][1].openQuiz,true);
  const absent=render({...base,indexName:null,indexChangePercent:null,conceptTerm:null}).tree;assert(!absent.some(n=>n.props?.accessibilityLabel?.includes('퀴즈로 확인하기')));assert(!texts(absent).some(t=>t.includes('같은 날')));
 });
+
+test('old mismatched target hides its praise and price chart while keeping a return to article',()=>{
+ const {tree,navigation}=render({...base,gradingIssue:'TARGET_MISMATCH',comparisonDate:null,verdict:null,feedbackReasons:null,reasonText:'',reasons:[],feedbackText:'잘 연결한 판단입니다.'});
+ const text=texts(tree).join(' ');assert.match(text,/채점 대상을 다시 확인/);assert(!text.includes('잘 연결한'));assert(!tree.some(n=>n.type==='MiniLineChart'));
+ tree.find(n=>n.props?.accessibilityLabel==='이 기사 다시 읽기').props.onPress();assert.equal(navigation[0][0],'NewsDetail');
+});
+test('upward outcome shows why it rose and the explanation of an earnings expectation',()=>{
+ const {tree}=render({...base,choice:'UP',actualDirection:'UP',actualChangePercent:2,feedbackReasons:[{title:'기사 신호',detail:'기사에서 매출 증가를 전했어요. 실적 개선 소식은 이익 기대를 높여 상승 요인으로 연결될 수 있어요.'},...reasons.slice(1)]});
+ const text=texts(tree).join(' ');assert.match(text,/왜 올랐을까요/);assert.match(text,/이익 기대/);
+});
