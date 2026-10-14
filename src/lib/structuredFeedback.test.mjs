@@ -33,7 +33,7 @@ test('legacy null renders paragraph, waiting shows only user reason, no-reason c
  const pending=render({...base,actualDirection:null,comparisonDate:null,verdict:null,feedbackText:'',feedbackReasons:null}).tree;
  assert(texts(pending).includes('다음 거래일 장 마감 후 결과를 알려드려요'));assert(!pending.some(n=>n.type==='MiniLineChart'));assert(!texts(pending).includes('기사 근거'));
  const none=render({...base,reasonText:'',reasons:[]}).tree;assert(!texts(none).some(s=>s.includes('정확한 판단')));
- const unavailable=render({...base,actualDirection:'UNKNOWN',comparisonDate:null,verdict:null,feedbackReasons:null}).tree;assert(texts(unavailable).includes('판단 대상이 정해지지 않은 기사예요'));assert(!texts(unavailable).some(s=>s.includes('당일 비교')));
+ const unavailable=render({...base,actualDirection:'UNKNOWN',comparisonDate:null,verdict:null,feedbackReasons:null}).tree;assert(texts(unavailable).includes('기사와 내 판단을 다시 살펴봐요'));assert(!texts(unavailable).some(s=>s.includes('당일 비교')));
  assert.equal(history.feedbackVerdict({...base,verdict:null,choice:'UP',actualDirection:'UP',actualChangePercent:1.0000000000000002}),'PARTIAL');
  const arrival=render({...base,actualDirection:null},base).tree;assert(texts(arrival).includes('✓ 정확한 판단이에요!'));
 });
@@ -72,10 +72,21 @@ test('result uses stored target, compares the real index figure and opens the se
 
 test('old mismatched target hides its praise and price chart while keeping a return to article',()=>{
  const {tree,navigation}=render({...base,gradingIssue:'TARGET_MISMATCH',comparisonDate:null,verdict:null,feedbackReasons:null,reasonText:'',reasons:[],feedbackText:'잘 연결한 판단입니다.'});
- const text=texts(tree).join(' ');assert.match(text,/채점 대상을 다시 확인/);assert(!text.includes('잘 연결한'));assert(!tree.some(n=>n.type==='MiniLineChart'));
+ const text=texts(tree).join(' ');assert.match(text,/기사와 내 판단을 다시 살펴봐요/);assert(!text.includes('잘 연결한'));assert(!tree.some(n=>n.type==='MiniLineChart'));
  tree.find(n=>n.props?.accessibilityLabel==='이 기사 다시 읽기').props.onPress();assert.equal(navigation[0][0],'NewsDetail');
 });
 test('upward outcome shows why it rose and the explanation of an earnings expectation',()=>{
  const {tree}=render({...base,choice:'UP',actualDirection:'UP',actualChangePercent:2,feedbackReasons:[{title:'기사 신호',detail:'기사에서 매출 증가를 전했어요. 실적 개선 소식은 이익 기대를 높여 상승 요인으로 연결될 수 있어요.'},...reasons.slice(1)]});
  const text=texts(tree).join(' ');assert.match(text,/왜 올랐을까요/);assert.match(text,/이익 기대/);
+});
+
+test('unknown, legacy and mismatched outcomes show review explanations and limits without a chart or praise',()=>{
+ const review=[{title:'기사의 핵심과 의미',detail:'기사에서 신규 투자를 전했어요. 성장 기대와 비용 부담을 함께 봐야 해요.'},{title:'내 판단 돌아보기',detail:'근거가 기사 사실인지 예상인지 나눠보세요.'}];
+ for(const status of [{actualDirection:'UNKNOWN',comparisonDate:null},{gradingIssue:'LEGACY_COMPARISON',comparisonDate:null},{gradingIssue:'TARGET_MISMATCH'}]){
+  const item={...base,...status,verdict:null,feedbackReasons:review,unavailableReason:'저장된 비교 자료가 부족해 적중 통계에 포함하지 않아요.',nextTip:'기사 사실과 예상 방향을 나눠보세요.'};
+  const {tree,navigation}=render(item);const text=texts(tree).join(' ');
+  assert.match(text,/이 기사에서 짚어볼 점/);assert.match(text,/성장 기대와 비용 부담/);assert.match(text,/적중 통계에 포함하지 않아요/);assert.match(text,/기사 사실과 예상 방향/);
+  assert(!text.includes('정확한 판단'));assert(!text.includes('왜 내렸을까요'));assert(!tree.some(n=>n.type==='MiniLineChart'));
+  tree.find(n=>n.props?.accessibilityLabel==='이 기사 다시 읽기').props.onPress();assert.equal(navigation[0][0],'NewsDetail');
+ }
 });

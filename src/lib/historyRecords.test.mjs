@@ -32,7 +32,7 @@ test('direction and change remain separate for rise, fall, neutral, unknown and 
     ['UP', 1.2, '실제 상승 +1.20%', true],
     ['DOWN', -1.2, '실제 하락 -1.20%', false],
     ['NEUTRAL', 0, '실제 중립 0.00%', false],
-    ['UNKNOWN', 0, '비교 불가', null],
+    ['UNKNOWN', 0, '기사 복습', null],
     [null, 1.2, '결과 대기', null]
   ]) {
     const result = judgementResult({choice:'UP', actualDirection:direction, actualChangePercent:percent,comparisonDate:'2026-10-07'});
@@ -58,5 +58,13 @@ test('old confirmed outcomes without comparison date never count as hits', () =>
 
 test('mismatched targets exclude old success and praise from history summaries',()=>{
  const row={choice:'UP',actualDirection:'UP',actualChangePercent:2,comparisonDate:'2026-10-07',gradingIssue:'TARGET_MISMATCH',feedbackText:'잘 연결한 정확한 판단'};
- const result=judgementResult(row);assert.equal(result.correct,null);assert.equal(result.label,'채점 대상 확인 필요');assert(!result.feedbackText.includes('정확한 판단'));assert.equal(judgementSummary([row]).hits,0);
+ const result=judgementResult(row);assert.equal(result.correct,null);assert.equal(result.label,'기사 복습');assert(!result.feedbackText.includes('정확한 판단'));assert.equal(judgementSummary([row]).hits,0);
+});
+
+test('article review is useful in history without turning ungraded records into hits',()=>{
+ const feedbackReasons=[{title:'기사의 핵심과 의미',detail:'투자 확대에는 성장 기대와 비용 부담이 함께 있어요.'},{title:'내 판단 돌아보기',detail:'기사 사실과 예상을 구분해요.'}];
+ for(const status of [{actualDirection:'UNKNOWN'}, {actualDirection:'UP',gradingIssue:'TARGET_MISMATCH'}, {actualDirection:'UP',comparisonDate:null}]){
+  const row={choice:'UP',actualChangePercent:2,...status,feedbackReasons};
+  assert.equal(judgementResult(row).feedbackText,feedbackReasons[0].detail);assert.equal(judgementResult(row).correct,null);assert.equal(judgementSummary([row]).hits,0);
+ }
 });
