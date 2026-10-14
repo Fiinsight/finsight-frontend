@@ -33,13 +33,16 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
     retry: 0,
     staleTime: 10 * 60_000
   });
+  const result = judgementResult(item);
+  const invalidTarget = item.gradingIssue === "TARGET_MISMATCH";
+  const canShowPrices = !result.pending && !result.unavailable && !result.legacy;
   const symbol = item.relatedSymbol?.trim() || newsQuery.data?.relatedSymbol?.trim() || "";
   const indexSymbol = symbol === "KOSPI" || symbol === "KOSDAQ";
   const points = judgementClosingPoints(item);
   const chartQuery = useQuery({
     queryKey: ["chart", symbol, "D"],
     queryFn: ({ signal }) => getChartData(symbol, "D", 5, signal),
-    enabled: /^\d{6}$/.test(symbol),
+    enabled: canShowPrices && /^\d{6}$/.test(symbol),
     staleTime: 60_000,
     retry: 0,
     refetchOnWindowFocus: false,
@@ -48,7 +51,7 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
   const stockQuery = useQuery({
     queryKey: ["stock-search", symbol],
     queryFn: () => searchStocks(symbol),
-    enabled: /^\d{6}$/.test(symbol) && (!newsQuery.data?.relatedSymbolName || newsQuery.data.relatedSymbolName === symbol),
+    enabled: canShowPrices && /^\d{6}$/.test(symbol) && (!newsQuery.data?.relatedSymbolName || newsQuery.data.relatedSymbolName === symbol),
     staleTime: 10 * 60_000,
     retry: 0
   });
@@ -56,7 +59,6 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
   const stockName = storedName && storedName !== symbol ? storedName : stockQuery.data?.find(stock => stock.symbol === symbol)?.name;
   const chartPoints = chartQuery.data?.points ?? [];
   const judgementDate = kstDate(item.judgedAt);
-  const result = judgementResult(item);
   const verdict = feedbackVerdict(item);
   const hasReason = Boolean(item.reasonText?.trim() || item.reasons.length);
   const expectedDate = item.expectedResultDate ? resultDateLabel(item.expectedResultDate) : null;
@@ -64,7 +66,7 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
   const waitingHeadline = delayed ? "결과를 확인하고 있어요" : expectedDate ? `${expectedDate} 장 마감 후(15:40 이후) 결과를 알려드려요` : "다음 거래일 장 마감 후 결과를 알려드려요";
   const headline = verdict === "CORRECT" ? hasReason ? "✓ 정확한 판단이에요!" : "예측 방향이 같았어요"
     : verdict === "WRONG" ? "다르게 움직였어요" : verdict === "PARTIAL" ? "방향은 맞았지만 변동이 작았어요"
-    : result.unavailable ? "판단 대상이 정해지지 않은 기사예요" : result.legacy ? "이전 방식으로 채점된 기록이에요(당일 비교)" : waitingHeadline;
+    : invalidTarget ? "채점 대상을 다시 확인해야 해요" : result.unavailable ? "판단 대상이 정해지지 않은 기사예요" : result.legacy ? "이전 방식으로 채점된 기록이에요(당일 비교)" : waitingHeadline;
   const tone = verdict === "CORRECT" ? "#ECFDF3" : verdict === "WRONG" ? "#FFF4ED" : "#F2F4F7";
   const percent = item.actualChangePercent == null ? "등락률 확인 불가" : `${item.actualChangePercent > 0 ? "+" : ""}${item.actualChangePercent.toFixed(2)}%`;
   const movement = item.actualDirection === "UP" ? "상승" : item.actualDirection === "DOWN" ? "하락" : "보합";
@@ -85,7 +87,7 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
             <Text style={styles.marketValue}>{stockName || symbol} {percent}</Text>
             <Text style={styles.marketValue}>같은 날 {item.indexName} {item.indexChangePercent >= 0 ? "+" : ""}{item.indexChangePercent.toFixed(2)}%</Text>
           </View> : null}
-          {result.unavailable ? <Text style={styles.muted}>{item.unavailableReason || "판단 대상이 정해지지 않은 기사예요"}. 대상이 표시된 다른 기사에서 판단해보세요.</Text> : null}
+          {result.unavailable && !invalidTarget ? <Text style={styles.muted}>{item.unavailableReason || "판단 대상이 정해지지 않은 기사예요"}. 대상이 표시된 다른 기사에서 판단해보세요.</Text> : null}
           <Text style={styles.choice}>{item.choice === "UP" ? "상승 예측" : item.choice === "DOWN" ? "하락 예측" : "중립 예측"}</Text>
         </View>
         {detailQuery.isError ? <TouchableOpacity accessibilityRole="button" accessibilityLabel="판단 결과 다시 시도" onPress={() => void detailQuery.refetch()}><Text style={styles.back}>최신 결과 다시 시도</Text></TouchableOpacity> : null}
@@ -97,17 +99,18 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
               <Text style={styles.bullet}>•</Text>
               <Text style={styles.reason}>{reason}</Text>
             </View>
-          )) : <Text style={styles.muted}>이 기록에는 저장된 판단 근거 목록이 없습니다.</Text>}
+          )) : <Text style={styles.muted}>남긴 판단 근거가 없어요.</Text>}
         </View>
 
         ) : null}
 
         {!result.pending && result.feedbackText ? <View style={styles.feedbackCard}>
-          <Text style={styles.sectionTitle}>{storedReasons?.length ? verdict === "CORRECT" && hasReason ? "왜 정확한 판단일까요?" : verdict === "WRONG" ? "무엇을 놓쳤을까요?" : "어떤 점을 확인할까요?" : "피드백"}</Text>
+          <Text style={styles.sectionTitle}>{invalidTarget || result.legacy ? "이전 기록 안내" : storedReasons?.length ? item.actualDirection === "UP" ? "왜 올랐을까요?" : item.actualDirection === "DOWN" ? "왜 내렸을까요?" : "왜 크게 움직이지 않았을까요?" : "피드백"}</Text>
           {storedReasons?.length ? storedReasons.map((reason, index) => <View key={`${reason.title}-${index}`} style={styles.reasonRow}>
             <Text style={styles.bullet}>{verdict === "CORRECT" ? "✓" : "!"}</Text>
             <View style={styles.reasonCopy}><Text style={styles.reasonTitle}>{reason.title}</Text><Text style={styles.feedback}>{reason.detail}</Text></View>
           </View>) : <Text style={styles.feedback}>{result.feedbackText}</Text>}
+          {invalidTarget || result.legacy ? <TouchableOpacity accessibilityRole="button" accessibilityLabel="이 기사 다시 읽기" onPress={() => navigation.navigate("NewsDetail", { newsId: item.newsId })}><Text style={styles.back}>이 기사 다시 읽기 →</Text></TouchableOpacity> : null}
           {verdict && item.conceptTerm ? <TouchableOpacity accessibilityRole="button" accessibilityLabel={`${item.conceptTerm} 퀴즈로 확인하기`} style={styles.conceptLink}
             onPress={() => navigation.navigate("NewsDetail", { newsId: item.newsId, readMode: "level", openQuiz: true, quizTerm: item.conceptTerm! })}>
             <Text style={styles.reasonTitle}>배울 개념: {item.conceptTerm}</Text>
@@ -117,7 +120,7 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
           {storedReasons?.length ? <Text style={styles.muted}>가격 변화가 이 뉴스 때문이라고 단정할 수는 없어요.</Text> : null}
         </View> : null}
         {verdict && item.nextTip ? <View style={styles.tipCard}><Text style={styles.feedback}>💡 {item.nextTip}</Text></View> : null}
-        {!result.pending ? (
+        {canShowPrices ? (
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>판단 전후 가격 흐름</Text>
           {symbol ? <Text style={styles.choice}>{stockName ? `${stockName} ${symbol}` : symbol}</Text> : null}

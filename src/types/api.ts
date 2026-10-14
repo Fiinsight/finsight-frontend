@@ -159,6 +159,7 @@ export interface JudgementAck {
 export type FeedbackVerdict = "CORRECT" | "WRONG" | "PARTIAL";
 export interface FeedbackReason { title: string; detail: string; }
 export interface JudgementHistoryItemRaw {
+  gradingIssue?: "TARGET_MISMATCH" | "LEGACY_COMPARISON" | null;
   indexName?: string | null; indexChangePercent?: number | null;
   conceptTerm?: string | null; conceptDefinition?: string | null; unavailableReason?: string | null;
   relatedSymbol?: string | null; relatedSymbolName?: string | null; expectedResultDate?: string | null; expectedResultAt?: string | null;
@@ -189,6 +190,7 @@ export interface JudgementHistoryItemRaw {
 }
 
 export interface JudgementHistoryItem {
+  gradingIssue?: "TARGET_MISMATCH" | "LEGACY_COMPARISON" | null;
   indexName?: string | null; indexChangePercent?: number | null;
   conceptTerm?: string | null; conceptDefinition?: string | null; unavailableReason?: string | null;
   relatedSymbol?: string | null; relatedSymbolName?: string | null; expectedResultDate?: string | null; expectedResultAt?: string | null;
