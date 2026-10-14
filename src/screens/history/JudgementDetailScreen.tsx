@@ -73,7 +73,9 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
   const feedbackMatchesResult = !verdict || !item.verdict || item.verdict === verdict;
   const storedReasons = result.pending || !feedbackMatchesResult ? null : item.feedbackReasons;
   const feedbackText = feedbackMatchesResult ? result.feedbackText : "저장된 설명 문구가 실제 방향 비교와 달라 표시하지 않았어요. 위 결과는 내 예측과 저장된 실제 방향을 비교한 값이에요.";
-  const explanationReasons = storedReasons?.filter(reason => !["판단 근거", "내 판단 돌아보기", "근거 남기기"].includes(reason.title));
+  const coachingTitles = ["내 근거 점검", "판단 근거", "내 판단 돌아보기", "근거 남기기"];
+  const coachingReasons = storedReasons?.filter(reason => coachingTitles.includes(reason.title));
+  const explanationReasons = storedReasons?.filter(reason => !coachingTitles.includes(reason.title));
   const pricePoints = points && (chartPoints.length === 0 || points[0].date < chartPoints[0].date || points[1].date > chartPoints[chartPoints.length - 1].date) ? points : chartPoints;
 
   return (
@@ -102,17 +104,20 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
         </View>
         {detailQuery.isError ? <TouchableOpacity accessibilityRole="button" accessibilityLabel="판단 결과 다시 시도" onPress={() => void detailQuery.refetch()}><Text style={styles.back}>최신 결과 다시 시도</Text></TouchableOpacity> : null}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>내가 남긴 판단 근거</Text>
+          <Text style={styles.sectionTitle}>내 근거 점검</Text>
           {item.reasons.length > 0 ? item.reasons.map((reason, index) => (
             <View key={`${reason}-${index}`} style={styles.reasonRow}>
               <Text style={styles.bullet}>•</Text>
               <Text style={styles.reason}>{reason}</Text>
             </View>
           )) : <Text style={styles.muted}>남긴 판단 근거가 없어요.</Text>}
+          {coachingReasons?.length ? <View style={styles.coaching}>
+            {coachingReasons.map((reason,index) => <Text key={`${reason.title}-${index}`} style={styles.feedback}>{reason.detail}</Text>)}
+          </View> : null}
         </View>
 
         {!result.pending && feedbackText ? <View style={styles.feedbackCard}>
-          <Text style={styles.sectionTitle}>{reviewOnly ? "기사에서 볼 근거" : storedReasons?.length ? item.actualDirection === "UP" ? "왜 올랐을까요?" : item.actualDirection === "DOWN" ? "왜 내렸을까요?" : "왜 크게 움직이지 않았을까요?" : "피드백"}</Text>
+          <Text style={styles.sectionTitle}>{reviewOnly ? "기사에서 볼 근거" : verdict === "CORRECT" ? "왜 맞았을까요?" : verdict === "WRONG" ? "왜 빗나갔을까요?" : verdict === "PARTIAL" ? "왜 변동이 작았을까요?" : "피드백"}</Text>
           {explanationReasons?.length ? explanationReasons.map((reason, index) => <View key={`${reason.title}-${index}`} style={styles.reasonRow}>
             <Text style={styles.bullet}>•</Text>
             <View style={styles.reasonCopy}><Text style={styles.reasonTitle}>{reason.title}</Text><Text style={styles.feedback}>{reason.detail}</Text></View>
@@ -126,7 +131,7 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
           </TouchableOpacity> : null}
           {storedReasons?.length ? <Text style={styles.muted}>{reviewOnly ? "기사에서 확인한 사실과 가능한 영향 경로를 정리했어요." : "가격 변화가 이 뉴스 때문이라고 단정할 수는 없어요."}</Text> : null}
         </View> : null}
-        {!result.pending && feedbackMatchesResult && item.nextTip ? <View style={styles.tipCard}><Text style={styles.feedback}>💡 {item.nextTip}</Text></View> : null}
+        {!result.pending && feedbackMatchesResult && item.nextTip ? <View style={styles.tipCard}><Text style={styles.sectionTitle}>다음엔 이렇게</Text><Text style={styles.feedback}>{item.nextTip}</Text></View> : null}
         {canShowPrices ? (
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>판단 전후 가격 흐름</Text>
@@ -173,7 +178,8 @@ const styles = StyleSheet.create({
   conceptLink: { gap: 6, paddingVertical: 10 },
   reasonCopy: { flex: 1, gap: 5 },
   reasonTitle: { fontSize: 15, fontWeight: "700", color: "#101828" },
-  tipCard: { backgroundColor: "#FFFAEB", padding: 16, borderRadius: 14 },
+  tipCard: { backgroundColor: "#FFFAEB", padding: 16, borderRadius: 14, gap: 8 },
+  coaching: { borderTopWidth: 1, borderTopColor: "#EAECF0", paddingTop: 10, gap: 8 },
   footer: { backgroundColor: "#FFFFFF", paddingHorizontal: 20, paddingVertical: 12, borderTopColor: "#EAECF0", borderTopWidth: 1 },
   doneButton: { backgroundColor: "#175CD3", borderRadius: 12, minHeight: 48, alignItems: "center", justifyContent: "center" },
   doneText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
