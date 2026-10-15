@@ -1,10 +1,15 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { getChartData, getPopularStocks, searchStocks } from "../../../lib/api";
+import { addWatchlist, getApiErrorMessage, getChartData, getPopularStocks, getWatchlist, removeWatchlist, searchStocks } from "../../../lib/api";
+import { loadAuthSession } from "../../../lib/auth";
+import { storageGetItem, storageSetItem } from "../../../lib/storage";
+import { initialChartSymbol, lastWatchlistKey } from "../../../lib/watchlist";
 import type { ChartStackParamList } from "../../../navigation/types";
-import type { ChartRelatedNews, MoveInsight } from "../../../types/api";
+import type { ChartRelatedNews, MoveInsight, WatchlistItem } from "../../../types/api";
+import { WatchlistChips } from "./WatchlistChips";
 import { ChartCard } from "./ChartCard";
 import { ChartDocentPanel } from "./ChartDocentPanel";
 import { strongestMove, movesByDate, moveDate } from "../../../lib/chartDocent";
@@ -37,8 +42,44 @@ function formatMoveInsightTime(timestamp: string, period: Period) {
 }
 
 export function ChartScreen({ route, navigation }: Props) {
-  const [selectedSymbol, setSelectedSymbol] = useState(route.params?.symbol ?? "005930");
-  const [selectedStockName, setSelectedStockName] = useState<string | undefined>(route.params?.symbol && route.params.symbol !== "005930" ? undefined : "삼성전자");
+  const [selectedSymbol, setSelectedSymbol] = useState(route.params?.symbol ?? "");
+  const [selectedStockName, setSelectedStockName] = useState<string | undefined>();
+  const [entering, setEntering] = useState(true);
+  const [watchlistError, setWatchlistError] = useState("");
+  const [ownerId, setOwnerId] = useState<number | null>(null);
+  const client=useQueryClient();
+  const watchlist=useQuery({queryKey:["watchlist"],queryFn:getWatchlist,retry:0});
+  const watched=watchlist.data?.some(item=>item.symbol===selectedSymbol) ?? false;
+  useFocusEffect(useCallback(()=>{
+    let active=true;
+    setEntering(true);
+    void (async()=>{
+      // Wait for a fresh owner list even when another tab has already populated the query cache.
+      const [result,session]=await Promise.all([watchlist.refetch(),loadAuthSession()]);
+      const items=result.data ?? [];
+      const last=session?.userId ? await storageGetItem(lastWatchlistKey(session.userId)).catch(()=>null) : null;
+      if(!active) return;
+      const symbol=initialChartSymbol(route.params?.symbol,items,last);
+      setOwnerId(session?.userId ?? null);setSelectedSymbol(symbol);setSelectedStockName(items.find(item=>item.symbol===symbol)?.name);setEntering(false);
+    })().catch(()=>{if(active){setSelectedSymbol(route.params?.symbol ?? "005930");setEntering(false);setWatchlistError("관심종목을 확인하지 못했어요. 다시 시도해주세요");}});
+    return ()=>{active=false;};
+  },[route.params?.symbol,watchlist.refetch]));
+  useEffect(()=>{
+    if(watched && ownerId && !entering) void storageSetItem(lastWatchlistKey(ownerId),selectedSymbol)
+      .catch(()=>setWatchlistError("기기에 마지막 관심종목을 저장하지 못했어요"));
+  },[watched,ownerId,selectedSymbol,entering]);
+  const toggle=useMutation({
+    mutationFn:async ({symbol,wasWatched}:{symbol:string;wasWatched:boolean;name:string})=>{ if(wasWatched) await removeWatchlist(symbol); else await addWatchlist(symbol); },
+    onMutate:async ({symbol,wasWatched,name})=>{
+      setWatchlistError("");await client.cancelQueries({queryKey:["watchlist"]});
+      const previous=client.getQueryData<WatchlistItem[]>(["watchlist"]);
+      client.setQueryData<WatchlistItem[]>(["watchlist"],items=>wasWatched ? (items ?? []).filter(item=>item.symbol!==symbol)
+        : [...(items ?? []),{symbol,name,addedAt:new Date().toISOString()}]);
+      return {previous};
+    },
+    onError:(error,_variables,context)=>{client.setQueryData(["watchlist"],context?.previous);setWatchlistError(getApiErrorMessage(error,"관심종목을 저장하지 못했어요. 다시 시도해주세요"));},
+    onSettled:()=>{void client.invalidateQueries({queryKey:["watchlist"]});void client.invalidateQueries({queryKey:["watchlist-news"]});void client.invalidateQueries({queryKey:["learning-recommendations"]});}
+  });
   const [query, setQuery] = useState("");
   const [period, setPeriod] = useState<Period>("D");
   const [minuteInterval, setMinuteInterval] = useState<1 | 5 | 15>(5);
@@ -52,13 +93,6 @@ export function ChartScreen({ route, navigation }: Props) {
     staleTime: 60_000
   });
   const stocks = popularStocksData ?? [];
-  useEffect(() => {
-    const firstStock = popularStocksData?.[0];
-    if (!selectedSymbol && firstStock) {
-      setSelectedSymbol(firstStock.symbol);
-      setSelectedStockName(firstStock.name);
-    }
-  }, [popularStocksData, selectedSymbol]);
   const searchTerm = query.trim();
 
   const { data: searchResults = [], isFetching: searchFetching } = useQuery({
@@ -72,7 +106,7 @@ export function ChartScreen({ route, navigation }: Props) {
   const { data, isError: chartError, isFetching, refetch: refetchChart } = useQuery({
     queryKey: period === "MINUTE" ? ["chart", selectedSymbol, period, minuteInterval] : ["chart", selectedSymbol, period],
     queryFn: ({ signal }) => getChartData(selectedSymbol, period, minuteInterval, signal),
-    enabled: Boolean(selectedSymbol),
+    enabled: Boolean(selectedSymbol) && !entering,
     retry: 0,
     staleTime: 60_000,
     refetchOnWindowFocus: false,
@@ -113,6 +147,9 @@ export function ChartScreen({ route, navigation }: Props) {
     setQuery("");
   };
 
+  if(entering) return <SafeAreaView style={styles.safeArea}><Text style={{padding:20}}>관심종목을 불러오는 중이에요</Text></SafeAreaView>;
+  const stockName=selectedStockName ?? stocks.find(stock=>stock.symbol===selectedSymbol)?.name ?? chart?.symbolName ?? selectedSymbol;
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView ref={scroll} contentContainerStyle={styles.container}>
@@ -129,8 +166,13 @@ export function ChartScreen({ route, navigation }: Props) {
             ))}
           </View>
         ) : null}
+        <WatchlistChips items={watchlist.data ?? []} selectedSymbol={selectedSymbol} onSelect={selectStock} />
         {stocks.length > 0 ? <PopularStockChips stocks={stocks} selectedSymbol={selectedSymbol} onSelect={(symbol) => selectStock(symbol, stocks.find((stock) => stock.symbol === symbol)?.name ?? chart?.symbolName ?? symbol)} /> : <View style={{ height: 64, backgroundColor: "#EAECF0", borderRadius: 12 }} accessibilityLabel="인기 종목 로딩 중" />}
-        <StockHeader name={selectedStockName ?? stocks.find((stock) => stock.symbol === selectedSymbol)?.name ?? chart?.symbolName ?? selectedSymbol} symbol={selectedSymbol} price={headerQuote?.fallback ? 0 : headerQuote?.price ?? chart?.price ?? 0} changePercent={headerQuote?.changePercent ?? chart?.changePercent ?? 0} changeLabel={changeLabel} />
+        <StockHeader name={stockName} symbol={selectedSymbol} price={headerQuote?.fallback ? 0 : headerQuote?.price ?? chart?.price ?? 0} changePercent={headerQuote?.changePercent ?? chart?.changePercent ?? 0} changeLabel={changeLabel}
+          watched={watched} watchlistBusy={toggle.isPending || watchlist.isPending || watchlist.isError}
+          onToggleWatchlist={()=>toggle.mutate({symbol:selectedSymbol,name:stockName,wasWatched:watched})} />
+        {watchlistError ? <Text accessibilityRole="alert" style={{color:"#B42318"}}>{watchlistError}</Text> : null}
+        {watchlist.isError ? <TouchableOpacity accessibilityRole="button" onPress={()=>void watchlist.refetch()}><Text style={{color:"#B42318"}}>관심종목을 불러오지 못했어요 · 다시 시도</Text></TouchableOpacity> : null}
         {chartError || stocksError ? <TouchableOpacity accessibilityRole="button" onPress={() => { if (chartError) void refetchChart(); if (stocksError) void refetchStocks(); }}><Text style={styles.refreshText}>차트 다시 시도</Text></TouchableOpacity> : null}
         <View style={styles.periodRow}>
           <TouchableOpacity accessibilityRole="tab" accessibilityLabel="일봉" accessibilityState={{ selected: period === "D" }} style={[styles.periodTab, period === "D" && styles.periodTabActive]} onPress={() => setPeriod("D")}>

@@ -26,7 +26,7 @@ export function LearnScreen() {
   const reviews = useQuery({ queryKey: ["learning-reviews", ownerId], queryFn: getLearningReviews, enabled: ownerId !== null && isFocused, retry: 0, staleTime: 60_000, refetchOnWindowFocus: false });
   const progress = useQuery({ queryKey: ["learning-progress", ownerId], queryFn: getLearningProgress, enabled: ownerId !== null && isFocused, retry: 0, staleTime: 60_000, refetchOnWindowFocus: false });
   const recommendations = useQuery({ queryKey: ["learning-recommendations", ownerId], queryFn: getLearningRecommendations, enabled: ownerId !== null && isFocused, retry: 0, staleTime: 60_000, refetchOnWindowFocus: false });
-  const recommendedArticles = recommendations.data?.items.filter(item => item.basis !== "RULE_RECENT" && item.reasonNewsId != null) ?? [];
+  const recommendedArticles = recommendations.data?.items.filter(item => item.basis === "WATCHLIST" || item.basis !== "RULE_RECENT" && item.reasonNewsId != null) ?? [];
   const resumeIds = progress.data ? resumeLearningIds(readingLog, progress.data.completedNewsIds) : [];
   const resumeArticles = useQueries({ queries: resumeIds.map((newsId) => ({ queryKey: ["news-detail", newsId], queryFn: () => getNewsDetail(newsId), enabled: isFocused, retry: 0, staleTime: 60_000 })) });
   const accuracy = (value: number | null) => value === null ? "아직 기록이 없어요" : `${Math.round(value * 100)}%`;
@@ -160,8 +160,8 @@ export function LearnScreen() {
         </View>
 
         {recommendations.isPending || recommendations.isError || recommendedArticles.length ? <View style={styles.section}>
-          <Text accessibilityRole="header" style={styles.sectionTitle}>비슷한 기사 더 읽기</Text>
-          <Text style={styles.auxiliary}>내가 공부한 기사와 비슷한 주제예요</Text>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>{recommendedArticles.some(item=>item.basis==="WATCHLIST") ? "관심종목과 이어 읽기" : "비슷한 기사 더 읽기"}</Text>
+          <Text style={styles.auxiliary}>{recommendedArticles.some(item=>item.basis==="WATCHLIST") ? "관심종목 소식과 내가 공부한 주제를 함께 살펴보세요" : "내가 공부한 기사와 비슷한 주제예요"}</Text>
           {recommendations.isPending ? <View style={[styles.card, { minHeight: 140 }]}><View style={[styles.skeleton, styles.titleSkeleton]} /><View style={[styles.skeleton, styles.shortSkeleton]} /></View>
             : recommendations.isError ? <View style={styles.card}><Text style={styles.auxiliary}>추천 기사를 확인하지 못했어요.</Text><Pressable accessibilityRole="button" accessibilityLabel="추천 기사 다시 시도" style={styles.retryButton} onPress={() => void recommendations.refetch()}><Text style={styles.link}>다시 시도</Text></Pressable></View>
             : recommendedArticles.length ? recommendedArticles.slice(0, 3).map(item => <Pressable key={item.newsId} style={styles.card} accessibilityRole="button" accessibilityLabel={`${item.title} 추천 기사 읽기`} onPress={() => navigation.navigate("NewsDetail", { newsId: item.newsId, readMode: "level", readingLevel: preferences.level })}>

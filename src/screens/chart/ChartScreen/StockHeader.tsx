@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { formatPercent, formatPrice } from "../../../lib/format";
 
 interface StockHeaderProps {
@@ -7,13 +7,20 @@ interface StockHeaderProps {
   price: number;
   changePercent: number;
   changeLabel: string;
+  watched?: boolean;
+  watchlistBusy?: boolean;
+  onToggleWatchlist?: () => void;
 }
 
-export function StockHeader({ name, symbol, price, changePercent, changeLabel }: StockHeaderProps) {
+export function StockHeader({ name, symbol, price, changePercent, changeLabel, watched, watchlistBusy, onToggleWatchlist }: StockHeaderProps) {
   return (
     <View style={styles.row}>
-      <View>
-        <Text style={styles.name}>{name}</Text>
+      <View style={{flex:1,minWidth:0}}>
+        <View style={{flexDirection:"row",alignItems:"center"}}><Text style={[styles.name,{flexShrink:1}]}>{name}</Text>
+          {/^[0-9]{6}$/.test(symbol) && onToggleWatchlist ? <Pressable accessibilityRole="button" accessibilityLabel={watched ? "관심종목 해제" : "관심종목 추가"}
+            accessibilityState={{selected:!!watched,disabled:watchlistBusy}} disabled={watchlistBusy} onPress={onToggleWatchlist}
+            style={{minWidth:44,minHeight:44,alignItems:"center",justifyContent:"center"}}><Text style={{fontSize:28,color:"#175CD3"}}>{watched ? "★" : "☆"}</Text></Pressable> : null}
+        </View>
         <Text style={styles.symbol}>{symbol}</Text>
       </View>
       <View style={styles.priceGroup}>
