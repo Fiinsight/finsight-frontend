@@ -5,13 +5,15 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-nati
 import { NewsCard } from "../../../components/NewsCard";
 import { getMoreBriefing, getTodayBriefing } from "../../../lib/api";
 import type { NewsBrief } from "../../../types/api";
+import { withoutWatchlistNews } from "../../../lib/watchlist";
 
 interface NewsSectionProps {
   preferences?: LearningPreferences;
   onSelectNews: (newsId: number) => void;
+  excludedIds?: number[];
 }
 
-export function NewsSection({ onSelectNews, preferences = getDefaultLearningPreferences() }: NewsSectionProps) {
+export function NewsSection({ onSelectNews, preferences = getDefaultLearningPreferences(), excludedIds=[] }: NewsSectionProps) {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["today-briefing"],
     queryFn: getTodayBriefing,
@@ -26,7 +28,7 @@ export function NewsSection({ onSelectNews, preferences = getDefaultLearningPref
   const [moreError, setMoreError] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  const news = data ?? [];
+  const news = withoutWatchlistNews(data ?? [],excludedIds);
   // Never present demo copy as if it were live market news. An empty state is
   // more honest and makes a failed collection/API connection visible.
   const isRealData = !!data;
@@ -64,13 +66,13 @@ export function NewsSection({ onSelectNews, preferences = getDefaultLearningPref
         <NewsCard key={item.id} news={item} onPress={() => onSelectNews(item.id)} />
       )) : (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyTitle}>{isError ? "뉴스를 불러오지 못했어요" : "오늘의 뉴스를 준비하고 있어요"}</Text>
+          <Text style={styles.emptyTitle}>{isError ? "뉴스를 불러오지 못했어요" : data?.length ? "다른 핵심 뉴스는 아직 없어요" : "오늘의 뉴스를 준비하고 있어요"}</Text>
           {isError ? <Pressable accessibilityRole="button" onPress={() => void refetch()} style={styles.moreButton}><Text style={styles.moreButtonText}>다시 시도</Text></Pressable> : null}
-          <Text style={styles.emptyBody}>{isError ? "연결을 확인하고 다시 시도해 주세요." : "잠시 후 실제 수집된 뉴스가 이곳에 표시됩니다."}</Text>
+          <Text style={styles.emptyBody}>{isError ? "연결을 확인하고 다시 시도해 주세요." : data?.length ? "관심종목 뉴스는 위 섹션에서 확인할 수 있어요." : "잠시 후 실제 수집된 뉴스가 이곳에 표시됩니다."}</Text>
         </View>
       )}
 
-      {(!preferences || preferences.painPoint !== "overload" || expanded) && olderNews.map((item) => (
+      {(!preferences || preferences.painPoint !== "overload" || expanded) && withoutWatchlistNews(olderNews,excludedIds).map((item) => (
         <NewsCard key={item.id} news={item} onPress={() => onSelectNews(item.id)} />
       ))}
 

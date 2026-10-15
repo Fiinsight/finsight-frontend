@@ -136,6 +136,14 @@ test('recommendation cards show actual behavior reason and open the selected art
  assert.equal(screen.navigation.at(-1)[0],'NewsDetail');assert.equal(screen.navigation.at(-1)[1].newsId,777);
 });
 
+test('watchlist recommendations without a prior activity stay visible and open at the current reading level',()=>{
+ const item={newsId:901,reasonNewsId:null,basis:'WATCHLIST',title:'관심종목 새 계약',summary:'새 소식을 확인해요.',reason:'관심종목 삼성전자 소식이에요'};
+ const screen=harness({recommendations:[item]});const tree=screen.render();
+ assert(screen.text(tree).includes('관심종목과 이어 읽기'));assert(screen.text(tree).includes(item.reason));
+ button(tree,'관심종목 새 계약 추천 기사 읽기').props.onPress();
+ assert.equal(screen.navigation.at(-1)[1].newsId,901);assert.equal(screen.navigation.at(-1)[1].readingLevel,'beginner');
+});
+
 
 test('learning sections explain the flow, keep their order, hide unrelated recommendations and scroll to reviews', () => {
  const item={newsId:777,reasonNewsId:115,basis:'RULE_INTEREST',title:'추천 기사',reason:"'금리' 퀴즈를 틀린 기사와 비슷해요"};

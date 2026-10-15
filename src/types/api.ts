@@ -13,6 +13,7 @@ export type ReadingLevel = "beginner" | "normal" | "analyst";
 export type JudgementChoice = "UP" | "NEUTRAL" | "DOWN";
 
 export type Tone = "up" | "down" | "flat";
+export interface WatchlistItem { symbol: string; name: string; addedAt: string; }
 
 // ---------------------------------------------------------------------------
 // Briefings (GET /briefings/today) - confirmed by API_CONTRACT.md
