@@ -1,3 +1,4 @@
+import { initialChartSymbol, lastWatchlistKey } from './watchlist.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -12,10 +13,10 @@ test('strongest point, descending order and minute identity',()=>{
  assert.equal(model.moveDate('2026-10-07T11:05:00','MINUTE'),'2026-10-07T11:05:00');assert.equal(model.moveDate(moves[0].timestamp,'W'),'2026-10-07');
 });
 function harness() {
- let slot=0;const state=[],scrolled=[],navigated=[];const React={createElement:(type,props,...children)=>({type,props,children}),useEffect(){},useRef:value=>({current:value===null?{scrollTo:value=>scrolled.push(value)}:value}),useState:initial=>{const i=slot++;if(!(i in state))state[i]=initial;return[state[i],value=>state[i]=value];}};
- const exports={};vm.runInNewContext(ts.transpileModule(readFileSync(new URL('../screens/chart/ChartScreen/index.tsx',import.meta.url),'utf8'),{compilerOptions:options}).outputText,{exports,React,require:name=>name==='react'?React:name==='react-native'?{SafeAreaView:'SafeAreaView',ScrollView:'ScrollView',Text:'Text',View:'View',TouchableOpacity:'TouchableOpacity',StyleSheet:{create:s=>s}}:name==='../../../lib/chartDocent'?model:name==='@tanstack/react-query'?{useQuery:({queryKey})=>({data:queryKey[0]==='chart'?{symbol:'005930',period:'D',candles:[],minuteCandles:[],moveInsights:moves,relatedNews:[]}:[]})}:name.startsWith('./')?{[name.slice(2)]:name.slice(2)}:{}});
+ let slot=0;const state=[],scrolled=[],navigated=[];const React={createElement:(type,props,...children)=>({type,props,children}),useCallback:f=>f,useEffect(){},useRef:value=>({current:value===null?{scrollTo:value=>scrolled.push(value)}:value}),useState:initial=>{const i=slot++;if(!(i in state))state[i]=initial===true?false:initial;return[state[i],value=>state[i]=value];}};
+ const exports={};vm.runInNewContext(ts.transpileModule(readFileSync(new URL('../screens/chart/ChartScreen/index.tsx',import.meta.url),'utf8'),{compilerOptions:options}).outputText,{exports,React,require:name=>name==='react'?React:name==='react-native'?{SafeAreaView:'SafeAreaView',ScrollView:'ScrollView',Text:'Text',View:'View',TouchableOpacity:'TouchableOpacity',StyleSheet:{create:s=>s}}:name==='../../../lib/chartDocent'?model:name==='@react-navigation/native'?{useFocusEffect(){}}:name==='../../../lib/watchlist'?{initialChartSymbol,lastWatchlistKey}:name==='@tanstack/react-query'?{useQueryClient:()=>({}),useMutation:()=>({isPending:false}),useQuery:({queryKey})=>({data:queryKey[0]==='chart'?{symbol:'005930',period:'D',candles:[],minuteCandles:[],moveInsights:moves,relatedNews:[]}:[]})}:name.startsWith('./')?{[name.slice(2)]:name.slice(2)}:{}});
  const visit=n=>Array.isArray(n)?n.flatMap(visit):n&&typeof n==='object'?[n,...visit(n.children)]:[];
- return {render(){slot=0;return visit(exports.ChartScreen({route:{params:{}},navigation:{navigate:(...args)=>navigated.push(args)}}));},scrolled,navigated};
+ return {render(){slot=0;return visit(exports.ChartScreen({route:{params:{symbol:'005930'}},navigation:{navigate:(...args)=>navigated.push(args)}}));},scrolled,navigated};
 }
 test('entry auto-selects biggest, point list selects and scrolls, previous/next and news link work',()=>{
  const h=harness();let tree=h.render();let panel=tree.find(x=>x.type==='ChartDocentPanel');assert.equal(panel.props.insight,moves[1]);

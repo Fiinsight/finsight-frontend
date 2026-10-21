@@ -38,6 +38,7 @@ import type {
   TermExplanation,
   Tone
 } from "../types/api";
+import type { WatchlistItem } from "../types/api";
 import { formatPercent } from "./format";
 import { getActiveAccessToken, loadAuthSession, notifyAuthFailure } from "./auth";
 import { loadOnboardingProfile, saveOnboardingProfile, mapOnboardingToLearningPreferences, type LearningPreferences, type OnboardingAnswer } from "./onboarding";
@@ -174,6 +175,11 @@ export async function getTodayBriefing(): Promise<NewsBrief[]> {
   const { data } = await api.get<NewsBrief[]>("/briefings/today");
   return data;
 }
+
+export async function getWatchlist(): Promise<WatchlistItem[]> { return (await api.get<WatchlistItem[]>("/watchlist")).data; }
+export async function addWatchlist(symbol: string): Promise<WatchlistItem> { return (await api.put<WatchlistItem>(`/watchlist/${encodeURIComponent(symbol)}`)).data; }
+export async function removeWatchlist(symbol: string): Promise<void> { await api.delete(`/watchlist/${encodeURIComponent(symbol)}`); }
+export async function getWatchlistNews(): Promise<NewsBrief[]> { return (await api.get<NewsBrief[]>("/news/watchlist",{params:{limit:5}})).data; }
 
 export async function getMoreBriefing(page: number, size = 10): Promise<NewsBrief[]> {
   const { data } = await api.get<NewsBrief[]>("/briefings/more", { params: { page, size } });
