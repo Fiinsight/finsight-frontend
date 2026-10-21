@@ -541,7 +541,7 @@ export async function getLearningReviews(): Promise<LearningReview[]> {
 }
 
 export interface LearningProgressSummary {
-  mastery?: { strongest: ConceptMastery[]; weakest: ConceptMastery[]; totalAttempts: number; learningCount: number };
+  mastery?: { strongest: ConceptMastery[]; weakest: ConceptMastery[]; totalAttempts: number; learningCount: number; learning?: ConceptMastery[] };
   today: { answeredCount: number; correctCount: number; accuracy: number | null };
   week: { from: string; to: string; answeredCount: number; correctCount: number; accuracy: number | null };
   activityStreakDays: number;
@@ -549,7 +549,7 @@ export interface LearningProgressSummary {
   totalDecidedCount: number;
   goal: { type: GoalType; achievedToday: boolean; streakDays: number };
   levelSuggestion: "normal" | "analyst" | null;
-  weakAreas: Array<{ sampleSize: number; category: string; decidedCount: number; hitCount: number; recentNewsIds: number[] }>;
+  weakAreas: Array<{ sampleSize: number; category: string; decidedCount: number; hitCount: number; recentNewsIds: number[]; recentArticles?: Array<{ newsId: number; title: string }> }>;
 }
 export interface ConceptMastery {
   term: string;

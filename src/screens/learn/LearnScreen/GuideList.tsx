@@ -129,7 +129,11 @@ export function GuideList({ focus, level }: { focus: LearningFocus; level: Learn
       : focus === "reflection"
         ? [guides[5], guides[0], guides[2], guides[1]]
         : guides;
-  const visibleGuides = level === "beginner" ? personalizedGuides.slice(0, 4) : personalizedGuides;
+  const visibleGuides = personalizedGuides.map(guide => ({ ...guide,
+    subtitle: level === "beginner" ? `${guide.subtitle} · 한 문장부터` : level === "normal" ? `${guide.subtitle} · 비교 기준 확인` : `${guide.subtitle} · 반대 가설 검토`,
+    content: level === "beginner" ? guide.content.split("\n").slice(0, 2).join("\n") : level === "normal" ? guide.content : `${guide.content}\n반대 가설을 적고, 이를 확인할 수 있는 관측 지표와 발표 시점을 함께 정해보세요.`,
+    example: level === "beginner" ? `먼저 한 가지 사실을 찾아보세요. ${guide.example}` : level === "normal" ? `${guide.example} 비교 기간과 수치의 단위를 같은 기준으로 맞춰보세요.` : `${guide.example} 다른 설명이 가능한지 반대 가설과 발표 이전 기대를 함께 검토해보세요.`
+  }));
   return (
     <View style={styles.card}>
       <Text accessibilityRole="header" style={styles.sectionTitle}>나에게 맞는 학습 가이드</Text>
@@ -228,6 +232,6 @@ const styles = StyleSheet.create({
   modalCard: { maxHeight: "85%", backgroundColor: colors.surface, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, padding: spacing.xl, gap: 14 },
   modalTitle: { color: colors.text, fontSize: typography.size.heading, fontWeight: typography.weight.bold },
   modalBody: { color: colors.body, fontSize: typography.size.reading, lineHeight: 23 },
-  closeButton: { backgroundColor: colors.primary, borderRadius: 10, alignItems: "center", paddingVertical: 13 },
+  closeButton: { minHeight: 44, justifyContent: "center", backgroundColor: colors.primary, borderRadius: 10, alignItems: "center", paddingVertical: 13 },
   closeButtonText: { color: colors.surface, fontSize: typography.size.body, fontWeight: typography.weight.bold }
 });

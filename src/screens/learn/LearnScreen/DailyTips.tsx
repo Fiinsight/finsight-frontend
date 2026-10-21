@@ -1,5 +1,7 @@
 import { colors, radius, spacing, typography } from "../../../theme";
-import { Image, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { localDateKey } from "../../../lib/readingProgressModel";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import type { LearningFocus, LearningLevel, LearningPace } from "../../../lib/learningPreferences";
 
 type DailyTip = { tip: string; example: string };
@@ -31,17 +33,35 @@ const tipsByFocus: Record<LearningFocus, DailyTip[]> = {
   ]
 };
 
+const tipsByLevel: Record<LearningLevel, Record<LearningFocus, DailyTip[]>> = {
+  beginner: tipsByFocus,
+  normal: {
+    news: [{ tip: "전년 대비와 전분기 대비를 구분하고 같은 기준으로 비교해보세요.", example: "매출 증가율은 같아도 계절성이 큰 업종은 비교 기간에 따라 의미가 달라요." }, { tip: "발표 수치와 이전 전망의 차이를 따로 적어보세요.", example: "이익 증가와 전망 하향이 함께 나오면 각각의 근거 문장을 찾아보세요." }],
+    decision: [{ tip: "판단을 뒷받침하는 수치와 반대 수치를 하나씩 모아보세요.", example: "수주 증가와 원가 상승을 함께 보면 수익성 변화를 점검할 수 있어요." }, { tip: "예측의 조건과 확인할 날짜를 메모해보세요.", example: "환율이 유지된다는 조건과 다음 실적 발표일을 적어보세요." }],
+    market: [{ tip: "시장 지수와 업종 수익률을 같은 기간으로 비교해보세요.", example: "지수보다 업종이 더 올랐다면 업종 공통 뉴스도 확인해보세요." }, { tip: "금리와 환율 변화가 비용에 전달되는 경로를 적어보세요.", example: "원화 약세가 매출에 주는 이익과 수입 원가 부담을 나눠보세요." }],
+    reflection: [{ tip: "결과보다 당시 사용한 근거가 유효했는지 점검해보세요.", example: "방향을 맞혀도 근거로 적은 매출 전망이 실제로 바뀌었는지 확인해요." }, { tip: "같은 조건의 판단을 모아 반복되는 습관을 찾아보세요.", example: "실적 발표 기사에서 기대와 실제 수치를 구분했는지 비교해요." }]
+  },
+  analyst: {
+    news: [{ tip: "기사의 수치가 공시 원문과 조정 기준까지 일치하는지 확인해보세요.", example: "연결·별도 재무제표와 일회성 손익을 구분해 비교해요." }, { tip: "공개 시점 이전의 시장 기대와 발표 수치의 차이를 분리해보세요.", example: "가이던스 수정 폭과 컨센서스 차이를 각각 기록해요." }],
+    decision: [{ tip: "기본·낙관·비관 가정별로 판단이 바뀌는 조건을 적어보세요.", example: "물량과 단가를 나눠 어느 가정이 이익 추정에 더 민감한지 살펴봐요." }, { tip: "반대 가설을 기각할 수 있는 관측 지표를 정해보세요.", example: "수주가 매출로 전환되지 않는 가설을 다음 분기 잔고로 점검해요." }],
+    market: [{ tip: "종목 수익률에서 시장·업종 공통 움직임을 구분해보세요.", example: "동일 기간 업종 흐름을 먼저 확인하고 개별 공시의 설명력을 살펴봐요." }, { tip: "뉴스 발생과 시장 반응의 시간 순서를 확인해보세요.", example: "장 마감 후 해설은 이전 움직임의 원인 근거로 사용하지 않아요." }],
+    reflection: [{ tip: "확신 구간별 예측과 결과를 모아 과신 여부를 점검해보세요.", example: "표본이 적으면 적중률 차이를 능력 차이로 단정하지 않아요." }, { tip: "근거 변화와 외부 충격을 나눠 판단 과정을 복기해보세요.", example: "가정이 틀린 경우와 예상 밖 정책 발표가 발생한 경우를 구분해요." }]
+  }
+};
+
+export function selectDailyTips(level: LearningLevel, pace: LearningPace, focus: LearningFocus, date = new Date()) {
+  const tips = tipsByLevel[level][focus];
+  const day = Math.floor(Date.parse(`${localDateKey(date)}T00:00:00Z`) / 86_400_000);
+  return Array.from({ length: pace === "deep" ? 2 : 1 }, (_, index) => tips[(day + index) % tips.length]);
+}
 export function DailyTips({ level, pace, focus }: { level: LearningLevel; pace: LearningPace; focus: LearningFocus }) {
-  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
-  const tips = tipsByFocus[focus];
-  const levelOffset = level === "analyst" ? 2 : level === "normal" ? 1 : 0;
-  const firstIndex = (dayOfYear + levelOffset) % tips.length;
-  const count = pace === "deep" ? 2 : 1;
-  const todaysTips = Array.from({ length: count }, (_, index) => tips[(firstIndex + index) % tips.length]);
+  const [requested, setRequested] = useState(false);
+  const todaysTips = pace === "on-demand" && !requested ? [] : selectDailyTips(level, pace, focus);
 
   return (
     <View style={styles.group}>
-      <Text accessibilityRole="header" style={styles.sectionTitle}>{pace === "deep" ? "오늘의 깊이 읽기" : "오늘의 한 줄 팁"}</Text>
+      <Text accessibilityRole="header" style={styles.sectionTitle}>{pace === "deep" ? "오늘의 깊이 읽기" : pace === "on-demand" ? "필요할 때 꺼내 보는 팁" : "오늘의 한 줄 팁"}</Text>
+      {pace === "on-demand" && !requested ? <Pressable accessibilityRole="button" style={{ minHeight: 44, justifyContent: "center" }} onPress={() => setRequested(true)}><Text style={styles.tipText}>필요한 팁 보기</Text></Pressable> : null}
       {todaysTips.map((tip, index) => (
         <View key={index} style={styles.tipRow}>
           <Image source={require("../../../../assets/finsight-mascot-face.png")} style={styles.mascot} resizeMode="contain" />
