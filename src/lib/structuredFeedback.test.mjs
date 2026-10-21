@@ -16,10 +16,12 @@ function render(item=base,latest) {
  const tree=nodes(exports.JudgementDetailScreen({route:{params:{item}},navigation:{navigate:(...args)=>navigation.push(args),goBack(){}}}));return{tree,navigation};
 }
 const snapshotFile=new URL('./fixtures/judgement-feedback.json',import.meta.url);
+// Rule output mirrored from finsight-ai/tests/fixtures/feedback_context.json.
+const coachingFixtures=JSON.parse(readFileSync(new URL('./fixtures/feedback-coaching.json',import.meta.url),'utf8'));
 const snapshots={};
 for(const [verdict,override] of [['CORRECT',{}],['WRONG',{choice:'UP'}],['PARTIAL',{choice:'UP',actualDirection:'UP',actualChangePercent:.7,comparisonClose:100.7}]]){
  test(`verdict ${verdict} UI snapshot`,()=>{
-  const {tree,navigation}=render({...base,...override,verdict});const chart=tree.find(n=>n.type==='MiniLineChart');
+  const {tree,navigation}=render({...base,...override,...coachingFixtures[verdict],verdict});const chart=tree.find(n=>n.type==='MiniLineChart');
   const snapshot={text:texts(tree),markers:chart.props.markers,range:chart.props.highlightRange,showTooltip:chart.props.showTooltip};
   if(process.env.UPDATE_FEEDBACK_SNAPSHOTS==='1'){snapshots[verdict]=snapshot;mkdirSync(new URL('./fixtures/',import.meta.url),{recursive:true});writeFileSync(snapshotFile,JSON.stringify(snapshots,null,2)+'\n');}
   else assert.deepEqual(JSON.parse(JSON.stringify(snapshot)),JSON.parse(readFileSync(snapshotFile,'utf8'))[verdict]);
@@ -80,12 +82,25 @@ test('upward outcome shows why it rose and the explanation of an earnings expect
  const text=texts(tree).join(' ');assert.match(text,/왜 맞았을까요/);assert.match(text,/이익 기대/);
 });
 
+test('article-specific Gemini coaching stays visible without the next tip card',()=>{
+ const article='기사에서는 “삼성전자의 판매 계약이 늘었다.”라고 전했어요. 판매 계약 확대는 제품 수요와 매출 기대를 높이는 경로로 읽을 수 있어요.';
+ const coaching='남긴 근거: “계약 확대를 확인했어요”. 계약에서 수요와 이익으로 이어지는 연결을 더 남겨보세요.';
+ const tip='계약 규모뿐 아니라 실제 매출과 비용에 미치는 영향을 확인해보세요.';
+ const tree=render({...base,choice:'UP',actualDirection:'UP',actualChangePercent:1.2,comparisonClose:101.2,
+  feedbackText:'삼성전자 종가 기준 +1.20%.',reasonText:'계약 확대를 확인했어요',reasons:['계약 확대를 확인했어요'],
+  feedbackReasons:[{title:'기사 신호와 결과',detail:article},{title:'내 근거 점검',detail:coaching},{title:'시장 비교',detail:'삼성전자 +1.20%, 코스피 +0.20%예요.'}],nextTip:tip}).tree;
+ const text=texts(tree);
+ for(const value of ['왜 맞았을까요?',article,coaching]) assert(text.includes(value));
+ assert(!text.includes('다음엔 이렇게'));assert(!text.includes(tip));
+ assert.equal(text.filter(value=>value===coaching).length,1);
+});
+
 test('unknown, legacy and mismatched outcomes show review explanations and limits without a chart or praise',()=>{
  const review=[{title:'기사의 핵심과 의미',detail:'기사에서 신규 투자를 전했어요. 성장 기대와 비용 부담을 함께 봐야 해요.'},{title:'내 판단 돌아보기',detail:'근거가 기사 사실인지 예상인지 나눠보세요.'}];
  for(const status of [{actualDirection:'UNKNOWN',comparisonDate:null},{gradingIssue:'LEGACY_COMPARISON',comparisonDate:null},{gradingIssue:'TARGET_MISMATCH'}]){
   const item={...base,...status,verdict:null,feedbackReasons:review,unavailableReason:'저장된 비교 자료가 부족해 적중 통계에 포함하지 않아요.',nextTip:'기사 사실과 예상 방향을 나눠보세요.'};
   const {tree,navigation}=render(item);const text=texts(tree).join(' ');
-  assert.match(text,/기사에서 볼 근거/);assert.match(text,/성장 기대와 비용 부담/);assert.match(text,/적중 통계에 포함하지 않아요/);assert.match(text,/기사 사실과 예상 방향/);
+  assert.match(text,/기사에서 볼 근거/);assert.match(text,/성장 기대와 비용 부담/);assert.match(text,/적중 통계에 포함하지 않아요/);assert(!text.includes(item.nextTip));
   assert(!text.includes('정확한 판단'));assert(!text.includes('왜 내렸을까요'));assert(!tree.some(n=>n.type==='MiniLineChart'));
   tree.find(n=>n.props?.accessibilityLabel==='이 기사 다시 읽기').props.onPress();assert.equal(navigation[0][0],'NewsDetail');
  }
@@ -120,7 +135,7 @@ test('new and legacy reason coaching is visible under the user rationale and pen
   const card=tree.find(n=>n.type==='View'&&texts(nodes(n))[0]==='내 근거 점검');
   assert(texts(nodes(card)).includes(base.reasonText));assert(texts(nodes(card)).includes(detail));
   assert.equal(texts(tree).filter(t=>t===detail).length,1);
-  assert(texts(tree).includes('다음엔 이렇게'));
+  assert(!texts(tree).includes('다음엔 이렇게'));assert(!texts(tree).includes(base.nextTip));
   const pending=render({...base,actualDirection:null,verdict:null,feedbackReasons}).tree;
   assert(texts(pending).includes(base.reasonText));assert(!texts(pending).includes(detail));
  }
