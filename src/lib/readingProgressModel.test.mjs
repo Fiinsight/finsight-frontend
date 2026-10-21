@@ -33,3 +33,10 @@ test("reading date keys match attendance KST regardless of device timezone", () 
   assert.deepEqual(Array.from(exports.resumeLearningIds({"2026-10-05":[1,2],"2026-10-06":[2,3,4]},[3])),[4,2]);
   assert.deepEqual(Array.from(exports.resumeLearningIds({},[])),[]);
  });
+
+test("server quiz completions prevent a false never-read state on another device", () => {
+  assert.equal(exports.resumeLearningEmptyMessage({}, [42]), "최근 읽은 기사의 퀴즈를 모두 마쳤어요.");
+  assert.equal(countDailyReads({}, "2026-10-21"), 0);
+  assert.equal(exports.resumeLearningEmptyMessage({"2026-10-21": []}, []), "아직 읽은 기사가 없어요. 오늘의 뉴스부터 시작해보세요.");
+  assert.equal(exports.resumeLearningEmptyMessage({"2026-10-20": [42]}, [42]), "최근 읽은 기사의 퀴즈를 모두 마쳤어요.");
+});

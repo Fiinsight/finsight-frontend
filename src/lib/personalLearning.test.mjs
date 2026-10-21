@@ -63,6 +63,7 @@ test('learning focus callbacks run without invoking hooks inside an effect', () 
     if (name === '@react-navigation/native') return { useRoute: () => hook({params:{}}), useIsFocused: () => hook(true), useNavigation: () => hook({}), useFocusEffect: (fn) => { hook(null); effects.push(fn); } };
     if (name === '@tanstack/react-query') return { useQuery: () => hook({}), useQueries: () => hook([]), useQueryClient: () => hook({ invalidateQueries() {} }), useMutation: () => hook({}) };
     if (name.endsWith('/auth')) return { loadAuthSession: async () => null };
+    if (name.endsWith('/readingProgressModel')) return compile('./readingProgressModel.ts', { require: () => ({}) });
     if (name.endsWith('/api')) return { getLearningPreferences: async () => ({}) };
     if (name.endsWith('/onboarding')) return { getDefaultLearningPreferences: () => ({}) };
     return {};
