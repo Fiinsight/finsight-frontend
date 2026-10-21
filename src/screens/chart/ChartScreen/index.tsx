@@ -1,3 +1,4 @@
+import { colors, radius, spacing, typography } from "../../../theme";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -147,7 +148,7 @@ export function ChartScreen({ route, navigation }: Props) {
     setQuery("");
   };
 
-  if(entering) return <SafeAreaView style={styles.safeArea}><Text style={{padding:20}}>관심종목을 불러오는 중이에요</Text></SafeAreaView>;
+  if(entering) return <SafeAreaView style={styles.safeArea}><Text style={{padding: spacing.lg}}>관심종목을 불러오는 중이에요</Text></SafeAreaView>;
   const stockName=selectedStockName ?? stocks.find(stock=>stock.symbol===selectedSymbol)?.name ?? chart?.symbolName ?? selectedSymbol;
 
   return (
@@ -167,7 +168,7 @@ export function ChartScreen({ route, navigation }: Props) {
           </View>
         ) : null}
         <WatchlistChips items={watchlist.data ?? []} selectedSymbol={selectedSymbol} onSelect={selectStock} />
-        {stocks.length > 0 ? <PopularStockChips stocks={stocks} selectedSymbol={selectedSymbol} onSelect={(symbol) => selectStock(symbol, stocks.find((stock) => stock.symbol === symbol)?.name ?? chart?.symbolName ?? symbol)} /> : <View style={{ height: 64, backgroundColor: "#EAECF0", borderRadius: 12 }} accessibilityLabel="인기 종목 로딩 중" />}
+        {stocks.length > 0 ? <PopularStockChips stocks={stocks} selectedSymbol={selectedSymbol} onSelect={(symbol) => selectStock(symbol, stocks.find((stock) => stock.symbol === symbol)?.name ?? chart?.symbolName ?? symbol)} /> : <View style={{ height: 64, backgroundColor: colors.border, borderRadius: radius.control }} accessibilityLabel="인기 종목 로딩 중" />}
         <StockHeader name={stockName} symbol={selectedSymbol} price={headerQuote?.fallback ? 0 : headerQuote?.price ?? chart?.price ?? 0} changePercent={headerQuote?.changePercent ?? chart?.changePercent ?? 0} changeLabel={changeLabel}
           watched={watched} watchlistBusy={toggle.isPending || watchlist.isPending || watchlist.isError}
           onToggleWatchlist={()=>toggle.mutate({symbol:selectedSymbol,name:stockName,wasWatched:watched})} />
@@ -245,16 +246,16 @@ export function ChartScreen({ route, navigation }: Props) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#F8FAFC"
+    backgroundColor: colors.canvas
   },
   container: {
-    padding: 20,
+    padding: spacing.lg,
     paddingBottom: 40,
-    gap: 16
+    gap: spacing.md
   },
   searchResults: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#D0D5DD",
+    backgroundColor: colors.surface,
+    borderColor: colors.borderStrong,
     borderWidth: 1,
     borderRadius: 10,
     overflow: "hidden"
@@ -265,12 +266,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 14,
     paddingVertical: 11,
-    borderBottomColor: "#F2F4F7",
+    borderBottomColor: colors.surfaceMuted,
     borderBottomWidth: 1
   },
-  searchResultName: { color: "#101828", fontSize: 14, fontWeight: "700" },
-  searchResultSymbol: { color: "#667085", fontSize: 12 },
-  searchHint: { color: "#667085", fontSize: 13, padding: 14 },
+  searchResultName: { color: colors.text, fontSize: typography.size.body, fontWeight: typography.weight.bold },
+  searchResultSymbol: { color: colors.muted, fontSize: typography.size.caption },
+  searchHint: { color: colors.muted, fontSize: typography.size.meta, padding: 14 },
   refreshCard: {
     backgroundColor: "#EFF8FF",
     borderColor: "#B2DDFF",
@@ -279,134 +280,134 @@ const styles = StyleSheet.create({
     padding: 10
   },
   emptyCard: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#EAECF0",
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
     borderWidth: 1,
     borderRadius: 10,
-    padding: 16
+    padding: spacing.md
   },
   emptyText: {
-    color: "#667085",
-    fontSize: 13,
+    color: colors.muted,
+    fontSize: typography.size.meta,
     lineHeight: 19
   },
-  refreshText: { color: "#175CD3", fontSize: 12, fontWeight: "700" },
+  refreshText: { color: colors.primary, fontSize: typography.size.caption, fontWeight: typography.weight.bold },
   periodRow: {
     flexDirection: "row",
-    backgroundColor: "#F2F4F7",
-    borderRadius: 8,
-    padding: 4,
-    gap: 4,
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: radius.small,
+    padding: spacing.xxs,
+    gap: spacing.xxs,
     alignSelf: "flex-start"
   },
   periodTab: {
-    borderRadius: 6,
-    paddingHorizontal: 16,
+    borderRadius: radius.small,
+    paddingHorizontal: spacing.md,
     paddingVertical: 6
   },
   periodTabActive: {
-    backgroundColor: "#FFFFFF"
+    backgroundColor: colors.surface
   },
   periodText: {
-    color: "#667085",
-    fontSize: 13,
-    fontWeight: "700"
+    color: colors.muted,
+    fontSize: typography.size.meta,
+    fontWeight: typography.weight.bold
   },
   periodTextActive: {
-    color: "#101828"
+    color: colors.text
   },
   intervalRow: {
     flexDirection: "row",
-    gap: 8
+    gap: spacing.xs
   },
   intervalTab: {
-    borderColor: "#D0D5DD",
+    borderColor: colors.borderStrong,
     borderWidth: 1,
-    borderRadius: 6,
-    paddingHorizontal: 12,
+    borderRadius: radius.small,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 6
   },
   intervalTabActive: {
-    backgroundColor: "#101828"
+    backgroundColor: colors.text
   },
   intervalText: {
-    color: "#667085",
-    fontSize: 12,
-    fontWeight: "700"
+    color: colors.muted,
+    fontSize: typography.size.caption,
+    fontWeight: typography.weight.bold
   },
   intervalTextActive: {
-    color: "#FFFFFF"
+    color: colors.surface
   },
   warningCard: {
     backgroundColor: "#FFFAEB",
     borderColor: "#FEDF89",
     borderWidth: 1,
     borderRadius: 10,
-    padding: 12,
-    gap: 4
+    padding: spacing.sm,
+    gap: spacing.xxs
   },
   warningTitle: {
-    color: "#B54708",
-    fontSize: 13,
-    fontWeight: "800"
+    color: colors.warning,
+    fontSize: typography.size.meta,
+    fontWeight: typography.weight.bold
   },
   warningText: {
     color: "#93370D",
-    fontSize: 12,
+    fontSize: typography.size.caption,
     lineHeight: 18
   },
   insightCard: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#EAECF0",
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
     borderWidth: 1,
     borderRadius: 10,
-    padding: 16,
+    padding: spacing.md,
     gap: 14
   },
   insightTitle: {
-    color: "#101828",
-    fontSize: 16,
-    fontWeight: "800"
+    color: colors.text,
+    fontSize: typography.size.label,
+    fontWeight: typography.weight.bold
   },
   insightRow: {
     flexDirection: "row",
-    gap: 12,
-    borderTopColor: "#F2F4F7",
+    gap: spacing.sm,
+    borderTopColor: colors.surfaceMuted,
     borderTopWidth: 1,
-    paddingTop: 12
+    paddingTop: spacing.sm
   },
   insightMove: {
     width: 60,
-    fontSize: 14,
-    fontWeight: "800"
+    fontSize: typography.size.body,
+    fontWeight: typography.weight.bold
   },
   up: {
-    color: "#D92D20"
+    color: colors.up
   },
   down: {
-    color: "#175CD3"
+    color: colors.primary
   },
   insightCopy: {
     flex: 1,
     gap: 3
   },
   insightTime: {
-    color: "#98A2B3",
+    color: colors.subtle,
     fontSize: 11
   },
   insightNews: {
-    color: "#344054",
-    fontSize: 13,
-    fontWeight: "700",
+    color: colors.body,
+    fontSize: typography.size.meta,
+    fontWeight: typography.weight.bold,
     lineHeight: 18
   },
   newsLink: {
-    color: "#175CD3",
+    color: colors.primary,
     textDecorationLine: "underline"
   },
   insightExplanation: {
-    color: "#667085",
-    fontSize: 12,
+    color: colors.muted,
+    fontSize: typography.size.caption,
     lineHeight: 17
   }
 });

@@ -1,3 +1,4 @@
+import * as theme from '../theme/index.ts';
 import { initialChartSymbol, lastWatchlistKey } from './watchlist.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -14,7 +15,7 @@ test('strongest point, descending order and minute identity',()=>{
 });
 function harness() {
  let slot=0;const state=[],scrolled=[],navigated=[];const React={createElement:(type,props,...children)=>({type,props,children}),useCallback:f=>f,useEffect(){},useRef:value=>({current:value===null?{scrollTo:value=>scrolled.push(value)}:value}),useState:initial=>{const i=slot++;if(!(i in state))state[i]=initial===true?false:initial;return[state[i],value=>state[i]=value];}};
- const exports={};vm.runInNewContext(ts.transpileModule(readFileSync(new URL('../screens/chart/ChartScreen/index.tsx',import.meta.url),'utf8'),{compilerOptions:options}).outputText,{exports,React,require:name=>name==='react'?React:name==='react-native'?{SafeAreaView:'SafeAreaView',ScrollView:'ScrollView',Text:'Text',View:'View',TouchableOpacity:'TouchableOpacity',StyleSheet:{create:s=>s}}:name==='../../../lib/chartDocent'?model:name==='@react-navigation/native'?{useFocusEffect(){}}:name==='../../../lib/watchlist'?{initialChartSymbol,lastWatchlistKey}:name==='@tanstack/react-query'?{useQueryClient:()=>({}),useMutation:()=>({isPending:false}),useQuery:({queryKey})=>({data:queryKey[0]==='chart'?{symbol:'005930',period:'D',candles:[],minuteCandles:[],moveInsights:moves,relatedNews:[]}:[]})}:name.startsWith('./')?{[name.slice(2)]:name.slice(2)}:{}});
+ const exports={};vm.runInNewContext(ts.transpileModule(readFileSync(new URL('../screens/chart/ChartScreen/index.tsx',import.meta.url),'utf8'),{compilerOptions:options}).outputText,{exports,React,require:name=>name.endsWith('/theme') ? theme : name==='react'?React:name==='react-native'?{SafeAreaView:'SafeAreaView',ScrollView:'ScrollView',Text:'Text',View:'View',TouchableOpacity:'TouchableOpacity',StyleSheet:{create:s=>s}}:name==='../../../lib/chartDocent'?model:name==='@react-navigation/native'?{useFocusEffect(){}}:name==='../../../lib/watchlist'?{initialChartSymbol,lastWatchlistKey}:name==='@tanstack/react-query'?{useQueryClient:()=>({}),useMutation:()=>({isPending:false}),useQuery:({queryKey})=>({data:queryKey[0]==='chart'?{symbol:'005930',period:'D',candles:[],minuteCandles:[],moveInsights:moves,relatedNews:[]}:[]})}:name.startsWith('./')?{[name.slice(2)]:name.slice(2)}:{}});
  const visit=n=>Array.isArray(n)?n.flatMap(visit):n&&typeof n==='object'?[n,...visit(n.children)]:[];
  return {render(){slot=0;return visit(exports.ChartScreen({route:{params:{symbol:'005930'}},navigation:{navigate:(...args)=>navigated.push(args)}}));},scrolled,navigated};
 }
@@ -28,7 +29,7 @@ test('entry auto-selects biggest, point list selects and scrolls, previous/next 
 });
 test('markers reserve 44×36 targets with selection ring and no initial tooltip',()=>{
  const React={createElement:(type,props,...children)=>({type,props,children}),useEffect(){},useMemo:f=>f()};let slot=0;React.useState=()=>[slot++===0?300:null,()=>{}];
- const exports={};vm.runInNewContext(ts.transpileModule(readFileSync(new URL('../components/CandlestickChart.tsx',import.meta.url),'utf8'),{compilerOptions:options}).outputText,{exports,React,require:name=>name==='react'?React:name==='react-native'?{View:'View',Text:'Text',Pressable:'Pressable',StyleSheet:{create:s=>s}}:name==='react-native-svg'?{default:'Svg',Line:'Line',Rect:'Rect',Polygon:'Polygon',Circle:'Circle'}:{formatPrice:String,formatShortDate:String}});
+ const exports={};vm.runInNewContext(ts.transpileModule(readFileSync(new URL('../components/CandlestickChart.tsx',import.meta.url),'utf8'),{compilerOptions:options}).outputText,{exports,React,require:name=>name.endsWith('/theme') ? theme : name==='react'?React:name==='react-native'?{View:'View',Text:'Text',Pressable:'Pressable',StyleSheet:{create:s=>s}}:name==='react-native-svg'?{default:'Svg',Line:'Line',Rect:'Rect',Polygon:'Polygon',Circle:'Circle'}:{formatPrice:String,formatShortDate:String}});
  const visit=n=>Array.isArray(n)?n.flatMap(visit):n&&typeof n==='object'?[n,...visit(n.children)]:[];
  const tree=visit(exports.CandlestickChart({candles:[{date:'2026-10-07',open:100,high:110,low:90,close:105}],selectedDate:'2026-10-07',moveMarkers:[{date:'2026-10-07',changePercent:5}]}));
  const marker=tree.find(x=>x.type==='Pressable'&&x.props.accessibilityLabel.includes('급등락'));

@@ -1,3 +1,4 @@
+import { colors, spacing } from "../../../theme";
 import { useJudgementResults } from "../../../components/JudgementResultsProvider";
 import { JudgementResultBanner } from "../../../components/JudgementResultBanner";
 import { useCallback, useState } from "react";
@@ -47,11 +48,11 @@ export function HomeScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#FFFFFF"
+    backgroundColor: colors.surface
   },
-  scroll: { backgroundColor: "#FFFFFF" },
+  scroll: { backgroundColor: colors.surface },
   container: {
-    padding: 20,
+    padding: spacing.lg,
     gap: 18,
     paddingBottom: 28
   }

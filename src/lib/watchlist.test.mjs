@@ -1,3 +1,4 @@
+import * as theme from '../theme/index.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -10,7 +11,7 @@ const compile=path=>ts.transpileModule(fs.readFileSync(new URL(path,import.meta.
 const nodes=n=>Array.isArray(n)?n.flatMap(nodes):n&&typeof n==='object'?[n,...nodes(n.children)]:[];
 const React={createElement:(type,props,...children)=>({type,props:props??{},children})};
 const native=Object.fromEntries(['Text','View','Pressable','TouchableOpacity','ScrollView','SafeAreaView','ActivityIndicator'].map(n=>[n,n]));native.StyleSheet={create:s=>s};
-function component(path,exportsName){const exports={};vm.runInNewContext(compile(path),{exports,React,require:n=>n==='react'?React:n==='react-native'?native:n==='@expo/vector-icons'?{Ionicons:'Ionicons'}:n.endsWith('/watchlist')?model:n.endsWith('/format')?{formatPercent:String,formatPrice:String}:n.endsWith('/NewsCard')?{NewsCard:'NewsCard'}:{}});return exports[exportsName];}
+function component(path,exportsName){const exports={};vm.runInNewContext(compile(path),{exports,React,require:n=>n.endsWith('/theme') ? theme : n==='react'?React:n==='react-native'?native:n==='@expo/vector-icons'?{Ionicons:'Ionicons'}:n.endsWith('/watchlist')?model:n.endsWith('/format')?{formatPercent:String,formatPrice:String}:n.endsWith('/NewsCard')?{NewsCard:'NewsCard'}:{}});return exports[exportsName];}
 
 test('first chart priority, removed saved symbol and per-owner storage keys',()=>{
  assert.equal(initialChartSymbol('005930',list,'035720'),'005930');
@@ -60,7 +61,7 @@ function chartHarness({ready=true,watched=list,last='035720',routeSymbol,cached=
   if(queryKey[0]==='chart') {if(enabled) requests.push(queryKey[1]);return{data:enabled?{symbol:queryKey[1],period:'D',candles:[],minuteCandles:[],moveInsights:[],relatedNews:[],symbolName:queryKey[1]}:undefined,isPending:!enabled};}
   return{data:[]};
  }};
- const exports={};vm.runInNewContext(compile('../screens/chart/ChartScreen/index.tsx'),{exports,React:hooks,require:n=>n==='react'?hooks:n==='react-native'?native:n==='@react-navigation/native'?{useFocusEffect:fn=>{focus=fn;hooks.useEffect(fn,[fn]);}}:n==='@tanstack/react-query'?rq:n.endsWith('/watchlist')?model:n.endsWith('/storage')?{storageGetItem:async key=>stored.get(key)??null,storageSetItem:async(key,value)=>stored.set(key,value)}:n.endsWith('/auth')?{loadAuthSession:async()=>({userId:31})}:n.endsWith('/api')?api:n.endsWith('/chartDocent')?{movesByDate:()=>[],strongestMove:()=>null}:n.startsWith('./')?{[n.slice(2)]:n.slice(2)}:{}});
+ const exports={};vm.runInNewContext(compile('../screens/chart/ChartScreen/index.tsx'),{exports,React:hooks,require:n=>n.endsWith('/theme') ? theme : n==='react'?hooks:n==='react-native'?native:n==='@react-navigation/native'?{useFocusEffect:fn=>{focus=fn;hooks.useEffect(fn,[fn]);}}:n==='@tanstack/react-query'?rq:n.endsWith('/watchlist')?model:n.endsWith('/storage')?{storageGetItem:async key=>stored.get(key)??null,storageSetItem:async(key,value)=>stored.set(key,value)}:n.endsWith('/auth')?{loadAuthSession:async()=>({userId:31})}:n.endsWith('/api')?api:n.endsWith('/chartDocent')?{movesByDate:()=>[],strongestMove:()=>null}:n.startsWith('./')?{[n.slice(2)]:n.slice(2)}:{}});
  const props={route:{params:{symbol:routeSymbol}},navigation:{}};
  const h={render(){index=0;effects=[];return nodes(exports.ChartScreen(props));},async flush(){for(const effect of effects)effect();for(let i=0;i<12;i++)await Promise.resolve();return h.render();},setReady(){if(freshWatched)cache=freshWatched;watchReady=true;watchReadyResolve();},focus(){focus();},waitForAdd:()=>addReady,requests,stored,invalidated,get cache(){return cache;},get pending(){return pending;},reject(message){addReject(new Error(message));},resolve(){addResolve({});}};
  return h;
@@ -88,11 +89,11 @@ test('optimistic add rolls back on failure, invalidate shared news and recommend
 test('home watchlist failure or loading never gates the main feed, and dedup reaches older pages',()=>{
  for(const state of [{isPending:true},{isError:true},{data:list,isError:false}]) {
   const hooks={...React,useState:initial=>[typeof initial==='function'?initial():initial,()=>{}],useCallback:f=>f};const exports={};
-  vm.runInNewContext(compile('../screens/home/HomeScreen/index.tsx'),{exports,React:hooks,require:n=>n==='react'?hooks:n==='react-native'?native:n==='@react-navigation/native'?{useFocusEffect(){}}:n==='@tanstack/react-query'?{useQuery:({queryKey})=>queryKey[0]==='watchlist'?state:{isError:true}}:n.endsWith('/JudgementResultsProvider')?{useJudgementResults:()=>({unseen:[],pending:null,refresh(){}})}:n.endsWith('/learningPreferences')?{getDefaultLearningPreferences:()=>({})}:n.startsWith('./')?{[n.slice(2)]:n.slice(2)}:{}});
+  vm.runInNewContext(compile('../screens/home/HomeScreen/index.tsx'),{exports,React:hooks,require:n=>n.endsWith('/theme') ? theme : n==='react'?hooks:n==='react-native'?native:n==='@react-navigation/native'?{useFocusEffect(){}}:n==='@tanstack/react-query'?{useQuery:({queryKey})=>queryKey[0]==='watchlist'?state:{isError:true}}:n.endsWith('/JudgementResultsProvider')?{useJudgementResults:()=>({unseen:[],pending:null,refresh(){}})}:n.endsWith('/learningPreferences')?{getDefaultLearningPreferences:()=>({})}:n.startsWith('./')?{[n.slice(2)]:n.slice(2)}:{}});
   const tree=nodes(exports.HomeScreen({navigation:{}}));const feed=tree.find(n=>n.type==='NewsSection');assert(feed);assert.equal(feed.props.excludedIds.length,0);
  }
  let cursor=0;const hooks={...React,useState:initial=>[cursor++===1?[{id:2},{id:4}]:initial,()=>{}]},exports={};
- vm.runInNewContext(compile('../screens/home/HomeScreen/NewsSection.tsx'),{exports,React:hooks,require:n=>n==='react'?hooks:n==='react-native'?native:n==='@tanstack/react-query'?{useQuery:()=>({data:[{id:1},{id:2},{id:3}]})}:n.endsWith('/watchlist')?model:n.endsWith('/NewsCard')?{NewsCard:'NewsCard'}:{}});
+ vm.runInNewContext(compile('../screens/home/HomeScreen/NewsSection.tsx'),{exports,React:hooks,require:n=>n.endsWith('/theme') ? theme : n==='react'?hooks:n==='react-native'?native:n==='@tanstack/react-query'?{useQuery:()=>({data:[{id:1},{id:2},{id:3}]})}:n.endsWith('/watchlist')?model:n.endsWith('/NewsCard')?{NewsCard:'NewsCard'}:{}});
  assert.deepEqual(nodes(exports.NewsSection({preferences:{painPoint:'terms'},excludedIds:[2],onSelectNews(){}})).filter(n=>n.type==='NewsCard').map(n=>n.props.news.id),[1,3,4]);
 });
 

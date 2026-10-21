@@ -1,3 +1,4 @@
+import { colors, radius, spacing, typography } from "../../../theme";
 import { useCallback, useRef, useState } from "react";
 import { SafeAreaView, ScrollView, StyleSheet, Text, Pressable, View, Modal } from "react-native";
 import { useMutation, useQuery, useQueries, useQueryClient } from "@tanstack/react-query";
@@ -194,7 +195,7 @@ export function LearnScreen() {
         {preferences.painPoint === "terms" ? <View style={styles.card}>
           <Text accessibilityRole="header" style={styles.sectionTitle}>오늘의 용어 3개</Text>
           {dailyTerms.isPending ? <View style={[styles.skeleton, styles.termSkeleton]} /> : dailyTerms.isError ? <Pressable accessibilityRole="button" accessibilityLabel="오늘의 용어 다시 시도" onPress={() => void dailyTerms.refetch()}><Text style={styles.link}>다시 시도</Text></Pressable> : dailyTerms.data?.length ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.termRow}>
-            {dailyTerms.data.map(item => <Pressable key={item.term} style={[styles.termChip, { width: 150, borderRadius: 12, gap: 4 }]} accessibilityRole="button" accessibilityLabel={`${item.term} 뜻 보기 · ${item.reason}`} onPress={() => setInfo({ title: item.term, description: item.definition, reason: item.reason, newsId: item.newsId, newsTitle: item.title })}><Text style={styles.termText} numberOfLines={1}>{item.term}</Text><Text style={styles.auxiliary}>{item.reason}</Text></Pressable>)}
+            {dailyTerms.data.map(item => <Pressable key={item.term} style={[styles.termChip, { width: 150, borderRadius: radius.control, gap: spacing.xxs }]} accessibilityRole="button" accessibilityLabel={`${item.term} 뜻 보기 · ${item.reason}`} onPress={() => setInfo({ title: item.term, description: item.definition, reason: item.reason, newsId: item.newsId, newsTitle: item.title })}><Text style={styles.termText} numberOfLines={1}>{item.term}</Text><Text style={styles.auxiliary}>{item.reason}</Text></Pressable>)}
           </ScrollView> : <Text style={styles.auxiliary}>오늘 기사에서 새로 볼 개념을 찾지 못했어요.</Text>}
         </View> : null}
         {progress.data?.levelSuggestion ? <View style={styles.card}>
@@ -233,55 +234,55 @@ export function LearnScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#F8FAFC" },
-  container: { padding: 20, paddingBottom: 40, gap: 24 },
-  section: { gap: 12 },
-  sectionTitle: { fontSize: 18, fontWeight: "700", color: "#101828", lineHeight: 26 },
-  body: { fontSize: 15, lineHeight: 22, color: "#344054" },
-  auxiliary: { fontSize: 13, lineHeight: 20, color: "#667085" },
-  card: { borderRadius: 16, padding: 20, gap: 12, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#EAECF0" },
-  hero: { backgroundColor: "#175CD3", borderRadius: 16, padding: 20, gap: 12 },
-  goalRow: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 26 },
-  goalLabel: { flexShrink: 0, color: "#D5E1FF", fontSize: 12, lineHeight: 16 },
-  goalValue: { flex: 1, minWidth: 0, color: "#FFFFFF", fontSize: 18, fontWeight: "700", lineHeight: 26 },
-  metrics: { flexDirection: "row", gap: 8 },
-  metricTile: { flex: 1, minWidth: 0, minHeight: 112, padding: 6, paddingTop: 30, backgroundColor: "#FFFFFF", borderRadius: 12, alignItems: "center", justifyContent: "center", gap: 6 },
-  metricValue: { fontSize: 26, lineHeight: 32, fontWeight: "700", color: "#101828", textAlign: "center" },
-  metricLabel: { fontSize: 12, lineHeight: 17, color: "#667085", textAlign: "center", minHeight: 34 },
+  safeArea: { flex: 1, backgroundColor: colors.canvas },
+  container: { padding: spacing.lg, paddingBottom: 40, gap: spacing.xl },
+  section: { gap: spacing.sm },
+  sectionTitle: { fontSize: typography.size.subheading, fontWeight: typography.weight.bold, color: colors.text, lineHeight: typography.lineHeight.heading },
+  body: { fontSize: typography.size.reading, lineHeight: typography.lineHeight.body, color: colors.body },
+  auxiliary: { fontSize: typography.size.meta, lineHeight: typography.lineHeight.compact, color: colors.muted },
+  card: { borderRadius: radius.card, padding: spacing.lg, gap: spacing.sm, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  hero: { backgroundColor: colors.primary, borderRadius: radius.card, padding: spacing.lg, gap: spacing.sm },
+  goalRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs, minHeight: 26 },
+  goalLabel: { flexShrink: 0, color: colors.onPrimarySoft, fontSize: typography.size.caption, lineHeight: 16 },
+  goalValue: { flex: 1, minWidth: 0, color: colors.surface, fontSize: typography.size.subheading, fontWeight: typography.weight.bold, lineHeight: typography.lineHeight.heading },
+  metrics: { flexDirection: "row", gap: spacing.xs },
+  metricTile: { flex: 1, minWidth: 0, minHeight: 112, padding: 6, paddingTop: 30, backgroundColor: colors.surface, borderRadius: radius.control, alignItems: "center", justifyContent: "center", gap: 6 },
+  metricValue: { fontSize: typography.size.display, lineHeight: typography.lineHeight.display, fontWeight: typography.weight.bold, color: colors.text, textAlign: "center" },
+  metricLabel: { fontSize: typography.size.caption, lineHeight: 17, color: colors.muted, textAlign: "center", minHeight: 34 },
   infoButton: { position: "absolute", top: 2, right: 2, width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-  infoIcon: { color: "#667085", fontSize: 17 },
+  infoIcon: { color: colors.muted, fontSize: 17 },
   accuracyArea: { minHeight: 40, justifyContent: "center" },
-  heroAuxiliary: { color: "#D5E1FF", fontSize: 13, lineHeight: 20 },
+  heroAuxiliary: { color: colors.onPrimarySoft, fontSize: typography.size.meta, lineHeight: typography.lineHeight.compact },
   heroRetry: { minHeight: 44, justifyContent: "center", alignSelf: "flex-start" },
-  primaryButton: { minHeight: 48, paddingHorizontal: 16, borderRadius: 12, backgroundColor: "#FFFFFF", flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  primaryButtonText: { color: "#175CD3", fontSize: 15, fontWeight: "700", lineHeight: 22 },
+  primaryButton: { minHeight: 48, paddingHorizontal: spacing.md, borderRadius: radius.control, backgroundColor: colors.surface, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  primaryButtonText: { color: colors.primary, fontSize: typography.size.reading, fontWeight: typography.weight.bold, lineHeight: typography.lineHeight.body },
   disabledButton: { opacity: 0.6 },
-  articleCard: { minHeight: 116, borderRadius: 16, padding: 20, gap: 8, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#EAECF0" },
-  articleMeta: { flexDirection: "row", gap: 8, alignItems: "center", justifyContent: "space-between" },
-  categoryChip: { color: "#175CD3", backgroundColor: "#EFF4FF", borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, fontSize: 12, lineHeight: 16, flexShrink: 1 },
-  remainingBadge: { color: "#667085", backgroundColor: "#F2F4F7", borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, fontSize: 12, lineHeight: 16, fontWeight: "700", flexShrink: 0 },
-  articleTitle: { color: "#101828", fontSize: 15, fontWeight: "700", lineHeight: 22 },
+  articleCard: { minHeight: 116, borderRadius: radius.card, padding: spacing.lg, gap: spacing.xs, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  articleMeta: { flexDirection: "row", gap: spacing.xs, alignItems: "center", justifyContent: "space-between" },
+  categoryChip: { color: colors.primary, backgroundColor: colors.primarySoft, borderRadius: radius.small, paddingHorizontal: spacing.xs, paddingVertical: spacing.xxs, fontSize: typography.size.caption, lineHeight: 16, flexShrink: 1 },
+  remainingBadge: { color: colors.muted, backgroundColor: colors.surfaceMuted, borderRadius: radius.small, paddingHorizontal: spacing.xs, paddingVertical: spacing.xxs, fontSize: typography.size.caption, lineHeight: 16, fontWeight: typography.weight.bold, flexShrink: 0 },
+  articleTitle: { color: colors.text, fontSize: typography.size.reading, fontWeight: typography.weight.bold, lineHeight: typography.lineHeight.body },
   retryButton: { minHeight: 44, justifyContent: "center", alignSelf: "flex-start" },
-  link: { fontSize: 15, lineHeight: 22, fontWeight: "700", color: "#175CD3" },
+  link: { fontSize: typography.size.reading, lineHeight: typography.lineHeight.body, fontWeight: typography.weight.bold, color: colors.primary },
   termRow: { flexDirection: "row", gap: 10 },
-  termChip: { minHeight: 44, maxWidth: 260, borderRadius: 22, paddingHorizontal: 18, paddingVertical: 11, backgroundColor: "#EFF4FF", justifyContent: "center" },
-  termText: { fontSize: 15, lineHeight: 22, fontWeight: "700", color: "#175CD3" },
-  skeleton: { backgroundColor: "#EAECF0", borderRadius: 6 },
-  masteryTrack: { height: 8, backgroundColor: "#EAECF0", borderRadius: 4, overflow: "hidden" },
-  masteryFill: { height: 8, backgroundColor: "#175CD3", borderRadius: 4 },
+  termChip: { minHeight: 44, maxWidth: 260, borderRadius: radius.pill, paddingHorizontal: 18, paddingVertical: 11, backgroundColor: colors.primarySoft, justifyContent: "center" },
+  termText: { fontSize: typography.size.reading, lineHeight: typography.lineHeight.body, fontWeight: typography.weight.bold, color: colors.primary },
+  skeleton: { backgroundColor: colors.border, borderRadius: radius.small },
+  masteryTrack: { height: 8, backgroundColor: colors.border, borderRadius: 4, overflow: "hidden" },
+  masteryFill: { height: 8, backgroundColor: colors.primary, borderRadius: 4 },
   goalSkeleton: { width: "75%", height: 26 },
   numberSkeleton: { width: 48, height: 32 },
   accuracySkeleton: { width: "90%", height: 20 },
   chipSkeleton: { width: 72, height: 24 },
   titleSkeleton: { width: "100%", height: 20 },
   shortSkeleton: { width: "75%", height: 16 },
-  termSkeleton: { flex: 1, height: 44, borderRadius: 22 },
-  backdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(16,24,40,0.35)" },
+  termSkeleton: { flex: 1, height: 44, borderRadius: radius.card },
+  backdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: colors.overlay },
   dismissArea: { position: "absolute", top: 0, right: 0, bottom: 0, left: 0 },
-  sheet: { backgroundColor: "#FFFFFF", borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 20, paddingBottom: 32, gap: 16 },
-  sheetHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12 },
+  sheet: { backgroundColor: colors.surface, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, padding: spacing.lg, paddingBottom: spacing.xxl, gap: spacing.md },
+  sheetHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: spacing.sm },
   closeButton: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
-  closeText: { color: "#667085", fontSize: 26 },
-  sheetAction: { minHeight: 48, borderRadius: 12, backgroundColor: "#175CD3", alignItems: "center", justifyContent: "center", paddingHorizontal: 16 },
-  sheetActionText: { color: "#FFFFFF", fontSize: 15, fontWeight: "700", lineHeight: 22 }
+  closeText: { color: colors.muted, fontSize: typography.size.display },
+  sheetAction: { minHeight: 48, borderRadius: radius.control, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center", paddingHorizontal: spacing.md },
+  sheetActionText: { color: colors.surface, fontSize: typography.size.reading, fontWeight: typography.weight.bold, lineHeight: typography.lineHeight.body }
 });
