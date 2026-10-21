@@ -26,7 +26,7 @@ function harness({ count = 1, completed = [], reviewItems, weak = [], pending = 
     if (name === 'react-native') return { SafeAreaView:'SafeAreaView', ScrollView:'ScrollView', Text:'Text', Pressable:'Pressable', View:'View', Modal:'Modal', StyleSheet:{create:value=>value} };
     if (name === '@react-navigation/native') return { useFocusEffect() {}, useIsFocused:()=>true, useRoute:()=>({params:{section}}), useNavigation:()=>({ navigate:(...args)=>navigation.push(args), setParams: value=>params.push(value) }) };
     if (name === '@tanstack/react-query') return { useQuery: options => options.queryKey[0] === "learning-recommendations" ? query({items:recommendations}, "recommendations") : options.queryKey[0] === "daily-learning-terms" ? query(dailyItems ?? [{term:"금리",definition:"이자 비율",newsId:232,title:"금리 기사",reason:"지난번에 틀린 개념"},{term:"환율",definition:"통화 교환 비율",newsId:233,title:"환율 기사",reason:"처음 보는 개념"},{term:"물가",definition:"평균 가격",newsId:234,title:"물가 기사",reason:"익히는 중인 개념"}], "terms") : options.queryKey[0] === 'learning-reviews' ? query(reviews, 'reviews') : query({today:{answeredCount:count,accuracy:1},week:{answeredCount:count,accuracy:1},activityStreakDays:3,completedNewsIds:completed,weakAreas:weak,goal,mastery,levelSuggestion:suggestion}, 'progress'), useQueryClient: () => ({ invalidateQueries() {} }), useMutation: () => ({ mutate(level) { changes.push(level); }, isPending:false, isError:false }), useQueries: ({queries}) => queries.map((options,index)=>query({id:options.queryKey[1],title:`복습할 기사 ${index}`,category:'국내증시',rawContent:'본문'}, 'article')) };
-    if (name.endsWith('/readingProgressModel')) return { resumeLearningIds, DAILY_ARTICLE_GOAL };
+    if (name.endsWith('/readingProgressModel')) return model;
     if (name.endsWith('/onboarding')) return { getDefaultLearningPreferences:()=>preferences };
     if (name.endsWith('/GuideList')) return { GuideList:'GuideList' };
     if (name.endsWith('/DailyTips')) return { DailyTips:'DailyTips' };
@@ -66,8 +66,8 @@ test('review chip opens definition sheet and returns to its original reading lev
 
 test('criteria are kept in the info sheet and weak areas only appear when present', () => {
   const screen=harness(); const initial=screen.render();
-  assert(!screen.text(initial).includes('판단·메모·퀴즈를 남긴 날')); assert(!screen.text(initial).includes('다시 살펴볼 분야'));
-  button(initial,'연속 학습 기준 안내').props.onPress(); assert(screen.text(screen.render()).includes('판단·메모·퀴즈를 남긴 날'));
+  assert(!screen.text(initial).includes('현재 학습 목표를 달성한 날')); assert(!screen.text(initial).includes('다시 살펴볼 분야'));
+  button(initial,'연속 목표 달성 기준 안내').props.onPress(); assert(screen.text(screen.render()).includes('현재 학습 목표를 달성한 날'));
   const weak=harness({weak:[{category:'국내증시',decidedCount:3,hitCount:1,recentNewsIds:[232]}]});
   assert(weak.text(weak.render()).includes('다시 살펴볼 분야'));
 });
@@ -91,7 +91,7 @@ test('pain point terms keeps three definitions after the main learning flow', ()
 test('each unmet goal offers one action and five minute approximation is explicit', () => {
  for (const [type,label,target] of [['read1','오늘의 뉴스 읽기','HomeTab'],['memo','기사 메모 남기기','NewsDetail'],['reviewJudgement','판단 돌아보기','HistoryTab'],['minutes5','학습 활동 이어가기','NewsDetail']]) {
   const screen=harness({goal:{type,achievedToday:false,streakDays:2}}); const initial=screen.render();
-  assert.match(screen.text(initial), /연속 달성\s+2\s*일/); button(initial,label).props.onPress();
+  assert.match(screen.text(initial), /2일\s+연속 목표 달성/); button(initial,label).props.onPress();
   assert.equal(screen.navigation[0][0],target);
   if(type==='memo') assert.equal(screen.navigation[0][1].openNotes,true);
   if(type==='minutes5') assert(screen.text(initial).includes('활동 3개 = 5분 학습'));
@@ -157,4 +157,15 @@ test('learning sections explain the flow, keep their order, hide unrelated recom
  const cached=harness({fetching:true,section:'reviews'});cached.render().find(node=>node.type==='View' && node.props?.onLayout).props.onLayout({nativeEvent:{layout:{y:800}}});assert.equal(cached.scrolls.length,0);
  const empty=harness({reviewItems:[],recommendations:[{...item,reasonNewsId:null,basis:'RULE_RECENT'}]});const emptyText=empty.text(empty.render());
  assert(emptyText.includes('지금은 다시 볼 개념이 없어요'));assert(!emptyText.includes('비슷한 기사 더 읽기'));assert(!emptyText.includes('최근 수집된 기사'));
+});
+
+test('attendance is separate from the read-one goal and server completions survive a device change', () => {
+ const screen=harness({completed:[42],goal:{type:'read1',achievedToday:true,streakDays:2}});
+ screen.values[0]={}; screen.values[3]=0;
+ const nodes=screen.render(); const text=screen.text(nodes);
+ assert(text.includes('출석용 기사 읽기')); assert(text.includes('0/3'));
+ assert(text.includes('최근 읽은 기사의 퀴즈를 모두 마쳤어요.'));
+ assert(!text.includes('아직 읽은 기사가 없어요.')); assert(!text.includes('연속 학습'));
+ button(nodes,'출석용 기사 읽기 기준 안내').props.onPress();
+ assert(screen.text(screen.render()).includes('개인 학습 목표와 별개인 출석 기준'));
 });

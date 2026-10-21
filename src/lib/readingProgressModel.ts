@@ -25,3 +25,9 @@ export function resumeLearningIds(log: DailyReadLog, completedNewsIds: number[])
   const recent = Object.keys(log).sort().reverse().flatMap((day) => [...log[day]].reverse());
   return [...new Set(recent)].filter((id) => !completed.has(id)).slice(0, 2);
 }
+
+export function resumeLearningEmptyMessage(log: DailyReadLog, completedNewsIds: number[]): string {
+  return completedNewsIds.length || Object.values(log).some(ids => ids.length)
+    ? "최근 읽은 기사의 퀴즈를 모두 마쳤어요."
+    : "아직 읽은 기사가 없어요. 오늘의 뉴스부터 시작해보세요.";
+}

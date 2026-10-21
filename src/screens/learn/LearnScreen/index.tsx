@@ -8,7 +8,7 @@ import type { RootTabParamList, LearnStackParamList } from "../../../navigation/
 import { useFocusEffect, useNavigation, useIsFocused, useRoute } from "@react-navigation/native";
 import { loadAuthSession } from "../../../lib/auth";
 import { getReadingLog } from "../../../lib/readingProgress";
-import { countDailyReads, DAILY_ARTICLE_GOAL, localDateKey, resumeLearningIds, type DailyReadLog } from "../../../lib/readingProgressModel";
+import { countDailyReads, DAILY_ARTICLE_GOAL, localDateKey, resumeLearningIds, resumeLearningEmptyMessage, type DailyReadLog } from "../../../lib/readingProgressModel";
 import { DailyTips } from "./DailyTips";
 import { GuideList } from "./GuideList";
 import { getDefaultLearningPreferences, type LearningPreferences } from "../../../lib/onboarding";
@@ -91,12 +91,12 @@ export function LearnScreen() {
   };
   const nextTaskHint = resumeIds.length ? "이어서 풀 퀴즈로 이동해요" : reviews.data?.length ? "다시 볼 개념으로 돌아가요" : "홈에서 오늘의 뉴스를 읽어보세요";
   const metrics = [
-    { label: "오늘 읽은 기사", value: readCount === null ? "-" : `${Math.min(readCount, DAILY_ARTICLE_GOAL)}/${DAILY_ARTICLE_GOAL}`, loading: readCount === null && !loaded,
-      description: "기사 3개를 읽으면 수달 배지가 자동으로 찍혀요. 같은 기사를 다시 읽어도 한 번만 세며, 기록 탭과 동일한 한국 시간 기준이에요." },
+    { label: "출석용 기사 읽기", value: readCount === null ? "-" : `${Math.min(readCount, DAILY_ARTICLE_GOAL)}/${DAILY_ARTICLE_GOAL}`, loading: readCount === null && !loaded,
+      description: "개인 학습 목표와 별개인 출석 기준이에요. 기사 3개를 읽으면 수달 배지가 자동으로 찍혀요. 같은 기사를 다시 읽어도 한 번만 세며, 기록 탭과 동일한 한국 시간 기준이에요." },
     { label: "오늘 퀴즈", value: progress.data ? `${progress.data.today.answeredCount}개` : "-", loading: progress.isPending,
       description: "오늘 답한 퀴즈 수예요. 다시 풀었을 때는 저장된 마지막 답변을 기준으로 보여드려요." },
-    { label: "연속 학습", value: progress.data ? `${progress.data.activityStreakDays}일` : "-", loading: progress.isPending,
-      description: "판단·메모·퀴즈를 남긴 날이 연속으로 이어진 기간이에요. 기록 탭의 출석은 하루에 기사 3개를 읽는 기준이에요." }
+    { label: "연속 목표 달성", value: goal ? `${goal.streakDays}일` : "-", loading: progress.isPending,
+      description: "현재 학습 목표를 달성한 날이 연속으로 이어진 기간이에요. 기사 3개를 읽는 출석 기준과는 별개예요." }
   ];
 
   return (
@@ -108,7 +108,7 @@ export function LearnScreen() {
           <View style={styles.goalRow}><Text style={styles.goalLabel}>학습 목표</Text>
             {loaded ? <Text style={styles.goalValue} numberOfLines={1} accessibilityLabel={`학습 목표 ${preferences.dailyGoal}`}>{preferences.dailyGoal}</Text> : <View style={[styles.skeleton, styles.goalSkeleton]} accessibilityLabel="학습 목표 불러오는 중" />}
           </View>
-          {goal ? <Text style={styles.heroAuxiliary}>{goal.achievedToday ? "✓ 오늘 목표 달성" : "○ 오늘 목표 진행 중"} · 연속 달성 {goal.streakDays}일</Text> : null}
+          {goal ? <Text style={styles.heroAuxiliary}>{goal.achievedToday ? "✓ 오늘 목표 달성" : "○ 오늘 목표 진행 중"}</Text> : null}
           {goal?.type === "minutes5" ? <Text style={styles.heroAuxiliary}>활동 3개 = 5분 학습 (퀴즈·메모·판단 기준)</Text> : null}
           <View style={styles.metrics}>
             {metrics.map((metric) => <View key={metric.label} style={styles.metricTile}>
@@ -139,7 +139,7 @@ export function LearnScreen() {
           {progress.isPending ? [0, 1].map((key) => <View key={key} style={styles.articleCard} accessibilityLabel="풀다 만 퀴즈 기사 불러오는 중">
             <View style={[styles.skeleton, styles.chipSkeleton]} /><View style={[styles.skeleton, styles.titleSkeleton]} /><View style={[styles.skeleton, styles.shortSkeleton]} />
           </View>) : progress.isError ? <View style={styles.card}><Text style={styles.body}>풀다 만 퀴즈 기사를 확인하지 못했어요.</Text><Pressable accessibilityRole="button" accessibilityLabel="풀다 만 퀴즈 다시 시도" style={styles.retryButton} onPress={() => void progress.refetch()}><Text style={styles.link}>다시 시도</Text></Pressable></View>
-          : !resumeIds.length ? <Text style={styles.auxiliary}>{Object.keys(readingLog).length ? "최근 읽은 기사의 퀴즈를 모두 마쳤어요." : "아직 읽은 기사가 없어요. 오늘의 뉴스부터 시작해보세요."}</Text>
+          : !resumeIds.length ? <Text style={styles.auxiliary}>{resumeLearningEmptyMessage(readingLog, progress.data?.completedNewsIds ?? [])}</Text>
           : resumeArticles.slice(0, 3).map((article, index) => article.isPending ? <View key={resumeIds[index]} style={styles.articleCard} accessibilityLabel="기사 제목 불러오는 중">
             <View style={[styles.skeleton, styles.chipSkeleton]} /><View style={[styles.skeleton, styles.titleSkeleton]} /><View style={[styles.skeleton, styles.shortSkeleton]} />
           </View> : article.data?.rawContent.trim() ? <Pressable key={resumeIds[index]} accessibilityRole="button" accessibilityLabel={`${article.data.title} · 퀴즈 이어 풀기`} style={styles.articleCard}
