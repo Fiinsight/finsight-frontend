@@ -131,7 +131,6 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
           </TouchableOpacity> : null}
           {storedReasons?.length ? <Text style={styles.muted}>{reviewOnly ? "기사에서 확인한 사실과 가능한 영향 경로를 정리했어요." : "가격 변화가 이 뉴스 때문이라고 단정할 수는 없어요."}</Text> : null}
         </View> : null}
-        {!result.pending && feedbackMatchesResult && item.nextTip ? <View style={styles.tipCard}><Text style={styles.sectionTitle}>다음엔 이렇게</Text><Text style={styles.feedback}>{item.nextTip}</Text></View> : null}
         {canShowPrices ? (
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>판단 전후 가격 흐름</Text>
@@ -178,7 +177,6 @@ const styles = StyleSheet.create({
   conceptLink: { gap: 6, paddingVertical: 10 },
   reasonCopy: { flex: 1, gap: 5 },
   reasonTitle: { fontSize: 15, fontWeight: "700", color: "#101828" },
-  tipCard: { backgroundColor: "#FFFAEB", padding: 16, borderRadius: 14, gap: 8 },
   coaching: { borderTopWidth: 1, borderTopColor: "#EAECF0", paddingTop: 10, gap: 8 },
   footer: { backgroundColor: "#FFFFFF", paddingHorizontal: 20, paddingVertical: 12, borderTopColor: "#EAECF0", borderTopWidth: 1 },
   doneButton: { backgroundColor: "#175CD3", borderRadius: 12, minHeight: 48, alignItems: "center", justifyContent: "center" },
