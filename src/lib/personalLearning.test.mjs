@@ -1,3 +1,4 @@
+import * as theme from '../theme/index.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
@@ -17,7 +18,7 @@ test('reading panel shows provenance and sends the selected answer to server gra
   let mutation, submitted; const invalidated=[];
   const react = { createElement: (type, props, ...children) => ({ type, props, children }), useState: () => [0, () => {}], useRef: value => ({ current: value }) };
   const exports = compile('../screens/home/NewsDetailScreen/LearningPanel.tsx', { React: react, require: (name) =>
-    name === 'react' ? react : name === '@tanstack/react-query' ? {
+    name.endsWith('/theme') ? theme : name === 'react' ? react : name === '@tanstack/react-query' ? {
       useQuery: () => ({ data: { mode: 'EXCERPT', summary: '12.5% 증가했다.', glossary: [], question: { term: '환율', prompt: '정의는?', options: ['정의1', '정의2'] } } }),
       useQueryClient: () => ({ invalidateQueries: (value) => { invalidated.push(value.queryKey[0]); } }),
       useMutation: (options) => { mutation = options; return { mutate: (index) => { submitted = index; }, data: { correct: false, definition: '통화 교환 비율', message: '복습 저장' } }; }
@@ -58,6 +59,7 @@ test('learning focus callbacks run without invoking hooks inside an effect', () 
   const hook = (value) => { assert.equal(inEffect, false, 'hook called inside focus callback'); return value; };
   const react = { createElement: () => null, useState: (value) => hook([value, () => {}]), useRef: value => hook({current:value}), useCallback: (fn) => hook(fn) };
   const screen = compile('../screens/learn/LearnScreen/index.tsx', { React: react, require: (name) => {
+    if (name.endsWith('/theme')) return theme;
     if (name === 'react') return react;
     if (name === 'react-native') return { StyleSheet: { create: (s) => s } };
     if (name === '@react-navigation/native') return { useRoute: () => hook({params:{}}), useIsFocused: () => hook(true), useNavigation: () => hook({}), useFocusEffect: (fn) => { hook(null); effects.push(fn); } };
@@ -81,6 +83,7 @@ test('profile updates reading level only after successful server persistence', a
     return [values[index] ?? initial, (value) => { values[index] = value; }];
   } };
   const screen = compile('../screens/profile/ProfileScreen/index.tsx', { React: react, require: (name) => {
+    if (name.endsWith('/theme')) return theme;
     if (name === 'react') return react;
     if (name === '@tanstack/react-query') return { useQueryClient: () => ({ invalidateQueries() {} }) };
     if (name === '@react-navigation/native') return { useNavigation: () => ({ setParams() {} }), useRoute: () => ({ params: undefined }) };
@@ -108,7 +111,7 @@ test('recommendation request forwards only this device owner recent reading IDs'
   const history=compile('./historyRecords.ts',{});
   const http={get:async(path,options)=>{requested={path,options};return {data:{items:[],basis:'RULE_RECENT'}};},interceptors:{request:{use(){}},response:{use(){}}}};
   const FixedDate=class extends Date {constructor(...args){super(...(args.length?args:[time]));}static now(){return time;}};
-  const api=compile('./api.ts',{Date:FixedDate,process:{env:{}},require:name=>name==='axios'?{create:()=>http}:name==='expo'?{getExpoGoProjectConfig:()=>({})}:name==='./historyRecords'?history:name==='./auth'?{loadAuthSession:async()=>({userId:42})}:name==='./readingProgress'?{getReadingLog:async owner=>{reader=owner;return {'2026-09-12':[100],'2026-09-13':[101,102],'2026-10-13':[102,103],'2026-10-14':[999]};}}:{}});
+  const api=compile('./api.ts',{Date:FixedDate,process:{env:{}},require:name=>name.endsWith('/theme') ? theme : name==='axios'?{create:()=>http}:name==='expo'?{getExpoGoProjectConfig:()=>({})}:name==='./historyRecords'?history:name==='./auth'?{loadAuthSession:async()=>({userId:42})}:name==='./readingProgress'?{getReadingLog:async owner=>{reader=owner;return {'2026-09-12':[100],'2026-09-13':[101,102],'2026-10-13':[102,103],'2026-10-14':[999]};}}:{}});
   await api.getLearningRecommendations();
   assert.equal(reader,42);assert.equal(requested.path,'/learning/recommendations');
   assert.equal(requested.options.params.readNewsIds,'101,102,103');

@@ -1,3 +1,4 @@
+import { colors, radius, spacing, typography } from "../../../theme";
 import { TermPopup } from "../../../components/TermPopup";
 import { Ionicons } from "@expo/vector-icons";
 import { Modal, Pressable, StyleSheet, Text, TouchableOpacity, View, ScrollView } from "react-native";
@@ -142,13 +143,13 @@ export function GuideList({ focus, level }: { focus: LearningFocus; level: Learn
           onPress={() => { setSelectedGuide(guide); setSelectedTerm(null); }}
         >
           <View style={styles.iconCircle}>
-            <Ionicons name={guide.icon} size={18} color="#175CD3" />
+            <Ionicons name={guide.icon} size={18} color={colors.primary} />
           </View>
           <View style={styles.textGroup}>
             <Text style={styles.title}>{guide.title}</Text>
             <Text style={styles.subtitle}>{guide.subtitle}</Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color="#98A2B3" />
+          <Ionicons name="chevron-forward" size={18} color={colors.subtle} />
         </TouchableOpacity>
       ))}
       <Modal visible={selectedGuide !== null} transparent animationType="slide" onRequestClose={() => setSelectedGuide(null)}>
@@ -172,30 +173,30 @@ export function GuideList({ focus, level }: { focus: LearningFocus; level: Learn
 }
 
 const styles = StyleSheet.create({
-  termLink: { color: "#175CD3", paddingVertical: 6, fontSize: 14, fontWeight: "600", lineHeight: 20 },
+  termLink: { color: colors.primary, paddingVertical: 6, fontSize: typography.size.body, fontWeight: typography.weight.semibold, lineHeight: typography.lineHeight.compact },
   card: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#EAECF0",
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
     borderWidth: 1,
-    borderRadius: 16,
-    padding: 20
+    borderRadius: radius.card,
+    padding: spacing.lg
   },
   sectionTitle: {
-    color: "#101828",
-    fontSize: 18,
-    fontWeight: "700",
+    color: colors.text,
+    fontSize: typography.size.subheading,
+    fontWeight: typography.weight.bold,
     paddingHorizontal: 0,
     paddingTop: 0,
-    paddingBottom: 4
+    paddingBottom: spacing.xxs
   },
   row: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: spacing.sm,
     paddingHorizontal: 0,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: "#F2F4F7"
+    borderBottomColor: colors.surfaceMuted
   },
   rowLast: {
     borderBottomWidth: 0
@@ -204,7 +205,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#EFF4FF",
+    backgroundColor: colors.primarySoft,
     alignItems: "center",
     justifyContent: "center"
   },
@@ -213,20 +214,20 @@ const styles = StyleSheet.create({
     gap: 2
   },
   title: {
-    color: "#101828",
-    fontSize: 15,
-    lineHeight: 22,
-    fontWeight: "700"
+    color: colors.text,
+    fontSize: typography.size.reading,
+    lineHeight: typography.lineHeight.body,
+    fontWeight: typography.weight.bold
   },
   subtitle: {
-    color: "#667085",
-    fontSize: 13,
-    lineHeight: 20
+    color: colors.muted,
+    fontSize: typography.size.meta,
+    lineHeight: typography.lineHeight.compact
   },
-  modalBackdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(16,24,40,0.35)" },
-  modalCard: { maxHeight: "85%", backgroundColor: "#FFFFFF", borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 24, gap: 14 },
-  modalTitle: { color: "#101828", fontSize: 20, fontWeight: "800" },
-  modalBody: { color: "#344054", fontSize: 15, lineHeight: 23 },
-  closeButton: { backgroundColor: "#175CD3", borderRadius: 10, alignItems: "center", paddingVertical: 13 },
-  closeButtonText: { color: "#FFFFFF", fontSize: 14, fontWeight: "800" }
+  modalBackdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: colors.overlay },
+  modalCard: { maxHeight: "85%", backgroundColor: colors.surface, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, padding: spacing.xl, gap: 14 },
+  modalTitle: { color: colors.text, fontSize: typography.size.heading, fontWeight: typography.weight.bold },
+  modalBody: { color: colors.body, fontSize: typography.size.reading, lineHeight: 23 },
+  closeButton: { backgroundColor: colors.primary, borderRadius: 10, alignItems: "center", paddingVertical: 13 },
+  closeButtonText: { color: colors.surface, fontSize: typography.size.body, fontWeight: typography.weight.bold }
 });

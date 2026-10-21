@@ -1,3 +1,4 @@
+import { colors, radius, spacing, typography } from "../../../theme";
 import { useIsFocused } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { StyleSheet, Text, View, Pressable } from "react-native";
@@ -42,25 +43,25 @@ const styles = StyleSheet.create({
   panel: {
     backgroundColor: "rgba(255,255,255,0.96)",
     borderColor: "rgba(255,255,255,0.7)",
-    borderRadius: 22,
+    borderRadius: radius.card,
     borderWidth: 1,
-    padding: 16,
-    gap: 12
+    padding: spacing.md,
+    gap: spacing.sm
   },
   sectionTitle: {
-    color: "#101828",
-    fontSize: 18,
-    fontWeight: "700"
+    color: colors.text,
+    fontSize: typography.size.subheading,
+    fontWeight: typography.weight.bold
   },
   row: {
     flexDirection: "row",
-    gap: 8
+    gap: spacing.xs
   },
   headingRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between"
   },
-  status: { color: "#B54708", fontSize: 11, fontWeight: "700" },
-  loading: { color: "#667085", fontSize: 14, paddingVertical: 12 }
+  status: { color: colors.warning, fontSize: 11, fontWeight: typography.weight.bold },
+  loading: { color: colors.muted, fontSize: typography.size.body, paddingVertical: spacing.sm }
 });

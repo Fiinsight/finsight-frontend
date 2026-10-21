@@ -1,3 +1,4 @@
+import { colors, radius, spacing, typography } from "../../../theme";
 import { Image, StyleSheet, Text, View } from "react-native";
 import type { LearningFocus, LearningLevel, LearningPace } from "../../../lib/learningPreferences";
 
@@ -57,11 +58,11 @@ export function DailyTips({ level, pace, focus }: { level: LearningLevel; pace: 
 
 const styles = StyleSheet.create({
   group: { gap: 10 },
-  sectionTitle: { color: "#101828", fontSize: 18, fontWeight: "700" },
-  tipRow: { minHeight: 88, flexDirection: "row", alignItems: "flex-end", gap: 8 },
+  sectionTitle: { color: colors.text, fontSize: typography.size.subheading, fontWeight: typography.weight.bold },
+  tipRow: { minHeight: 88, flexDirection: "row", alignItems: "flex-end", gap: spacing.xs },
   mascot: { width: 58, height: 70 },
-  speechBubble: { flex: 1, backgroundColor: "#FFFFFF", borderColor: "#EAECF0", borderWidth: 1, borderRadius: 16, padding: 20 },
-  tipLabel: { color: "#12B76A", fontSize: 12, fontWeight: "800", marginBottom: 5 },
-  tipText: { color: "#344054", fontSize: 15, lineHeight: 22 },
-  exampleText: { color: "#667085", fontSize: 13, lineHeight: 20, marginTop: 5 }
+  speechBubble: { flex: 1, backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: radius.card, padding: spacing.lg },
+  tipLabel: { color: "#12B76A", fontSize: typography.size.caption, fontWeight: typography.weight.bold, marginBottom: 5 },
+  tipText: { color: colors.body, fontSize: typography.size.reading, lineHeight: typography.lineHeight.body },
+  exampleText: { color: colors.muted, fontSize: typography.size.meta, lineHeight: typography.lineHeight.compact, marginTop: 5 }
 });

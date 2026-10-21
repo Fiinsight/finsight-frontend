@@ -1,3 +1,4 @@
+import { colors, spacing, typography } from "../../../theme";
 import { StyleSheet, Text, View } from "react-native";
 import { todayLabelKorean } from "../../../lib/format";
 
@@ -16,7 +17,7 @@ export function HomeHeader() {
 const styles = StyleSheet.create({
   header: {
     gap: 6,
-    paddingTop: 12
+    paddingTop: spacing.sm
   },
   row: {
     flexDirection: "row",
@@ -24,18 +25,18 @@ const styles = StyleSheet.create({
     justifyContent: "space-between"
   },
   logo: {
-    color: "#101828",
-    fontSize: 26,
-    fontWeight: "800"
+    color: colors.text,
+    fontSize: typography.size.display,
+    fontWeight: typography.weight.bold
   },
   date: {
-    color: "#667085",
-    fontSize: 13,
-    fontWeight: "600"
+    color: colors.muted,
+    fontSize: typography.size.meta,
+    fontWeight: typography.weight.semibold
   },
   subtitle: {
-    color: "#475467",
-    fontSize: 15,
-    lineHeight: 22
+    color: colors.secondary,
+    fontSize: typography.size.reading,
+    lineHeight: typography.lineHeight.body
   }
 });
