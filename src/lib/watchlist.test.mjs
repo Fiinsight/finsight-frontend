@@ -10,7 +10,7 @@ const compile=path=>ts.transpileModule(fs.readFileSync(new URL(path,import.meta.
 const nodes=n=>Array.isArray(n)?n.flatMap(nodes):n&&typeof n==='object'?[n,...nodes(n.children)]:[];
 const React={createElement:(type,props,...children)=>({type,props:props??{},children})};
 const native=Object.fromEntries(['Text','View','Pressable','TouchableOpacity','ScrollView','SafeAreaView','ActivityIndicator'].map(n=>[n,n]));native.StyleSheet={create:s=>s};
-function component(path,exportsName){const exports={};vm.runInNewContext(compile(path),{exports,React,require:n=>n==='react'?React:n==='react-native'?native:n.endsWith('/watchlist')?model:n.endsWith('/format')?{formatPercent:String,formatPrice:String}:n.endsWith('/NewsCard')?{NewsCard:'NewsCard'}:{}});return exports[exportsName];}
+function component(path,exportsName){const exports={};vm.runInNewContext(compile(path),{exports,React,require:n=>n==='react'?React:n==='react-native'?native:n==='@expo/vector-icons'?{Ionicons:'Ionicons'}:n.endsWith('/watchlist')?model:n.endsWith('/format')?{formatPercent:String,formatPrice:String}:n.endsWith('/NewsCard')?{NewsCard:'NewsCard'}:{}});return exports[exportsName];}
 
 test('first chart priority, removed saved symbol and per-owner storage keys',()=>{
  assert.equal(initialChartSymbol('005930',list,'035720'),'005930');
@@ -102,4 +102,19 @@ test('cached empty list cannot choose Samsung before the fresh owner list arrive
  h.render();await h.flush();assert.equal(h.requests.length,0);
  h.setReady();const tree=await h.flush();assert.equal(tree.find(n=>n.type==='StockHeader').props.symbol,'000660');
  assert.deepEqual(h.requests,['000660']);
+});
+
+test('watchlist icons are 22px, touch targets stay 44px and zero change is neutral',()=>{
+ const Header=component('../screens/chart/ChartScreen/StockHeader.tsx','StockHeader');
+ for (const watched of [false,true]) {
+  const tree=nodes(Header({name:'삼성전자',symbol:'005930',price:100,changePercent:0,changeLabel:'전일 대비',watched,onToggleWatchlist(){}}));
+  const icon=tree.find(n=>n.type==='Ionicons'); assert.equal(icon.props.size,22); assert.equal(icon.props.name,watched?'star':'star-outline');
+  const button=tree.find(n=>n.type==='Pressable'); assert.equal(button.props.style.minWidth,44); assert.equal(button.props.style.minHeight,44);
+  const label=tree.find(n=>n.type==='Text'&&n.children.includes('전일 대비')); assert(label.props.style.fontSize>=12);
+  const change=tree.find(n=>n.type==='Text'&&Array.isArray(n.props.style)&&n.props.style.some(s=>s?.color==='#667085')); assert(change);
+ }
+ const Chips=component('../screens/chart/ChartScreen/WatchlistChips.tsx','WatchlistChips');
+ const tree=nodes(Chips({items:list,selectedSymbol:'000660',onSelect(){}}));
+ assert.equal(tree.filter(n=>n.type==='Ionicons'&&n.props.size===22).length,2);
+ assert(tree.filter(n=>n.type==='Pressable').every(n=>n.props.style[0].minHeight>=44));
 });
