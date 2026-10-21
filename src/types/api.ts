@@ -289,7 +289,7 @@ export interface ChartPoint {
 }
 
 export interface ChartRelatedNewsRaw {
-  relationType?: "DIRECT" | "MARKET";
+  relationType?: "DIRECT" | "MARKET" | "REFERENCE";
   id?: number;
   newsId?: number;
   title?: string;
@@ -300,7 +300,7 @@ export interface ChartRelatedNewsRaw {
 }
 
 export interface ChartRelatedNews {
-  relationType?: "DIRECT" | "MARKET";
+  relationType?: "DIRECT" | "MARKET" | "REFERENCE";
   id: number | null;
   title: string;
   source: string;
