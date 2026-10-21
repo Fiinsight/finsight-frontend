@@ -136,7 +136,7 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
           <Text style={styles.sectionTitle}>판단 전후 가격 흐름</Text>
           {symbol ? <Text style={styles.choice}>{stockName ? `${stockName} ${symbol}` : symbol}</Text> : null}
           {points ? <Text style={styles.chartNote}>{`판단일 기준 종가 ${points[0].value.toLocaleString("ko-KR")} · 비교일 종가 ${points[1].value.toLocaleString("ko-KR")} (${item.actualChangePercent != null ? `${item.actualChangePercent > 0 ? "+" : ""}${item.actualChangePercent.toFixed(2)}%` : "등락률 확인 불가"})`}</Text> : null}
-          {chartQuery.isError && points ? <><Text style={styles.muted}>가격 차트를 불러오지 못했어요. 저장된 판단 기준·결과 종가를 비교해요.</Text><TouchableOpacity accessibilityRole="button" accessibilityLabel="가격 흐름 다시 시도" onPress={() => void chartQuery.refetch()}><Text style={styles.back}>다시 시도</Text></TouchableOpacity></> : null}
+          {chartQuery.isError && points ? <><Text style={styles.muted}>가격 차트를 불러오지 못했어요. 저장된 판단 기준·결과 종가를 비교해요.</Text><TouchableOpacity accessibilityRole="button" style={styles.retryTarget} accessibilityLabel="가격 흐름 다시 시도" onPress={() => void chartQuery.refetch()}><Text style={styles.back}>다시 시도</Text></TouchableOpacity></> : null}
           {newsQuery.isLoading ? <Text style={styles.muted}>관련 종목을 확인하는 중이에요.</Text>
           : newsQuery.isError ? <><Text style={styles.muted}>관련 종목 조회에 실패했습니다.</Text><TouchableOpacity accessibilityRole="button" onPress={() => void newsQuery.refetch()}><Text style={styles.back}>다시 시도</Text></TouchableOpacity></>
           : !symbol ? <Text style={styles.muted}>연결된 종목이 없어 가격 흐름을 표시할 수 없습니다.</Text>
@@ -164,6 +164,7 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
+  retryTarget: { minHeight: 44, justifyContent: "center" },
   safeArea: { flex: 1, backgroundColor: "#F8FAFC" },
   container: { padding: 20, paddingBottom: 24, gap: 14 },
   resultCard: { borderRadius: 16, padding: 20, gap: 10 },

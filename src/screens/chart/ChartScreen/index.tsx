@@ -173,8 +173,8 @@ export function ChartScreen({ route, navigation }: Props) {
           watched={watched} watchlistBusy={toggle.isPending || watchlist.isPending || watchlist.isError}
           onToggleWatchlist={()=>toggle.mutate({symbol:selectedSymbol,name:stockName,wasWatched:watched})} />
         {watchlistError ? <Text accessibilityRole="alert" style={{color:"#B42318"}}>{watchlistError}</Text> : null}
-        {watchlist.isError ? <TouchableOpacity accessibilityRole="button" onPress={()=>void watchlist.refetch()}><Text style={{color:"#B42318"}}>관심종목을 불러오지 못했어요 · 다시 시도</Text></TouchableOpacity> : null}
-        {chartError || stocksError ? <TouchableOpacity accessibilityRole="button" onPress={() => { if (chartError) void refetchChart(); if (stocksError) void refetchStocks(); }}><Text style={styles.refreshText}>차트 다시 시도</Text></TouchableOpacity> : null}
+        {watchlist.isError ? <TouchableOpacity accessibilityRole="button" style={styles.retryTarget} onPress={()=>void watchlist.refetch()}><Text style={{color:"#B42318"}}>관심종목을 불러오지 못했어요 · 다시 시도</Text></TouchableOpacity> : null}
+        {chartError || stocksError ? <TouchableOpacity accessibilityRole="button" style={styles.retryTarget} onPress={() => { if (chartError) void refetchChart(); if (stocksError) void refetchStocks(); }}><Text style={styles.refreshText}>차트 다시 시도</Text></TouchableOpacity> : null}
         <View style={styles.periodRow}>
           <TouchableOpacity accessibilityRole="tab" accessibilityLabel="일봉" accessibilityState={{ selected: period === "D" }} style={[styles.periodTab, period === "D" && styles.periodTabActive]} onPress={() => setPeriod("D")}>
             <Text style={[styles.periodText, period === "D" && styles.periodTextActive]}>일봉</Text>
@@ -244,6 +244,7 @@ export function ChartScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
+  retryTarget: { minHeight: 44, justifyContent: "center" },
   safeArea: {
     flex: 1,
     backgroundColor: colors.canvas
@@ -301,6 +302,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start"
   },
   periodTab: {
+    minHeight: 44, justifyContent: "center",
     borderRadius: radius.small,
     paddingHorizontal: spacing.md,
     paddingVertical: 6
@@ -321,6 +323,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs
   },
   intervalTab: {
+    minWidth: 44, minHeight: 44, justifyContent: "center", alignItems: "center",
     borderColor: colors.borderStrong,
     borderWidth: 1,
     borderRadius: radius.small,

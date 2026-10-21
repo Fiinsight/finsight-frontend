@@ -14,7 +14,7 @@ test('settings start at question one, restore answers, and end with save', () =>
   }, useRef: value => ({ current: value }) };
   const source = readFileSync(new URL('../screens/onboarding/OnboardingScreen.tsx', import.meta.url), 'utf8');
   const exports = {};
-  const native = { Pressable: 'Pressable', Text: 'Text', View: 'View', SafeAreaView: 'SafeAreaView', useWindowDimensions: () => ({ width: 375 }), StyleSheet: { create: value => value }, Animated: { Value: class { interpolate() { return 0; } }, View: 'View', Image: 'Image' } };
+  const native = { ScrollView: 'ScrollView', Pressable: 'Pressable', Text: 'Text', View: 'View', SafeAreaView: 'SafeAreaView', useWindowDimensions: () => ({ width: 375 }), StyleSheet: { create: value => value }, Animated: { Value: class { interpolate() { return 0; } }, View: 'View', Image: 'Image' } };
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.React } }).outputText,
     { exports, React, require: name => name === 'react' ? React : name === 'react-native' ? native : {} });
   const answers = [{ questionId: 'experience', answer: '직접 투자하고 있어요' }];
@@ -23,6 +23,11 @@ test('settings start at question one, restore answers, and end with save', () =>
   const visit = node => Array.isArray(node) ? node.flatMap(visit) : node && typeof node === 'object' ? [node, ...visit(node.children)] : [];
   let nodes = visit(render());
   assert.equal(values[0], 1);
+  const scroll = nodes.find(node => node.type === 'ScrollView');
+  assert.equal(scroll.props.contentContainerStyle.flexGrow, 1);
+  assert.equal(scroll.props.contentContainerStyle.flex, undefined);
+  const close = nodes.find(node => node.props?.accessibilityLabel === '학습 설정 닫기');
+  assert(close.props.style.width >= 44 && close.props.style.height >= 44);
   const selected = nodes.filter(node => node.type === 'Pressable' && node.props.accessibilityState?.selected);
   assert.equal(selected.length, 1);
   assert.equal(selected[0].props.accessibilityLabel, '직접 투자하고 있어요');

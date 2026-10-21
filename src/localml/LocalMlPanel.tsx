@@ -1,6 +1,6 @@
 import { toRelativeTimeKorean } from "../lib/format";
 import React, { useEffect, useState } from "react";
-import { Button, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 export type LocalMlQuery = {
   query: string;
@@ -87,7 +87,7 @@ export function LocalMlPanel({
       {error && (
         <>
           <Text>추가 검색을 사용할 수 없습니다. 기존 화면은 계속 이용할 수 있습니다.</Text>
-          <Button title="다시 검색" onPress={() => setRetry((value) => value + 1)} />
+          <Pressable accessibilityRole="button" accessibilityLabel="관련 자료 다시 검색" style={styles.retry} onPress={() => setRetry((value) => value + 1)}><Text style={styles.retryText}>다시 검색</Text></Pressable>
         </>
       )}
       {empty && <Text>{request.kind === "news" ? "비슷한 뉴스가 아직 없어요" : "관련 자료가 아직 없어요"}</Text>}
@@ -114,6 +114,8 @@ export function LocalMlPanel({
 }
 
 const styles = StyleSheet.create({
+  retry: { minHeight: 44, justifyContent: "center", paddingHorizontal: 12, backgroundColor: "#175CD3", borderRadius: 8 },
+  retryText: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
   panel: { padding: 16, gap: 10, backgroundColor: "#EEF4FF", borderRadius: 12 },
   title: { fontWeight: "700", fontSize: 16 },
   note: { color: "#475467" },

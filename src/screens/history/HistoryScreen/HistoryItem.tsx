@@ -10,7 +10,7 @@ const choiceLabel: Record<JudgementChoice, string> = {
 };
 
 const choiceColor: Record<JudgementChoice, string> = {
-  UP: "#12B76A",
+  UP: "#027A48",
   NEUTRAL: "#667085",
   DOWN: "#175CD3"
 };
@@ -29,7 +29,7 @@ export function HistoryItem({ item, onPress, unread = false }: { item: Judgement
         <Text style={result.pending ? styles.pending : styles.result}>{result.label}</Text>
         {result.correct !== null ? (
           <View style={[styles.badge, { backgroundColor: partial ? "#F2F4F7" : result.correct ? "#ECFDF3" : "#FEF3F2" }]}>
-            <Text style={[styles.badgeText, { color: partial ? "#667085" : result.correct ? "#12B76A" : "#D92D20" }]}>{partial ? "방향 같음·소폭 변동" : result.correct ? "맞음" : "틀림"}</Text>
+            <Text style={[styles.badgeText, { color: partial ? "#667085" : result.correct ? "#027A48" : "#D92D20" }]}>{partial ? "방향 같음·소폭 변동" : result.correct ? "맞음" : "틀림"}</Text>
           </View>
         ) : null}
       </View>
@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
     fontSize: 13
   },
   pending: {
-    color: "#98A2B3",
+    color: "#667085",
     fontSize: 13
   },
   feedback: {
@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
     fontWeight: "800"
   },
   date: {
-    color: "#98A2B3",
+    color: "#667085",
     fontSize: 12
   }
 });

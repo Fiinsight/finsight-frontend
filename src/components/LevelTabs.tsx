@@ -20,6 +20,8 @@ export function LevelTabs({ value, onChange }: LevelTabsProps) {
         return (
           <TouchableOpacity
             key={level.key}
+            accessibilityRole="tab"
+            accessibilityState={{ selected }}
             style={[styles.chip, selected && styles.chipSelected]}
             activeOpacity={0.85}
             onPress={() => onChange(level.key)}
@@ -38,6 +40,8 @@ const styles = StyleSheet.create({
     gap: 8
   },
   chip: {
+    minHeight: 44,
+    justifyContent: "center",
     flex: 1,
     alignItems: "center",
     borderRadius: 999,

@@ -11,7 +11,7 @@ interface DetailTopBarProps {
 export function DetailTopBar({ category, publishedAt, onBack }: DetailTopBarProps) {
   return (
     <View style={styles.topBar}>
-      <TouchableOpacity onPress={onBack} hitSlop={12} style={styles.backButton}>
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel="뒤로가기" onPress={onBack} hitSlop={12} style={styles.backButton}>
         <Ionicons name="chevron-back" size={24} color="#101828" />
       </TouchableOpacity>
       <View style={styles.meta}>
@@ -34,12 +34,15 @@ const styles = StyleSheet.create({
     paddingBottom: 8
   },
   backButton: {
-    width: 32,
-    height: 32,
+    width: 44,
+    height: 44,
     alignItems: "center",
     justifyContent: "center"
   },
   meta: {
+    flex: 1,
+    minWidth: 0,
+    flexWrap: "wrap",
     flexDirection: "row",
     alignItems: "center",
     gap: 10
@@ -56,7 +59,7 @@ const styles = StyleSheet.create({
     fontWeight: "700"
   },
   timeText: {
-    color: "#98A2B3",
+    color: "#667085",
     fontSize: 12
   }
 });

@@ -40,5 +40,5 @@ const styles = StyleSheet.create({
   list: { marginTop: 24 },
   row: { height: 56, flexDirection: "row", alignItems: "center", gap: 16, paddingHorizontal: 0 },
   label: { flex: 1, color: "#101828", fontSize: 16, fontWeight: "400" },
-  value: { color: "#98A2B3", fontSize: 14 }
+  value: { color: "#667085", fontSize: 14 }
 });

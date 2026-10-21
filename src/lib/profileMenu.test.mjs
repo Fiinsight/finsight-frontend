@@ -26,7 +26,7 @@ test('profile has exactly eight uniform icon rows without sections, separators, 
  assert.deepEqual(rows.filter(n => n.props.disabled).map(n => n.props.accessibilityLabel), ['알림 설정, 준비 중', '버전 정보, v0.1.0']);
  const values = tree.filter(n => n.type === 'Text' && n.props.style.fontSize === 14);
  assert.deepEqual(values.map(n => n.children[0]), ['초보자용', '준비 중', 'v0.1.0']);
- assert(values.every(n => n.props.style.color === '#98A2B3'));
+ assert(values.every(n => n.props.style.color === '#667085'));
  assert.equal(tree.filter(n => n.type === 'View').length, 1);
  assert(tree.every(n => !n.props?.style?.backgroundColor && !n.props?.style?.borderWidth && !n.props?.style?.borderRadius));
  for (const level of ['normal', 'analyst']) assert(nodes(menu.SettingsList({ ...props, level })).some(n => n.props?.accessibilityLabel === `읽기 수준 기본값, ${level === 'normal' ? '일반용' : '분석용'}`));

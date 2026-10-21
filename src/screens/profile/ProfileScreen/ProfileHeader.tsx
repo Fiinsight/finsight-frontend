@@ -6,7 +6,7 @@ export function ProfileHeader({ session }: { session: AuthSession }) {
   return (
     <View style={styles.row}>
       <View style={styles.avatar}>
-        <Ionicons name="person" size={28} color="#98A2B3" />
+        <Ionicons name="person" size={28} color="#667085" />
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text style={styles.name}>{session.nickname || "핀사이트 사용자"}</Text>
@@ -36,7 +36,7 @@ const styles = StyleSheet.create({
     fontWeight: "800"
   },
   hint: {
-    color: "#98A2B3",
+    color: "#667085",
     fontSize: 12,
     marginTop: 2
   }

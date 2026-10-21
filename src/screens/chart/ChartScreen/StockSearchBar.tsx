@@ -9,11 +9,11 @@ interface StockSearchBarProps {
 export function StockSearchBar({ value, onChange }: StockSearchBarProps) {
   return (
     <View style={styles.wrap}>
-      <Ionicons name="search" size={18} color="#98A2B3" />
+      <Ionicons name="search" size={18} color="#667085" />
       <TextInput
         style={styles.input}
         placeholder="종목명 또는 종목코드 검색"
-        placeholderTextColor="#98A2B3"
+        placeholderTextColor="#667085"
         value={value}
         onChangeText={onChange}
       />

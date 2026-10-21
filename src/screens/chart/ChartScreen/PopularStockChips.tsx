@@ -25,7 +25,7 @@ export function PopularStockChips({ stocks, selectedSymbol, onSelect }: PopularS
           >
             <Text style={[styles.name, selected && styles.nameSelected]}>{stock.name}</Text>
             <Text style={[styles.price, selected && styles.nameSelected]}>{stock.fallback || stock.price <= 0 ? "확인 불가" : formatPrice(stock.price)}</Text>
-            <Text style={[styles.change, { color: stock.changePercent >= 0 ? "#D92D20" : "#175CD3" }]}>{stock.fallback || stock.price <= 0 ? "-" : formatPercent(stock.changePercent)}</Text>
+            <Text style={[styles.change, { color: stock.fallback || stock.price <= 0 || stock.changePercent === 0 ? "#667085" : stock.changePercent > 0 ? "#B42318" : "#175CD3" }]}>{stock.fallback || stock.price <= 0 ? "-" : formatPercent(stock.changePercent)}</Text>
           </TouchableOpacity>
         );
       })}

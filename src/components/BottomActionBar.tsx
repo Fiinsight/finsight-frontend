@@ -11,7 +11,7 @@ interface BottomActionBarProps {
 export function BottomActionBar({ label, onPress, disabled, loading }: BottomActionBarProps) {
   return (
     <View style={styles.wrap}>
-      <TouchableOpacity style={[styles.button, disabled && styles.buttonDisabled]} activeOpacity={0.9} disabled={disabled || loading} onPress={onPress}>
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled: !!(disabled || loading), busy: !!loading }} style={[styles.button, disabled && styles.buttonDisabled]} activeOpacity={0.9} disabled={disabled || loading} onPress={onPress}>
         {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>{label}</Text>}
       </TouchableOpacity>
     </View>
@@ -32,7 +32,7 @@ const styles = StyleSheet.create({
     paddingVertical: 15
   },
   buttonDisabled: {
-    backgroundColor: "#98A2B3"
+    backgroundColor: "#667085"
   },
   buttonText: {
     color: "#FFFFFF",
