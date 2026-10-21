@@ -58,7 +58,7 @@ export function ArticleNotesPanel({ newsId, sourceUrl }: { newsId: number; sourc
           multiline
           textAlignVertical="top"
           placeholder="예: 매출 증가뿐 아니라 비용과 영업이익도 같이 확인하기"
-          placeholderTextColor="#98A2B3"
+          placeholderTextColor="#667085"
           style={styles.input}
         />
         <View style={styles.footer}>
@@ -147,16 +147,16 @@ const styles = StyleSheet.create({
   titleCopy: { flex: 1, gap: 2 },
   title: { color: "#101828", fontSize: 19, fontWeight: "800" },
   subtitle: { color: "#667085", fontSize: 13, lineHeight: 19 },
-  iconButton: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: "#E8F1FF" },
+  iconButton: { width: 44, height: 44, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: "#E8F1FF" },
   input: { minHeight: 92, backgroundColor: "#F8FBFF", borderColor: "#D4E5F7", borderWidth: 1, borderRadius: 10, padding: 12, color: "#101828", fontSize: 14, lineHeight: 20 },
   footer: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  count: { color: "#98A2B3", fontSize: 12 },
-  primaryButton: { backgroundColor: "#175CD3", borderRadius: 9, paddingHorizontal: 14, paddingVertical: 9 },
-  disabledButton: { backgroundColor: "#98A2B3" },
+  count: { color: "#667085", fontSize: 12 },
+  primaryButton: { minHeight: 44, justifyContent: "center", backgroundColor: "#175CD3", borderRadius: 9, paddingHorizontal: 14, paddingVertical: 9 },
+  disabledButton: { backgroundColor: "#667085" },
   primaryText: { color: "#FFFFFF", fontSize: 13, fontWeight: "800" },
-  secondaryButton: { borderColor: "#D0D5DD", borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: "#FFFFFF" },
+  secondaryButton: { minHeight: 44, justifyContent: "center", borderColor: "#D0D5DD", borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: "#FFFFFF" },
   secondaryText: { color: "#475467", fontSize: 12, fontWeight: "700" },
-  deleteButton: { borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: "#FEF3F2" },
+  deleteButton: { minHeight: 44, justifyContent: "center", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: "#FEF3F2" },
   deleteText: { color: "#B42318", fontSize: 12, fontWeight: "700" },
   note: { backgroundColor: "#F8FAFC", borderRadius: 12, padding: 12, gap: 8, borderWidth: 1, borderColor: "#EEF2F6" },
   noteDate: { color: "#667085", fontSize: 11 },

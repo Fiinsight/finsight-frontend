@@ -49,7 +49,7 @@ function RootTabs({ session, onLogout }: { session: AuthSession; onLogout: () =>
         tabBarButton: (props) => <PlatformPressable {...props} href={({ HomeTab: "/", ChartTab: "/chart", HistoryTab: "/history", LearnTab: "/learn", ProfileTab: "/profile" })[route.name]} />,
         tabBarAccessibilityLabel: route.name === "HistoryTab" && unseen.length ? "기록, 안 본 판단 결과 있음" : ({ HomeTab: "홈", ChartTab: "차트", HistoryTab: "기록", LearnTab: "학습", ProfileTab: "프로필" })[route.name],
         tabBarActiveTintColor: "#202124",
-        tabBarInactiveTintColor: "#C7C9CE",
+        tabBarInactiveTintColor: "#667085",
         tabBarStyle: {
           backgroundColor: "#FFFFFF",
           borderTopColor: "#E5E7EB",

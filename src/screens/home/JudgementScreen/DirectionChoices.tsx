@@ -10,7 +10,7 @@ const CHOICES: {
   color: string;
   background: string;
 }[] = [
-  { key: "UP", title: "상승", subtitle: "주가가 오를 것으로 예상", icon: "trending-up", color: "#12B76A", background: "#ECFDF3" },
+  { key: "UP", title: "상승", subtitle: "주가가 오를 것으로 예상", icon: "trending-up", color: "#027A48", background: "#ECFDF3" },
   { key: "NEUTRAL", title: "중립", subtitle: "큰 변화가 없을 것으로 예상", icon: "remove", color: "#667085", background: "#F2F4F7" },
   // Down keeps the app's existing "하락 = blue" Korean-market color convention.
   { key: "DOWN", title: "하락", subtitle: "주가가 떨어질 것으로 예상", icon: "trending-down", color: "#175CD3", background: "#D1E9FF" }

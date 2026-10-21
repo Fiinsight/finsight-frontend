@@ -149,7 +149,7 @@ export function GuideList({ focus, level }: { focus: LearningFocus; level: Learn
             <Text style={styles.title}>{guide.title}</Text>
             <Text style={styles.subtitle}>{guide.subtitle}</Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color={colors.subtle} />
+          <Ionicons name="chevron-forward" size={18} color={colors.muted} />
         </TouchableOpacity>
       ))}
       <Modal visible={selectedGuide !== null} transparent animationType="slide" onRequestClose={() => setSelectedGuide(null)}>
@@ -160,7 +160,7 @@ export function GuideList({ focus, level }: { focus: LearningFocus; level: Learn
             <Text style={styles.title}>기사 읽기 예시 · 학습용 가상 상황</Text>
             <Text style={styles.modalBody}>{selectedGuide?.example}</Text>
             <Text style={styles.title}>관련 용어 · 눌러서 뜻 확인</Text>
-            {selectedGuide?.terms.map((term) => <Pressable key={term[0]} accessibilityRole="button" accessibilityLabel={`${term[0]} 용어 뜻 보기`} onPress={() => setSelectedTerm(term)}><Text style={styles.termLink}>{term[0]}</Text></Pressable>)}
+            {selectedGuide?.terms.map((term) => <Pressable key={term[0]} accessibilityRole="button" accessibilityLabel={`${term[0]} 용어 뜻 보기`} style={{ minHeight: 44, justifyContent: "center" }} onPress={() => setSelectedTerm(term)}><Text style={styles.termLink}>{term[0]}</Text></Pressable>)}
             <TermPopup level={level} visible={!!selectedTerm} term={selectedTerm?.[0] ?? null} onClose={() => setSelectedTerm(null)} />
             <Pressable accessibilityRole="button" accessibilityLabel="학습 가이드 닫기" onPress={() => setSelectedGuide(null)} style={styles.closeButton}>
               <Text style={styles.closeButtonText}>확인</Text>

@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
     fontWeight: typography.weight.bold
   },
   symbol: {
-    color: colors.subtle,
+    color: colors.muted,
     fontSize: typography.size.meta,
     marginTop: 2
   },
@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
     marginTop: 2
   },
   changeLabel: {
-    color: colors.subtle,
+    color: colors.muted,
     fontSize: typography.size.caption,
     marginTop: 2
   }

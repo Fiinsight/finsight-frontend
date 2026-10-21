@@ -10,10 +10,10 @@ interface BodyTabsProps {
 export function BodyTabs({ value, onChange }: BodyTabsProps) {
   return (
     <View style={styles.tabRow}>
-      <TouchableOpacity style={[styles.tab, value === "raw" && styles.tabSelected]} onPress={() => onChange("raw")}>
+      <TouchableOpacity accessibilityRole="tab" accessibilityState={{ selected: value === "raw" }} style={[styles.tab, value === "raw" && styles.tabSelected]} onPress={() => onChange("raw")}>
         <Text style={[styles.tabText, value === "raw" && styles.tabTextSelected]}>원문</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={[styles.tab, value === "level" && styles.tabSelected]} onPress={() => onChange("level")}>
+      <TouchableOpacity accessibilityRole="tab" accessibilityState={{ selected: value === "level" }} style={[styles.tab, value === "level" && styles.tabSelected]} onPress={() => onChange("level")}>
         <Text style={[styles.tabText, value === "level" && styles.tabTextSelected]}>쉽게읽기</Text>
       </TouchableOpacity>
     </View>
@@ -29,6 +29,8 @@ const styles = StyleSheet.create({
     gap: 4
   },
   tab: {
+    minHeight: 44,
+    justifyContent: "center",
     flex: 1,
     alignItems: "center",
     borderRadius: 6,

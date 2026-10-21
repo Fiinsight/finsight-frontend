@@ -33,7 +33,7 @@ export function FeedbackScreen({ route, navigation }: Props) {
 
       <View style={styles.container}>
         <View style={styles.iconCircle}>
-          <Ionicons name="checkmark" size={32} color="#12B76A" />
+          <Ionicons name="checkmark" size={32} color="#027A48" />
         </View>
         <Text style={styles.title}>{ack.message === "판단을 수정했어요" ? "판단을 수정했어요" : `${choiceLabel[ack.choice] ?? ""} 판단이 기록됐어요`}</Text>
         <Text style={styles.message}>뉴스를 읽고 남긴 판단은 기록 탭에서 바로 확인할 수 있어요.</Text>

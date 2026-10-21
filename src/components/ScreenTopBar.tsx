@@ -29,8 +29,8 @@ const styles = StyleSheet.create({
     paddingBottom: 8
   },
   side: {
-    width: 32,
-    height: 32,
+    width: 44,
+    height: 44,
     alignItems: "center",
     justifyContent: "center"
   },

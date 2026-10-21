@@ -64,7 +64,7 @@ export function AttendanceCard({ selectedDate, onSelectDate }: { selectedDate?: 
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: 24, padding: 20, overflow: "hidden", shadowColor: "#0D1B4C", shadowOpacity: 0.2, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 5 },
+  card: { borderRadius: 24, padding: 20, paddingHorizontal: 12, overflow: "hidden", shadowColor: "#0D1B4C", shadowOpacity: 0.2, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 5 },
   header: { minHeight: 78, flexDirection: "row", alignItems: "center" },
   headerCopy: { flex: 1 },
   kicker: { color: "#B8CBFF", fontSize: 12, fontWeight: "700", letterSpacing: 0.4, marginBottom: 7 },
@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
   readProgressLabel: { color: "#D5E1FF", fontSize: 12, fontWeight: "600" },
   readProgressCount: { color: "#86F2DA", fontSize: 13, fontWeight: "800" },
   days: { flexDirection: "row", justifyContent: "space-between", marginTop: 17, marginBottom: 2 },
-  dayItem: { flex: 1, minHeight: 48, alignItems: "center", gap: 6 },
+  dayItem: { flex: 1, minWidth: 44, minHeight: 48, alignItems: "center", gap: 6 },
   daySelected: { borderColor: "#86F2DA", borderWidth: 3, backgroundColor: "#175CD3" },
   futureDay: { opacity: 0.4 },
   dayStamp: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: "rgba(255,255,255,0.45)", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(8,24,76,0.3)" },

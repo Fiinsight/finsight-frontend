@@ -12,7 +12,7 @@ export function SourceLinkRow({ source, url }: SourceLinkRowProps) {
   }
 
   return (
-    <TouchableOpacity style={styles.row} onPress={() => Linking.openURL(url)} hitSlop={8}>
+    <TouchableOpacity accessibilityRole="link" accessibilityLabel={`${source} 원문 보기`} style={styles.row} onPress={() => Linking.openURL(url)} hitSlop={8}>
       <Text style={styles.text} numberOfLines={1}>
         {source ? `${source} 원문 보기` : "원문 보기"}
       </Text>
@@ -23,6 +23,7 @@ export function SourceLinkRow({ source, url }: SourceLinkRowProps) {
 
 const styles = StyleSheet.create({
   row: {
+    minHeight: 44,
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
