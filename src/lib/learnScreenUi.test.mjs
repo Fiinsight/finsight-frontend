@@ -1,3 +1,4 @@
+import * as actions from './learningActions.ts';
 import * as theme from '../theme/index.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -9,10 +10,11 @@ const model = {};
 vm.runInNewContext(ts.transpileModule(fs.readFileSync(new URL('./readingProgressModel.ts', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, { exports: model, require: () => ({ kstDate }) });
 const { resumeLearningIds, DAILY_ARTICLE_GOAL } = model;
 
-function harness({ count = 1, completed = [], reviewItems, weak = [], pending = false, fetching = false, error = false, painPoint, goal, mastery, recommendations = [], suggestion = null, section, dailyItems } = {}) {
+function harness({ owner = 1, count = 1, completed = [], reviewItems, weak = [], pending = false, fetching = false, error = false, painPoint, goal, mastery, recommendations = [], suggestion = null, section, dailyItems } = {}) {
   const reviews = reviewItems ?? [{ newsId: 232, term: '코스피', definition: '시장 흐름을 보여주는 지수예요.', title: '기사 제목', level: 'analyst' }];
   const preferences = { level: 'beginner', focus: 'news', pace: 'micro', dailyGoal: '뉴스 하나 읽기', source: 'onboarding', painPoint };
-  const values = [{ '2026-10-12': [100,101,102,103] }, 1, preferences, 4, true];
+  const values = [{ '2026-10-12': [100,101,102,103] }, owner, preferences, 4, true, null, null, {}, owner];
+  const effects = [], mutations = [];
   const navigation = [], retries = [], changes = [], scrolls = [], params = [];
   let slot = 0;
   const React = { createElement: (type, props, ...children) => ({ type, props, children }), useCallback: fn => fn, useRef: initial => ({ current: initial === null ? { scrollTo: position => scrolls.push(position), getInnerViewNode() {}, measureLayout(_node,success) { success(0,480); } } : initial }), useState(initial) {
@@ -23,11 +25,17 @@ function harness({ count = 1, completed = [], reviewItems, weak = [], pending = 
   const exports = {};
   const query = (data, key) => ({ data: pending || error ? undefined : data, isPending: pending, isFetching: fetching, isLoading: pending, isError: error, refetch: () => retries.push(key) });
   vm.runInNewContext(ts.transpileModule(fs.readFileSync(new URL('../screens/learn/LearnScreen/index.tsx', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.React } }).outputText, { exports, React, require: name => {
+    if (name.endsWith('/learningActions')) return actions;
+    if (name.endsWith('/storage')) return {storageSetItem:async()=>{},storageGetItem:async()=>null};
+    if (name.endsWith('/auth')) return {loadAuthSession:async()=>owner === null ? null : {userId:owner}};
+    if (name.endsWith('/api')) return {getLearningPreferences:async()=>preferences};
+    if (name.endsWith('/readingProgress')) return {getReadingLog:async()=>({'2026-10-12':[100]})};
+    if (name.endsWith('/PainPointCard')) return {PainPointCard:'PainPointCard'};
     if (name.endsWith('/theme')) return theme;
     if (name === 'react') return React;
     if (name === 'react-native') return { SafeAreaView:'SafeAreaView', ScrollView:'ScrollView', Text:'Text', Pressable:'Pressable', View:'View', Modal:'Modal', StyleSheet:{create:value=>value} };
-    if (name === '@react-navigation/native') return { useFocusEffect() {}, useIsFocused:()=>true, useRoute:()=>({params:{section}}), useNavigation:()=>({ navigate:(...args)=>navigation.push(args), setParams: value=>params.push(value) }) };
-    if (name === '@tanstack/react-query') return { useQuery: options => options.queryKey[0] === "learning-recommendations" ? query({items:recommendations}, "recommendations") : options.queryKey[0] === "daily-learning-terms" ? query(dailyItems ?? [{term:"금리",definition:"이자 비율",newsId:232,title:"금리 기사",reason:"지난번에 틀린 개념"},{term:"환율",definition:"통화 교환 비율",newsId:233,title:"환율 기사",reason:"처음 보는 개념"},{term:"물가",definition:"평균 가격",newsId:234,title:"물가 기사",reason:"익히는 중인 개념"}], "terms") : options.queryKey[0] === 'learning-reviews' ? query(reviews, 'reviews') : query({today:{answeredCount:count,accuracy:1},week:{answeredCount:count,accuracy:1},activityStreakDays:3,completedNewsIds:completed,weakAreas:weak,goal,mastery,levelSuggestion:suggestion}, 'progress'), useQueryClient: () => ({ invalidateQueries() {} }), useMutation: () => ({ mutate(level) { changes.push(level); }, isPending:false, isError:false }), useQueries: ({queries}) => queries.map((options,index)=>query({id:options.queryKey[1],title:`복습할 기사 ${index}`,category:'국내증시',rawContent:'본문'}, 'article')) };
+    if (name === '@react-navigation/native') return { useFocusEffect(fn) { effects.push(fn); }, useIsFocused:()=>true, useRoute:()=>({params:{section}}), useNavigation:()=>({ navigate:(...args)=>navigation.push(args), setParams: value=>params.push(value) }) };
+    if (name === '@tanstack/react-query') return { useQuery: options => options.queryKey[0] === "learning-recommendations" ? query({items:recommendations}, "recommendations") : options.queryKey[0] === "daily-learning-terms" ? query(dailyItems ?? [{term:"금리",definition:"이자 비율",newsId:232,title:"금리 기사",reason:"지난번에 틀린 개념"},{term:"환율",definition:"통화 교환 비율",newsId:233,title:"환율 기사",reason:"처음 보는 개념"},{term:"물가",definition:"평균 가격",newsId:234,title:"물가 기사",reason:"익히는 중인 개념"}], "terms") : options.queryKey[0] === 'learning-reviews' ? query(reviews, 'reviews') : query({today:{answeredCount:count,accuracy:1},week:{answeredCount:count,accuracy:1},activityStreakDays:3,completedNewsIds:completed,weakAreas:weak,goal,mastery,levelSuggestion:suggestion}, 'progress'), useQueryClient: () => ({ invalidateQueries() {} }), useMutation: options => { mutations.push(options); return { mutate(level) { changes.push(level); }, isPending:false, isError:false }; }, useQueries: ({queries}) => queries.map((options,index)=>query({id:options.queryKey[1],title:`복습할 기사 ${index}`,category:'국내증시',rawContent:'본문'}, 'article')) };
     if (name.endsWith('/readingProgressModel')) return model;
     if (name.endsWith('/onboarding')) return { getDefaultLearningPreferences:()=>preferences };
     if (name.endsWith('/GuideList')) return { GuideList:'GuideList' };
@@ -38,7 +46,7 @@ function harness({ count = 1, completed = [], reviewItems, weak = [], pending = 
   const visit = node => Array.isArray(node) ? node.flatMap(visit) : !node || typeof node !== 'object' || node.type === 'Modal' && !node.props.visible ? [] : [node,...visit(node.children)];
   const render = () => { slot=0; return visit(exports.LearnScreen()); };
   const text = nodes => nodes.filter(node=>node.type==='Text').flatMap(node=>node.children).join(' ');
-  return {render,text,navigation,retries,values,changes,scrolls,params};
+  return {render,text,navigation,retries,values,changes,scrolls,params,effects,mutations};
 }
 
 const button = (nodes, name) => nodes.find(node=>node.type==='Pressable' && node.props.accessibilityLabel?.startsWith(name));
@@ -68,10 +76,10 @@ test('review chip opens definition sheet and returns to its original reading lev
 
 test('criteria are kept in the info sheet and weak areas only appear when present', () => {
   const screen=harness(); const initial=screen.render();
-  assert(!screen.text(initial).includes('현재 학습 목표를 달성한 날')); assert(!screen.text(initial).includes('다시 살펴볼 분야'));
+  assert(!screen.text(initial).includes('현재 학습 목표를 달성한 날')); assert(!screen.text(initial).includes('판단 결과가 엇갈린 분야'));
   button(initial,'연속 목표 달성 기준 안내').props.onPress(); assert(screen.text(screen.render()).includes('현재 학습 목표를 달성한 날'));
   const weak=harness({weak:[{category:'국내증시',decidedCount:3,hitCount:1,recentNewsIds:[232]}]});
-  assert(weak.text(weak.render()).includes('다시 살펴볼 분야'));
+  assert(weak.text(weak.render()).includes('판단 결과가 엇갈린 분야'));
 });
 
 test('loading reserves article cards, error retries are local, and buttons have names', () => {
@@ -105,16 +113,16 @@ test('level suggestion changes only after the named button is pressed', () => {
  button(initial,'제안된 읽기 수준으로 변경').props.onPress(); assert.deepEqual(screen.changes,['normal']);
 });
 
-test('concept mastery card renders strongest and weakest estimates with accessible bars', () => {
+test('concept mastery card renders strongest and learning estimates without duplicating review concepts', () => {
  const row={term:'환율',pKnown:.9,effectivePKnown:.83,attempts:8};
- const screen=harness({mastery:{strongest:[row],weakest:[{...row,term:'금리',effectivePKnown:.2}],totalAttempts:12,learningCount:2}});
+ const screen=harness({mastery:{strongest:[row],weakest:[{...row,term:'금리',effectivePKnown:.2}],learning:[{...row,term:'물가',effectivePKnown:.65}],totalAttempts:12,learningCount:1}});
  const tree=screen.render();const text=screen.text(tree);
  assert(text.includes('내 개념 숙련도'));assert(/최근 퀴즈\s+12\s*회 기준 추정/.test(text));
- assert(/83\s*%/.test(text));assert(/20\s*%/.test(text));
+ assert(/83\s*%/.test(text));assert(/65\s*%/.test(text)); assert.equal(tree.filter(node=>node.type==='Text' && node.children.includes('다시 볼 개념')).length,1);
  const bars=tree.filter(node=>node.props?.accessibilityRole==='progressbar');
  assert.equal(bars.length,2);assert.equal(bars[0].props.accessibilityValue.now,83);
  assert(text.includes('80% 이상·3번 이상 풀면 잘 아는 개념이에요'));
- assert(/익히는 중\s+2\s*개/.test(text));
+ assert(/익히는 중\s+1\s*개/.test(text));
  assert(harness({mastery:{strongest:[],weakest:[],totalAttempts:0}}).text(harness().render()).includes('퀴즈를 풀면'));
 });
 
@@ -170,4 +178,33 @@ test('attendance is separate from the read-one goal and server completions survi
  assert(!text.includes('아직 읽은 기사가 없어요.')); assert(!text.includes('연속 학습'));
  button(nodes,'출석용 기사 읽기 기준 안내').props.onPress();
  assert(screen.text(screen.render()).includes('개인 학습 목표와 별개인 출석 기준'));
+});
+
+
+test('focus refresh preserves loaded goal and count, while a missing session ends loaders', async () => {
+ const screen=harness();screen.render();const cleanup=screen.effects.at(-1)();
+ assert.equal(screen.values[3],4);assert.equal(screen.values[4],true);
+ await new Promise(setImmediate);assert.equal(screen.values[4],true);cleanup();
+ const guest=harness({owner:null,pending:true});const text=guest.text(guest.render());
+ assert(text.includes('로그인하면 다시 볼 개념'));assert(!text.includes('다시 볼 개념 불러오는 중'));
+ assert.equal(guest.render().filter(n=>n.props?.accessibilityLabel==='개념 숙련도 불러오는 중').length,0);
+});
+
+test('promotion later hides the suggested level for the current owner and reports success', async () => {
+ const screen=harness({suggestion:'normal'});let nodes=screen.render();
+ await button(nodes,'수준 변경 제안 7일 뒤에 보기').props.onPress();await new Promise(setImmediate);
+ nodes=screen.render();assert(!screen.text(nodes).includes('일반용으로 읽어볼까요?'));assert(screen.text(nodes).includes('7일 뒤에 다시'));
+ const other=harness({suggestion:'analyst'});assert(other.text(other.render()).includes('분석용으로 읽어볼까요?'));
+});
+
+test('mismatched judgement fields show real article titles without claiming weak knowledge', () => {
+ const screen=harness({weak:[{category:'금리',sampleSize:5,hitCount:1,recentNewsIds:[7,8],recentArticles:[{newsId:7,title:'금리 동결 기사'},{newsId:8,title:'이익 변화 기사'}]}]});
+ const nodes=screen.render();const text=screen.text(nodes);assert(text.includes('판단 결과가 엇갈린 분야'));assert(text.includes('개념 이해도를 뜻하지 않아요'));
+ button(nodes,'이익 변화 기사 다시 읽기').props.onPress();assert.equal(screen.navigation.at(-1)[1].newsId,8);
+});
+
+
+test('successful level change reports the saved level and refreshes preferences', async () => {
+ const screen=harness({suggestion:'normal'});screen.render();await screen.mutations[0].onSuccess(undefined,'normal');
+ assert(screen.text(screen.render()).includes('일반용으로 변경했어요.'));
 });
