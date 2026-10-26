@@ -10,7 +10,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test src/lib/*.test.mjs"
+    "test": "node --experimental-strip-types --test src/lib/*.test.mjs",
+    "deploy:web": "expo export --platform web && npx eas-cli@latest deploy --prod"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
