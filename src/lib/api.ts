@@ -54,10 +54,9 @@ export function getApiErrorMessage(error: any, fallback: string): string {
   return fallback;
 }
 
-// Wi-Fi가 바뀌면 맥의 LAN IP도 바뀌어서 .env에 IP를 박아두는 방식은 매번 깨진다.
-// Expo 개발 서버는 자신이 지금 물려 있는 실제 호스트를 hostUri로 넘겨주므로,
-// 그 호스트를 그대로 재사용하면(포트만 8080으로 바꿔서) IP가 바뀌어도 항상 맞다.
+// 배포 주소를 우선하고, 설정이 없으면 Expo 개발 서버의 호스트를 사용한다.
 function resolveApiBaseUrl(): string {
+  if (process.env.EXPO_PUBLIC_API_BASE_URL) return process.env.EXPO_PUBLIC_API_BASE_URL;
   const webHost = typeof window !== "undefined" ? window.location?.hostname : undefined;
   if (webHost) {
     return `http://${webHost}:8080/api`;
@@ -67,12 +66,12 @@ function resolveApiBaseUrl(): string {
   if (host) {
     return `http://${host}:8080/api`;
   }
-  return process.env.EXPO_PUBLIC_API_BASE_URL || "http://localhost:8080/api";
+  return "http://localhost:8080/api";
 }
 
 export const api = axios.create({
   baseURL: resolveApiBaseUrl(),
-  timeout: 8000,
+  timeout: 120000,
   // localtunnel shows a browser warning page unless this header is present.
   // Keep it limited to the free development tunnel; production hosts do not need it.
   headers: process.env.EXPO_PUBLIC_API_BASE_URL?.includes(".loca.lt")
