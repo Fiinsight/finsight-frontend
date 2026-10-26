@@ -8,3 +8,13 @@ export function claimKakaoCode(code: string): boolean {
   handledKakaoCodes.add(code);
   return true;
 }
+
+// OAuth returns in a fresh page, before the guest has dismissed onboarding.
+export function isKakaoWebCallback(url?: string): boolean {
+  if (!url) return false;
+  try {
+    const callback = new URL(url);
+    return callback.pathname === "/auth/kakao"
+      && (callback.searchParams.has("code") || callback.searchParams.has("error"));
+  } catch { return false; }
+}

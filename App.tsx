@@ -13,6 +13,7 @@ import { AuthScreen } from "./src/screens/auth/AuthScreen";
 import { clearAuthSession, loadAuthSession, saveAuthSession, setAuthFailureHandler, type AuthSession } from "./src/lib/auth";
 import { clearOnboardingProfile, loadOnboardingProfile, saveOnboardingProfile } from "./src/lib/onboarding";
 import { getCurrentUser, syncOnboardingProfile } from "./src/lib/api";
+import { isKakaoWebCallback } from "./src/lib/kakaoCallback";
 import { useAppStore } from "./src/store/useAppStore";
 
 function isAuthFailure(error: unknown) {
@@ -73,7 +74,9 @@ export default function App() {
         } else {
           setSession(storedSession);
         }
-        setOnboardingDoneThisRun(Boolean(onboardingProfile));
+        setOnboardingDoneThisRun(Boolean(onboardingProfile) || isKakaoWebCallback(
+          typeof window !== "undefined" ? window.location?.href : undefined
+        ));
       })
       .catch(() => {
         setSession(null);
