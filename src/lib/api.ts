@@ -71,7 +71,8 @@ function resolveApiBaseUrl(): string {
 
 export const api = axios.create({
   baseURL: resolveApiBaseUrl(),
-  timeout: 120000,
+  // Render 무료 인스턴스가 잠든 뒤 다시 시작하는 시간을 기다린다.
+  timeout: 240_000,
   // localtunnel shows a browser warning page unless this header is present.
   // Keep it limited to the free development tunnel; production hosts do not need it.
   headers: process.env.EXPO_PUBLIC_API_BASE_URL?.includes(".loca.lt")
