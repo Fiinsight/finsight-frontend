@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
 
 // Expo Go can temporarily expose the JS package before its native storage
 // module is available (for example after a stale OTA/dev-client reload). Do
@@ -17,7 +18,7 @@ function webStorage(): Storage | null {
 }
 
 function isWeb() {
-  return typeof window !== "undefined";
+  return Platform.OS === "web";
 }
 
 export async function storageGetItem(key: string): Promise<string | null> {
