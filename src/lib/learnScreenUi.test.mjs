@@ -216,3 +216,11 @@ test('review scrolling waits until the native scroll content exists', () => {
    assert.deepEqual(screen.scrolls, []);
    assert.deepEqual(screen.params, []);
 });
+
+test('personalized guides and tips wait for learning preferences', () => {
+ const screen=harness(); screen.values[4]=false; const tree=screen.render();
+ assert(!tree.some(node=>node.type==='GuideList'||node.type==='DailyTips'));
+ assert(tree.some(node=>node.props?.accessibilityLabel==='맞춤 가이드와 팁 불러오는 중'));
+ screen.values[4]=true; const ready=screen.render();
+ assert(ready.some(node=>node.type==='GuideList')); assert(ready.some(node=>node.type==='DailyTips'));
+});

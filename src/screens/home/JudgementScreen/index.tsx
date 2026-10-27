@@ -75,7 +75,7 @@ export function JudgementScreen({ route, navigation }: Props) {
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView contentContainerStyle={styles.container}>
-          <Text style={styles.question}>{symbol ? `이 뉴스가 나온 뒤 다음 거래일 ${symbolLabel}는?` : "이 기사는 판단할 대상이 없어요"}</Text>
+          <Text style={styles.question}>{symbol ? `이 뉴스가 나온 뒤 다음 거래일 ${symbolLabel}의 방향은?` : "이 기사는 판단할 대상이 없어요"}</Text>
           <Text style={styles.subtitle}>{marketLabel ? "뉴스 내용을 바탕으로 지수 방향을 예측해보세요" : "뉴스 내용을 바탕으로 주가 방향을 예측해보세요"}</Text>
 
           {isLoading ? <Text style={styles.errorText}>뉴스를 불러오는 중이에요.</Text> : null}

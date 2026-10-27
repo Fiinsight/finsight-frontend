@@ -6,7 +6,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useFonts } from "expo-font";
 import { useEffect, useState } from "react";
-import { StyleSheet, Text } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { RootNavigator } from "./src/navigation/RootNavigator";
 import { OnboardingScreen } from "./src/screens/onboarding/OnboardingScreen";
 import { AuthScreen } from "./src/screens/auth/AuthScreen";
@@ -121,10 +121,10 @@ export default function App() {
   }
 
   if (!session) {
-    return <>
+    return <View style={{ flex: 1 }}>
       {authExpired ? <Text accessibilityRole="alert" style={styles.authNotice}>로그인이 만료됐거나 인증이 거절됐어요. 다시 로그인해 주세요.</Text> : null}
       <AuthScreen initialSignup={signupFirst} onAuthenticated={() => void loadAuthSession().then((value) => { setSession(value); setAuthExpired(false); })} />
-    </>;
+    </View>;
   }
 
   return (

@@ -81,3 +81,21 @@ test('app waits for Ionicons font loading before rendering icon screens', () => 
  error = new Error('font unavailable'); assert(render().some(n => n.props?.accessibilityRole === 'alert'));
  loaded = true; error = null; assert(render().some(n => n.type === 'Root'));
 });
+
+test('expired login notice and authentication form share a full-width native layout', () => {
+ let index = 0;
+ const values = [false, false, true, null, true, true];
+ const app = compile('../../App.tsx', {
+  react: {...React, useEffect() {}, useState: () => [values[index++], () => {}]},
+  'react-native': native,
+  'expo-font': {useFonts: () => [true, null]},
+  '@expo/vector-icons': {Ionicons: {font: {}}},
+  '@tanstack/react-query': {QueryClient: class {}},
+  './src/screens/auth/AuthScreen': {AuthScreen: 'AuthScreen'}
+ });
+ const tree = app.default();
+ assert.equal(tree.type, 'View');
+ assert.equal(tree.props.style.flex, 1);
+ assert.equal(tree.children[0].props.accessibilityRole, 'alert');
+ assert.equal(tree.children[1].type, 'AuthScreen');
+});

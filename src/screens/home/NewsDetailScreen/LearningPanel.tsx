@@ -31,6 +31,7 @@ export function LearningPanel({ newsId, level, quizTerm, onTermPress, onReviewPr
     <View style={styles.card}>
       <Text style={styles.heading}>내 수준에 맞게 읽기</Text>
       <Text style={styles.muted}>{data.mode === "EXCERPT" ? "원문에서 핵심 문장을 골라 보여드려요" : data.mode === "REWRITTEN" ? ({ beginner: "핵심 사실을 쉬운 말로 읽어보세요.", normal: "핵심 사실과 비교 기준을 확인해보세요.", analyst: "기사의 근거·수치·리스크를 나눠 살펴보세요." })[level] : "수준별 설명을 확인할 수 없습니다."}</Text>
+      {data.mode === "UNAVAILABLE" ? <Pressable accessibilityRole="button" accessibilityLabel="읽기 설명 다시 불러오기" disabled={lesson.isFetching} onPress={() => void lesson.refetch()}><Text style={styles.link}>{lesson.isFetching ? "설명을 다시 불러오는 중이에요." : "다시 시도"}</Text></Pressable> : null}
       <Text style={styles.guide}>{data.readingGuide}</Text>
       <ArticleBody text={data.summary.replace(/\s*\(fallback\)/gi, "")} terms={data.glossary.map((g) => g.term)} onTermPress={onTermPress} />
       <Text style={styles.heading}>알아둘 용어</Text>

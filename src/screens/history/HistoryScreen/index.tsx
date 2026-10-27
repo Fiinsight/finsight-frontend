@@ -1,7 +1,7 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { getLearningPreferences, getArticleNotesRange, getJudgementHistoryPage } from "../../../lib/api";
 import { loadAuthSession } from "../../../lib/auth";
@@ -21,7 +21,8 @@ export function HistoryScreen({ navigation, route }: Props) {
   const focused = useIsFocused();
   const [seen, setSeen] = useState<Record<string, string>>({});
   const [tab, setTab] = useState<"judgements" | "notes">(route.params?.initialTab ?? "judgements");
-  useEffect(() => { void getLearningPreferences().then(value => { if (!route.params?.initialTab && value.painPoint === "reflection") setTab("notes"); }); }, [route.params?.initialTab]);
+  const tabChosen = useRef(false);
+  useEffect(() => { let active = true; void getLearningPreferences().then(value => { if (active && !tabChosen.current && !route.params?.initialTab && value.painPoint === "reflection") setTab("notes"); }); return () => { active = false; }; }, [route.params?.initialTab]);
   useEffect(() => { if (route.params?.initialTab) setTab(route.params.initialTab); }, [route.params?.initialTab]);
   const [today, setToday] = useState(() => kstDate(new Date()));
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -74,7 +75,7 @@ export function HistoryScreen({ navigation, route }: Props) {
         <View style={styles.tabs} accessibilityRole="tablist">
           {(["judgements", "notes"] as const).map((value) => (
             <Pressable key={value} accessibilityRole="tab" accessibilityState={{ selected: tab === value }}
-              onPress={() => setTab(value)} style={[styles.tab, tab === value && styles.selectedTab]}>
+              onPress={() => { tabChosen.current = true; setTab(value); }} style={[styles.tab, tab === value && styles.selectedTab]}>
               <Text style={[styles.tabText, tab === value && styles.selectedTabText]}>{value === "judgements" ? "판단 기록" : "기사 메모"}</Text>
             </Pressable>
           ))}

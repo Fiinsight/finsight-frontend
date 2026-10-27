@@ -229,8 +229,10 @@ export function LearnScreen() {
           {promotion.isError ? <Text style={styles.auxiliary}>수준을 변경하지 못했어요. 다시 시도해주세요.</Text> : null}
         </View> : null}
         {promotionMessage ? <Text accessibilityRole="alert" style={styles.body}>{promotionMessage}</Text> : null}
-        <GuideList focus={preferences.focus} level={preferences.level} />
-        <DailyTips level={preferences.level} pace={preferences.pace} focus={preferences.focus} />
+        {loaded ? <>
+          <GuideList focus={preferences.focus} level={preferences.level} />
+          <DailyTips level={preferences.level} pace={preferences.pace} focus={preferences.focus} />
+        </> : <View style={[styles.skeleton, { height: 180 }]} accessibilityLabel="맞춤 가이드와 팁 불러오는 중" />}
 
         {progress.data?.weakAreas.length ? <View style={styles.section}>
           <Text accessibilityRole="header" style={styles.sectionTitle}>판단 결과가 엇갈린 분야</Text>

@@ -7,7 +7,7 @@ import ts from 'typescript';
 function render(correct, mode = 'EXCERPT', hasQuestion = true) {
   const create = (type, props) => ({ type, props, children: props?.children });
   const Value = class { setValue() {} };
-  let reset = false, reviewOpened = false;
+  let reset = false, reviewOpened = false, refreshed = false;
   const exports = {};
   const source = readFileSync(new URL('../screens/home/NewsDetailScreen/LearningPanel.tsx', import.meta.url), 'utf8');
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText, {
@@ -15,13 +15,13 @@ function render(correct, mode = 'EXCERPT', hasQuestion = true) {
       : name === 'react' ? { useRef: value => ({ current: value }), useState: () => [1, () => {}] }
       : name === 'react-native' ? { Animated: { Value, View: 'AnimatedView' }, Pressable: 'Pressable', Text: 'Text', View: 'View', StyleSheet: { create: s => s } }
       : name === '@tanstack/react-query' ? {
-        useQueryClient: () => ({}), useQuery: () => ({ data: { mode, glossary: [], summary: '', question: hasQuestion ? { term: '금리', prompt: '질문', options: ['정답', '오답', '다른 오답'] } : null } }),
+        useQueryClient: () => ({}), useQuery: () => ({ refetch: () => { refreshed = true; }, isFetching: false, data: { mode, glossary: [], summary: '', question: hasQuestion ? { term: '금리', prompt: '질문', options: ['정답', '오답', '다른 오답'] } : null } }),
         useMutation: () => ({ data: { correct, definition: correct ? '오답' : '정답', message: '이 개념의 숙련도 추정에 반영했어요', termDefinition: '돈을 빌릴 때 내는 이자의 비율이에요' }, reset: () => { reset = true; } })
       } : {}
   });
   const tree = exports.LearningPanel({ newsId: 1, level: 'normal', onTermPress() {}, onReviewPress() { reviewOpened = true; } });
   const visit = node => Array.isArray(node) ? node.flatMap(visit) : node && typeof node === 'object' ? [node, ...visit(node.children)] : [];
-  return { nodes: visit(tree), reset: () => reset, reviewOpened: () => reviewOpened };
+  return { nodes: visit(tree), reset: () => reset, reviewOpened: () => reviewOpened, refreshed: () => refreshed };
 }
 
 test('quiz locks answered options and marks chosen right/wrong plus the correct option', () => {
@@ -59,3 +59,12 @@ test('an article without an eligible concept explains the absent quiz', () => {
   assert(labels.includes('이 기사는 퀴즈로 낼 개념이 없어요'));
   assert(!labels.includes('오늘의 퀴즈'));
 });
+
+ test('an unavailable reading aid can be retried without hiding the quiz', () => {
+  const screen = render(true, 'UNAVAILABLE');
+  const retry = screen.nodes.find(n => n.props?.accessibilityLabel === '읽기 설명 다시 불러오기');
+  assert(retry);
+  retry.props.onPress();
+  assert(screen.refreshed());
+  assert(screen.nodes.some(n => n.type === 'Text' && n.children === '오늘의 퀴즈'));
+ });
