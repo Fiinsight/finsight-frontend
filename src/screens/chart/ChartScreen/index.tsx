@@ -1,3 +1,4 @@
+import type { ComponentRef } from "react";
 import { colors, radius, spacing, typography } from "../../../theme";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -118,7 +119,7 @@ export function ChartScreen({ route, navigation }: Props) {
   const chart = data?.symbol === selectedSymbol && data.period === period && (period !== "MINUTE" || data.intervalMinutes === minuteInterval) ? data : undefined;
   const displayCandles = chart && period === "MINUTE" && chart.minuteCandles.length > 0 ? chart.minuteCandles : chart?.candles ?? [];
 
-  const scroll = useRef<ScrollView>(null);
+  const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const docentY = useRef(0);
   const moves = movesByDate(chart?.moveInsights ?? []);
   const selected = moves.find(item => item.timestamp === selectedInsight?.timestamp) ?? strongestMove(moves);

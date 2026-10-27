@@ -10,14 +10,14 @@ const model = {};
 vm.runInNewContext(ts.transpileModule(fs.readFileSync(new URL('./readingProgressModel.ts', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, { exports: model, require: () => ({ kstDate }) });
 const { resumeLearningIds, DAILY_ARTICLE_GOAL } = model;
 
-function harness({ owner = 1, count = 1, completed = [], reviewItems, weak = [], pending = false, fetching = false, error = false, painPoint, goal, mastery, recommendations = [], suggestion = null, section, dailyItems } = {}) {
+function harness({ owner = 1, count = 1, completed = [], reviewItems, weak = [], pending = false, fetching = false, error = false, painPoint, goal, mastery, recommendations = [], suggestion = null, section, dailyItems, hasInnerView = true } = {}) {
   const reviews = reviewItems ?? [{ newsId: 232, term: '코스피', definition: '시장 흐름을 보여주는 지수예요.', title: '기사 제목', level: 'analyst' }];
   const preferences = { level: 'beginner', focus: 'news', pace: 'micro', dailyGoal: '뉴스 하나 읽기', source: 'onboarding', painPoint };
   const values = [{ '2026-10-12': [100,101,102,103] }, owner, preferences, 4, true, null, null, {}, owner];
   const effects = [], mutations = [];
   const navigation = [], retries = [], changes = [], scrolls = [], params = [];
   let slot = 0;
-  const React = { createElement: (type, props, ...children) => ({ type, props, children }), useCallback: fn => fn, useRef: initial => ({ current: initial === null ? { scrollTo: position => scrolls.push(position), getInnerViewNode() {}, measureLayout(_node,success) { success(0,480); } } : initial }), useState(initial) {
+  const React = { createElement: (type, props, ...children) => ({ type, props, children }), useCallback: fn => fn, useRef: initial => ({ current: initial === null ? { scrollTo: position => scrolls.push(position), getInnerViewNode() { return hasInnerView ? 1 : undefined; }, measureLayout(_node,success) { success(0,480); } } : initial }), useState(initial) {
     const index = slot++;
     if (!(index in values)) values[index] = initial;
     return [values[index], next => { values[index] = next; }];
@@ -207,4 +207,12 @@ test('mismatched judgement fields show real article titles without claiming weak
 test('successful level change reports the saved level and refreshes preferences', async () => {
  const screen=harness({suggestion:'normal'});screen.render();await screen.mutations[0].onSuccess(undefined,'normal');
  assert(screen.text(screen.render()).includes('일반용으로 변경했어요.'));
+});
+
+test('review scrolling waits until the native scroll content exists', () => {
+   const screen = harness({section: 'reviews', hasInnerView: false});
+   screen.render();
+   screen.effects.forEach(effect => effect());
+   assert.deepEqual(screen.scrolls, []);
+   assert.deepEqual(screen.params, []);
 });

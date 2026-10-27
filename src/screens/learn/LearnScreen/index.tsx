@@ -1,3 +1,4 @@
+import type { ComponentRef } from "react";
 import { colors, radius, spacing, typography } from "../../../theme";
 import { useCallback, useRef, useState } from "react";
 import { SafeAreaView, ScrollView, StyleSheet, Text, Pressable, View, Modal } from "react-native";
@@ -23,8 +24,8 @@ export function LearnScreen() {
   const navigation = useNavigation<CompositeNavigationProp<NativeStackNavigationProp<LearnStackParamList>, BottomTabNavigationProp<RootTabParamList>>>();
   const isFocused = useIsFocused();
   const route = useRoute<RouteProp<LearnStackParamList, "Learn">>();
-  const scroll = useRef<ScrollView>(null);
-  const reviewRef = useRef<View>(null);
+  const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
+  const reviewRef = useRef<ComponentRef<typeof View>>(null);
   const [readingLog, setReadingLog] = useState<DailyReadLog>({});
   const [ownerId, setOwnerId] = useState<number | null>(null);
   const reviews = useQuery({ queryKey: ["learning-reviews", ownerId], queryFn: getLearningReviews, enabled: ownerId !== null && isFocused, retry: 0, staleTime: 60_000, refetchOnWindowFocus: false });
@@ -42,7 +43,9 @@ export function LearnScreen() {
   const progressPending = ownerId !== null && progress.isPending;
   const scrollToReviews = useCallback(() => {
     if (isFocused && loaded && ownerId !== null && !progressPending && !progress.isFetching && !reviewsLoading && !reviews.isFetching && route.params?.section === "reviews" && scroll.current) {
-      reviewRef.current?.measureLayout(scroll.current.getInnerViewNode(), (_x, y) => {
+      const content = scroll.current.getInnerViewNode();
+      if (content == null) return;
+      reviewRef.current?.measureLayout(content, (_x, y) => {
         scroll.current?.scrollTo({ y, animated: true });
         navigation.setParams({ section: undefined });
       });

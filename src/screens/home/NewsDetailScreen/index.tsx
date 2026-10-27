@@ -1,3 +1,4 @@
+import type { ComponentRef } from "react";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { useIsFocused } from "@react-navigation/native";
@@ -26,7 +27,7 @@ type Props = NativeStackScreenProps<NewsFlowParamList, "NewsDetail">;
 
 export function NewsDetailScreen({ route, navigation }: Props) {
   const client = useQueryClient();
-  const scroll = useRef<ScrollView>(null);
+  const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const quizLayout = useRef<{ panel?: number; quiz?: number }>({});
   const scrollToQuiz = () => {
     if (route.params.openQuiz && quizLayout.current.panel !== undefined && quizLayout.current.quiz !== undefined) {
