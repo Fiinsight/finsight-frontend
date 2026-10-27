@@ -15,9 +15,9 @@ export function AuthScreen({ onAuthenticated, initialSignup = false }: Props) {
   const [legal, setLegal] = useState<"terms" | "privacy" | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [nickname, setNickname] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isKakaoLoading, setIsKakaoLoading] = useState(false);
+  const [kakaoSlow, setKakaoSlow] = useState(false);
   const [kakaoError, setKakaoError] = useState<string | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const isBusy = isSubmitting || isKakaoLoading;
@@ -72,10 +72,17 @@ export function AuthScreen({ onAuthenticated, initialSignup = false }: Props) {
     return () => cancelAnimationFrame(frame);
   }, []);
 
+  useEffect(() => {
+    setKakaoSlow(false);
+    if (!isKakaoLoading) return;
+    const timer = setTimeout(() => setKakaoSlow(true), 8000);
+    return () => clearTimeout(timer);
+  }, [isKakaoLoading]);
+
   async function submit() {
     setAuthError(null);
-    if (!email.trim() || password.length < 8 || (isSignup && !nickname.trim())) {
-      const message = isSignup ? "이메일, 8자 이상 비밀번호, 닉네임을 입력해 주세요." : "이메일과 8자 이상 비밀번호를 입력해 주세요.";
+    if (!email.trim() || password.length < 8) {
+      const message = "이메일과 8자 이상 비밀번호를 입력해 주세요.";
       setAuthError(message);
       if (Platform.OS !== "web") Alert.alert("입력 확인", message);
       return;
@@ -84,13 +91,9 @@ export function AuthScreen({ onAuthenticated, initialSignup = false }: Props) {
       setAuthError("이메일 형식이 올바르지 않아요.");
       return;
     }
-    if (isSignup && (nickname.trim().length < 2 || nickname.trim().length > 30)) {
-      setAuthError("닉네임은 2~30자로 입력해 주세요.");
-      return;
-    }
     setIsSubmitting(true);
     try {
-      const session = isSignup ? await signup(email.trim(), password, nickname.trim()) : await login(email.trim(), password);
+      const session = isSignup ? await signup(email.trim(), password) : await login(email.trim(), password);
       await saveAuthSession(session); onAuthenticated();
     } catch (error: any) {
       const message = getApiErrorMessage(error, error.response ? "요청을 처리하지 못했어요." : "로그인 서버에 연결하지 못했습니다.");
@@ -131,12 +134,10 @@ export function AuthScreen({ onAuthenticated, initialSignup = false }: Props) {
       <Text style={styles.logo}>FinSight</Text>
       <View style={styles.card}>
         <Text style={styles.heading}>{isSignup ? "회원가입" : "로그인"}</Text>
-        {isSignup && <TextInput autoCapitalize="none" placeholder="닉네임" placeholderTextColor="rgba(255,255,255,0.7)" value={nickname} onChangeText={setNickname} style={styles.input} />}
         <TextInput autoCapitalize="none" keyboardType="email-address" placeholder="이메일 아이디 입력" placeholderTextColor="rgba(255,255,255,0.7)" value={email} onChangeText={setEmail} style={styles.input} />
         <TextInput secureTextEntry placeholder="비밀번호 입력" placeholderTextColor="rgba(255,255,255,0.7)" value={password} onChangeText={setPassword} style={styles.input} />
         <Pressable accessibilityRole="button" accessibilityLabel={isSignup ? "회원가입" : "로그인"} accessibilityState={{ disabled: isBusy, busy: isSubmitting }} disabled={isBusy} onPress={submit} style={({ pressed }) => [styles.primary, pressed && styles.pressed]}><Text style={styles.primaryText}>{isSubmitting ? "처리 중..." : isSignup ? "회원가입" : "로그인"}</Text></Pressable>
         {authError ? <Text accessibilityRole="alert" style={styles.kakaoError}>{authError}</Text> : null}
-        {isSignup ? <View><Text style={styles.link}>회원가입하면 이용약관과 개인정보처리방침에 동의하게 됩니다.</Text><Pressable accessibilityRole="link" accessibilityLabel="이용약관 보기" onPress={() => setLegal("terms")}><Text style={styles.link}>이용약관</Text></Pressable><Pressable accessibilityRole="link" accessibilityLabel="개인정보처리방침 보기" onPress={() => setLegal("privacy")}><Text style={styles.link}>개인정보처리방침</Text></Pressable></View> : null}
         <View style={styles.links}>
           {!isSignup && <Pressable accessibilityRole="button" accessibilityLabel="비밀번호 찾기" style={styles.linkButton} onPress={() => setAuthError("비밀번호 재설정은 아직 지원하지 않아요. 로그인할 수 있는 계정이나 카카오 로그인을 이용해 주세요.")}><Text style={styles.link}>비밀번호 찾기</Text></Pressable>}
           <Pressable accessibilityRole="button" accessibilityLabel={isSignup ? "로그인으로 전환" : "회원가입으로 전환"} style={styles.linkButton} onPress={() => { setAuthError(null); setIsSignup((value) => !value); }}><Text style={styles.link}>{isSignup ? "로그인" : "회원가입"}</Text></Pressable>
@@ -154,8 +155,10 @@ export function AuthScreen({ onAuthenticated, initialSignup = false }: Props) {
           <View style={styles.kakaoIcon}>
             {isKakaoLoading ? <ActivityIndicator size="small" color="#FEE500" /> : <Text style={styles.kakaoIconText}>TALK</Text>}
           </View>
-          <Text style={styles.kakaoText}>카카오로 계속하기</Text>
+          <Text style={styles.kakaoText}>{isKakaoLoading ? "카카오 연결 중…" : "카카오로 계속하기"}</Text>
         </Pressable>
+        {kakaoSlow ? <Text accessibilityLiveRegion="polite" style={styles.slowHint}>로그인 연결이 지연되고 있어요. 무료 서버가 준비되는 데 시간이 걸릴 수 있어요.</Text> : null}
+        {isSignup ? <View style={styles.legalLinks}><Pressable accessibilityRole="link" accessibilityLabel="이용약관 보기" style={styles.linkButton} onPress={() => setLegal("terms")}><Text style={styles.link}>이용약관</Text></Pressable><Pressable accessibilityRole="link" accessibilityLabel="개인정보처리방침 보기" style={styles.linkButton} onPress={() => setLegal("privacy")}><Text style={styles.link}>개인정보처리방침</Text></Pressable></View> : null}
       </View>
       </ScrollView>
       <Modal visible={legal !== null} animationType="slide" onRequestClose={() => setLegal(null)}><LegalScreen kind={legal ?? "terms"} onBack={() => setLegal(null)} /></Modal>
@@ -180,6 +183,8 @@ const styles = StyleSheet.create({
   kakaoError: { color: "#FFE1E1", fontFamily: "Pretendard", fontSize: 12, fontWeight: "600", textAlign: "center", marginBottom: 12, marginTop: 12 },
   kakao: { backgroundColor: "#FEE500", borderRadius: 30, minHeight: 48, paddingVertical: 10, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10 },
   kakaoLoading: { opacity: 0.82 },
+  slowHint: { color: "rgba(255,255,255,0.82)", fontSize: 12, textAlign: "center", marginTop: 12 },
+  legalLinks: { flexDirection: "row", justifyContent: "center", gap: 20, marginTop: 16 },
   kakaoIcon: { width: 27, height: 27, borderRadius: 14, backgroundColor: "#191919", alignItems: "center", justifyContent: "center" },
   kakaoIconText: { color: "#FEE500", fontFamily: "Pretendard", fontSize: 7, fontWeight: "900", letterSpacing: -0.4 },
   kakaoText: { color: "#191919", fontFamily: "Pretendard", fontSize: 14, fontWeight: "800" }

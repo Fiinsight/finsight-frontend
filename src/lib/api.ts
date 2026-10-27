@@ -98,8 +98,8 @@ export interface AuthResponse {
   nickname: string;
 }
 
-export async function signup(email: string, password: string, nickname: string): Promise<AuthResponse> {
-  const { data } = await api.post<AuthResponse>("/auth/signup", { email, password, nickname });
+export async function signup(email: string, password: string): Promise<AuthResponse> {
+  const { data } = await api.post<AuthResponse>("/auth/signup", { email, password, nickname: "FinSight 사용자" });
   return data;
 }
 

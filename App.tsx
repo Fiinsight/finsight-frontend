@@ -112,7 +112,7 @@ export default function App() {
       <OnboardingScreen
         onLogin={() => { setSignupFirst(false); setOnboardingDoneThisRun(true); }}
         onComplete={(answers) => {
-          setSignupFirst(true);
+          setSignupFirst(false);
           setOnboardingDoneThisRun(true);
           void saveOnboardingProfile(answers);
         }}
