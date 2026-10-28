@@ -14,3 +14,12 @@ export function watchlistNewsState(loading: boolean, failed: boolean, watchlistC
   if (!watchlistCount) return "차트에서 ☆를 눌러 관심종목을 추가해보세요";
   return newsCount ? null : "최근 관심종목 소식이 없어요";
 }
+
+export function selectHomeNews(core: NewsBrief[], watched: NewsBrief[]): NewsBrief[] {
+  const seen = new Set<number>();
+  return [...watched.slice(0, 1), ...core, ...watched.slice(1)].filter(item => {
+    if (seen.has(item.id)) return false;
+    seen.add(item.id);
+    return true;
+  }).slice(0, 3);
+}

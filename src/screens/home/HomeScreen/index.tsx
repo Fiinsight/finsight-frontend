@@ -1,18 +1,16 @@
 import { colors, spacing } from "../../../theme";
 import { useJudgementResults } from "../../../components/JudgementResultsProvider";
 import { JudgementResultBanner } from "../../../components/JudgementResultBanner";
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { useFocusEffect } from "@react-navigation/native";
-import { getLearningPreferences, getWatchlist, getWatchlistNews } from "../../../lib/api";
+import { getWatchlist, getWatchlistNews } from "../../../lib/api";
 import { useQuery } from "@tanstack/react-query";
-import { getDefaultLearningPreferences } from "../../../lib/learningPreferences";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { SafeAreaView, ScrollView, StyleSheet } from "react-native";
 import type { HomeStackParamList } from "../../../navigation/types";
 import { HomeHeader } from "./HomeHeader";
 import { MarketPanel } from "./MarketPanel";
 import { NewsSection } from "./NewsSection";
-import { WatchlistNewsSection } from "./WatchlistNewsSection";
 
 type Props = NativeStackScreenProps<HomeStackParamList, "Home">;
 
@@ -20,12 +18,10 @@ export function HomeScreen({ navigation }: Props) {
   const {unseen,pending,refresh}=useJudgementResults();
   useFocusEffect(useCallback(()=>{refresh();},[refresh]));
   const result=unseen[0] ?? pending;
-  const [preferences, setPreferences] = useState(getDefaultLearningPreferences());
   const watchlist=useQuery({queryKey:["watchlist"],queryFn:getWatchlist,retry:0});
   const watchedNews=useQuery({queryKey:["watchlist-news",watchlist.data?.map(item=>item.symbol).join(",")],queryFn:getWatchlistNews,enabled:!!watchlist.data?.length,retry:0});
   const watchlistFailed=watchlist.isError || watchedNews.isError;
   const watchedItems=watchlist.data?.length && !watchlistFailed ? watchedNews.data ?? [] : [];
-  useFocusEffect(useCallback(() => { let active = true; void getLearningPreferences().then(value => { if (active) setPreferences(value); }); return () => { active = false; }; }, []));
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
@@ -35,11 +31,7 @@ export function HomeScreen({ navigation }: Props) {
         <HomeHeader />
         {result ? <JudgementResultBanner item={result} pending={!unseen.length} onPress={() => navigation.getParent()?.navigate("HistoryTab", {screen:"JudgementDetail",params:{item:result}})} /> : null}
         <MarketPanel />
-        <WatchlistNewsSection items={watchedItems} count={watchlist.data?.length ?? 0}
-          loading={watchlist.isPending || !!watchlist.data?.length && watchedNews.isPending} failed={watchlistFailed}
-          onRetry={()=>{void watchlist.refetch();if(watchlist.data?.length) void watchedNews.refetch();}}
-          onChart={()=>navigation.getParent()?.navigate("ChartTab",{screen:"Chart"})} onSelectNews={newsId=>navigation.navigate("NewsDetail",{newsId})} />
-        <NewsSection preferences={preferences} excludedIds={watchedItems.map(item=>item.id)} onSelectNews={(newsId) => navigation.navigate("NewsDetail", { newsId })} />
+        <NewsSection watchedNews={watchedItems} onSelectNews={(newsId) => navigation.navigate("NewsDetail", { newsId })} />
       </ScrollView>
     </SafeAreaView>
   );

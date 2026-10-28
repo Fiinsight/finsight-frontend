@@ -4,8 +4,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import ts from 'typescript';
-import { initialChartSymbol, lastWatchlistKey, withoutWatchlistNews, watchlistNewsState } from './watchlist.ts';
-const model={initialChartSymbol,lastWatchlistKey,withoutWatchlistNews,watchlistNewsState};
+import { initialChartSymbol, lastWatchlistKey, selectHomeNews, withoutWatchlistNews, watchlistNewsState } from './watchlist.ts';
+const model={initialChartSymbol,lastWatchlistKey,selectHomeNews,withoutWatchlistNews,watchlistNewsState};
 const list=[{symbol:'000660',name:'SK하이닉스',addedAt:'2026-10-15'},{symbol:'035720',name:'카카오',addedAt:'2026-10-15'}];
 const compile=path=>ts.transpileModule(fs.readFileSync(new URL(path,import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.React,esModuleInterop:true}}).outputText;
 const nodes=n=>Array.isArray(n)?n.flatMap(nodes):n&&typeof n==='object'?[n,...nodes(n.children)]:[];
@@ -86,17 +86,14 @@ test('optimistic add rolls back on failure, invalidate shared news and recommend
  tree.find(n=>n.type==='StockHeader').props.onToggleWatchlist();for(let i=0;i<3;i++)await Promise.resolve();assert(!existing.cache.some(n=>n.symbol==='035720'));await existing.pending;
 });
 
-test('home watchlist failure or loading never gates the main feed, and dedup reaches older pages',()=>{
+test('home merges watched news into one core feed without a separate watchlist section',()=>{
  for(const state of [{isPending:true},{isError:true},{data:list,isError:false}]) {
-  const hooks={...React,useState:initial=>[typeof initial==='function'?initial():initial,()=>{}],useCallback:f=>f};const exports={};
-  vm.runInNewContext(compile('../screens/home/HomeScreen/index.tsx'),{exports,React:hooks,require:n=>n.endsWith('/theme') ? theme : n==='react'?hooks:n==='react-native'?native:n==='@react-navigation/native'?{useFocusEffect(){}}:n==='@tanstack/react-query'?{useQuery:({queryKey})=>queryKey[0]==='watchlist'?state:{isError:true}}:n.endsWith('/JudgementResultsProvider')?{useJudgementResults:()=>({unseen:[],pending:null,refresh(){}})}:n.endsWith('/learningPreferences')?{getDefaultLearningPreferences:()=>({})}:n.startsWith('./')?{[n.slice(2)]:n.slice(2)}:{}});
-  const tree=nodes(exports.HomeScreen({navigation:{}}));const feed=tree.find(n=>n.type==='NewsSection');assert(feed);assert.equal(feed.props.excludedIds.length,0);
+  const hooks={...React,useCallback:f=>f};const exports={};
+  vm.runInNewContext(compile('../screens/home/HomeScreen/index.tsx'),{exports,React:hooks,require:n=>n.endsWith('/theme') ? theme : n==='react'?hooks:n==='react-native'?native:n==='@react-navigation/native'?{useFocusEffect(){}}:n==='@tanstack/react-query'?{useQuery:({queryKey})=>queryKey[0]==='watchlist'?state:{isError:true}}:n.endsWith('/JudgementResultsProvider')?{useJudgementResults:()=>({unseen:[],pending:null,refresh(){}})}:n.startsWith('./')?{[n.slice(2)]:n.slice(2)}:{}});
+  const tree=nodes(exports.HomeScreen({navigation:{}}));const feed=tree.find(n=>n.type==='NewsSection');assert(feed);assert.equal(feed.props.watchedNews.length,0);
+  assert(!tree.some(n=>n.type==='WatchlistNewsSection'));
  }
- let cursor=0;const hooks={...React,useState:initial=>[cursor++===1?[{id:2},{id:4}]:initial,()=>{}]},exports={};
- vm.runInNewContext(compile('../screens/home/HomeScreen/NewsSection.tsx'),{exports,React:hooks,require:n=>n.endsWith('/theme') ? theme : n==='react'?hooks:n==='react-native'?native:n==='@tanstack/react-query'?{useQuery:()=>({data:[{id:1},{id:2},{id:3}]})}:n.endsWith('/watchlist')?model:n.endsWith('/NewsCard')?{NewsCard:'NewsCard'}:{}});
- assert.deepEqual(nodes(exports.NewsSection({preferences:{painPoint:'terms'},excludedIds:[2],onSelectNews(){}})).filter(n=>n.type==='NewsCard').map(n=>n.props.news.id),[1,3,4]);
 });
-
 
 test('cached empty list cannot choose Samsung before the fresh owner list arrives',async()=>{
  const h=chartHarness({ready:false,cached:true,watched:[],last:null,freshWatched:list});
@@ -118,4 +115,13 @@ test('watchlist icons are 22px, touch targets stay 44px and zero change is neutr
  const tree=nodes(Chips({items:list,selectedSymbol:'000660',onSelect(){}}));
  assert.equal(tree.filter(n=>n.type==='Ionicons'&&n.props.size===22).length,2);
  assert(tree.filter(n=>n.type==='Pressable').every(n=>n.props.style[0].minHeight>=44));
+});
+
+test('home always caps the combined feed at three distinct real articles',()=>{
+ const core=[{id:1},{id:2},{id:3}];
+ assert.deepEqual(selectHomeNews(core,[{id:4},{id:5},{id:6},{id:7}]).map(n=>n.id),[4,1,2]);
+ assert.deepEqual(selectHomeNews(core,[{id:2},{id:2}]).map(n=>n.id),[2,1,3]);
+ assert.deepEqual(selectHomeNews(core,[]).map(n=>n.id),[1,2,3]);
+ assert.deepEqual(selectHomeNews([{id:1}],[{id:2},{id:3}]).map(n=>n.id),[2,1,3]);
+ assert.equal(selectHomeNews([],[]).length,0);
 });
