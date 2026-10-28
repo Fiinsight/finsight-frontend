@@ -238,6 +238,7 @@ export interface ArticleNote {
 // ---------------------------------------------------------------------------
 
 export interface MarketStat {
+  fallback?: boolean;
   label: string;
   value: string;
   change: string;

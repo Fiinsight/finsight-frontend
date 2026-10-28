@@ -116,12 +116,16 @@ export async function getCurrentUser(): Promise<AuthResponse> {
 export async function deleteAccount(): Promise<void> { await api.delete("/auth/me"); }
 
 export async function getKakaoLoginUrl(redirectUri?: string): Promise<string> {
-  const { data } = await api.get<{ authorizationUrl: string }>("/auth/kakao/url", { params: redirectUri ? { redirectUri } : undefined });
+  const { data } = await api.get<{ authorizationUrl: string }>("/auth/kakao/url", { params: redirectUri ? { redirectUri } : undefined, timeout: 30_000 });
   return data.authorizationUrl;
 }
 
+export async function getKakaoConnectionStatus(): Promise<void> {
+  await api.get("/auth/kakao/status", { timeout: 15_000 });
+}
+
 export async function loginWithKakao(code: string): Promise<AuthResponse> {
-  const { data } = await api.post<AuthResponse>("/auth/kakao", { code });
+  const { data } = await api.post<AuthResponse>("/auth/kakao", { code }, { timeout: 45_000 });
   return data;
 }
 
@@ -383,7 +387,7 @@ function normalizeMarketStat(
 ): MarketStat {
   const rawValue = raw?.value ?? raw?.currentValue;
   if (!raw || raw.fallback || rawValue == null || String(rawValue).trim() === "" || !Number.isFinite(Number(rawValue))) {
-    return { label, value: "확인할 수 없음", change: "변동 정보 없음", tone: "flat" };
+    return { label, value: "확인할 수 없음", change: "변동 정보 없음", tone: "flat", fallback: true };
   }
   const value = changeFormat === "point" ? `${Number(rawValue).toFixed(2)}%` : String(rawValue);
   const changeNumber = typeof raw.changePercent === "number" ? raw.changePercent : undefined;

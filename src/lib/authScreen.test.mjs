@@ -4,12 +4,12 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import ts from 'typescript';
 const nodes = n => Array.isArray(n) ? n.flatMap(nodes) : n && typeof n === 'object' ? [n, ...nodes(n.children)] : [];
-function setup() {
+function setup(options = {}) {
  let cursor=0; const values=[], effects=[], timers=[], calls=[];
  const React={createElement:(type,props,...children)=>({type,props,children}),useState(initial){const i=cursor++;if(!(i in values))values[i]=initial;return [values[i],v=>{values[i]=typeof v==='function'?v(values[i]):v}]},useEffect(fn,deps){effects.push({fn,deps})}};
  const native=Object.fromEntries(['ActivityIndicator','Text','TextInput','View','Pressable','ScrollView','Modal'].map(k=>[k,k]));Object.assign(native,{StyleSheet:{create:s=>s},Platform:{OS:'web'},Keyboard:{dismiss(){}}});
  const exports={};const source=fs.readFileSync(new URL('../screens/auth/AuthScreen.tsx',import.meta.url),'utf8');
- vm.runInNewContext(ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.React}}).outputText,{exports,React,setTimeout(fn,ms){timers.push({fn,ms});return timers.length},clearTimeout(){},require:name=>name==='react'?React:name==='react-native'?native:name==='expo-linking'?{createURL:()=> 'finsight://auth/kakao'}:name==='expo-linear-gradient'?{LinearGradient:'Gradient'}:name==='../../lib/api'?{signup:async(...args)=>{calls.push(args);return{}},getKakaoLoginUrl:()=>new Promise(()=>{})}:name==='../../lib/auth'?{saveAuthSession:async()=>{}}:{}});
+ vm.runInNewContext(ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.React}}).outputText,{exports,React,setTimeout(fn,ms){timers.push({fn,ms});return timers.length},clearTimeout(){},require:name=>name==='react'?React:name==='react-native'?native:name==='expo-linking'?{createURL:()=> 'finsight://auth/kakao'}:name==='expo-linear-gradient'?{LinearGradient:'Gradient'}:name==='../../lib/api'?{signup:async(...args)=>{calls.push(args);return{}},getApiErrorMessage:(_error,fallback)=>fallback,getKakaoLoginUrl:options.getKakaoLoginUrl ?? (()=>new Promise(()=>{}))}:name==='../../lib/auth'?{saveAuthSession:async()=>{}}:{}});
  const render=()=>{cursor=0;effects.length=0;return nodes(exports.AuthScreen({onAuthenticated(){}}))};
  return {render,calls,effects,timers};
 }
@@ -26,4 +26,12 @@ test('slow Kakao preparation keeps duplicate actions disabled and explains the w
  assert(tree.find(n=>n.props?.accessibilityLabel==='카카오 로그인 진행 중').props.disabled);
  h.effects.find(e=>e.deps?.[0]===true).fn();assert.equal(h.timers[0].ms,8000);h.timers[0].fn();tree=h.render();
  assert(tree.some(n=>n.props?.accessibilityLiveRegion==='polite'&&n.children.join('').includes('로그인 연결이 지연')));
+ assert(!JSON.stringify(tree).includes('무료 서버'));
+});
+
+test('failed Kakao preparation stops loading and permits a fresh login instead of spinning indefinitely',async()=>{
+ const h=setup({getKakaoLoginUrl:async()=>{throw{code:'ECONNABORTED'}}});let tree=h.render();
+ await tree.find(n=>n.props?.accessibilityLabel==='카카오로 계속하기').props.onPress();
+ tree=h.render();assert.equal(tree.find(n=>n.props?.accessibilityLabel==='카카오로 계속하기').props.disabled,false);
+ assert(tree.some(n=>n.type==='Text'&&n.children.join('').includes('로그인 서버에 연결하지 못했습니다')));
 });

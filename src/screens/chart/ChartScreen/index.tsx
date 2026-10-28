@@ -175,7 +175,7 @@ export function ChartScreen({ route, navigation }: Props) {
           onToggleWatchlist={()=>toggle.mutate({symbol:selectedSymbol,name:stockName,wasWatched:watched})} />
         {watchlistError ? <Text accessibilityRole="alert" style={{color:"#B42318"}}>{watchlistError}</Text> : null}
         {watchlist.isError ? <TouchableOpacity accessibilityRole="button" style={styles.retryTarget} onPress={()=>void watchlist.refetch()}><Text style={{color:"#B42318"}}>관심종목을 불러오지 못했어요 · 다시 시도</Text></TouchableOpacity> : null}
-        {chartError || stocksError ? <TouchableOpacity accessibilityRole="button" style={styles.retryTarget} onPress={() => { if (chartError) void refetchChart(); if (stocksError) void refetchStocks(); }}><Text style={styles.refreshText}>차트 다시 시도</Text></TouchableOpacity> : null}
+        {chartError || chart?.fallback || stocksError ? <TouchableOpacity accessibilityRole="button" disabled={isFetching} style={styles.retryTarget} onPress={() => { if (chartError || chart?.fallback) void refetchChart(); if (stocksError) void refetchStocks(); }}><Text style={styles.refreshText}>차트 다시 시도</Text></TouchableOpacity> : null}
         <View style={styles.periodRow}>
           <TouchableOpacity accessibilityRole="tab" accessibilityLabel="일봉" accessibilityState={{ selected: period === "D" }} style={[styles.periodTab, period === "D" && styles.periodTabActive]} onPress={() => setPeriod("D")}>
             <Text style={[styles.periodText, period === "D" && styles.periodTextActive]}>일봉</Text>

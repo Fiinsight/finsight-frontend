@@ -1,12 +1,12 @@
 import { LegalScreen } from "../legal/LegalScreen";
 import { Modal } from "react-native";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Keyboard, Platform, Pressable, StyleSheet, Text, TextInput, View, ScrollView } from "react-native";
+import { ActivityIndicator, Alert, AppState, Keyboard, Platform, Pressable, StyleSheet, Text, TextInput, View, ScrollView } from "react-native";
 import * as Linking from "expo-linking";
 import { LinearGradient } from "expo-linear-gradient";
-import { getApiErrorMessage, getKakaoLoginUrl, login, loginWithKakao, signup } from "../../lib/api";
+import { getApiErrorMessage, getKakaoConnectionStatus, getKakaoLoginUrl, login, loginWithKakao, signup } from "../../lib/api";
 import { saveAuthSession } from "../../lib/auth";
-import { claimKakaoCode } from "../../lib/kakaoCallback";
+import { claimKakaoCode, kakaoFailureDetail, waitForKakaoForeground, checkKakaoConnection } from "../../lib/kakaoCallback";
 
 interface Props { onAuthenticated: () => void; initialSignup?: boolean; }
 
@@ -18,6 +18,7 @@ export function AuthScreen({ onAuthenticated, initialSignup = false }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isKakaoLoading, setIsKakaoLoading] = useState(false);
   const [kakaoSlow, setKakaoSlow] = useState(false);
+  const [kakaoPhase, setKakaoPhase] = useState<"prepare" | "foreground" | "connection" | "exchange" | "storage" | null>(null);
   const [kakaoError, setKakaoError] = useState<string | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const isBusy = isSubmitting || isKakaoLoading;
@@ -45,13 +46,31 @@ export function AuthScreen({ onAuthenticated, initialSignup = false }: Props) {
       }
       setKakaoError(null);
       setIsKakaoLoading(true);
-      try { await saveAuthSession(await loginWithKakao(code)); onAuthenticated(); }
+      let stage: "foreground" | "connection" | "exchange" | "storage" = "foreground";
+      setKakaoPhase(stage);
+      try {
+        if (Platform.OS !== "web") {
+          await waitForKakaoForeground(AppState);
+          stage = "connection";
+          setKakaoPhase(stage);
+          await checkKakaoConnection(getKakaoConnectionStatus);
+        }
+        stage = "exchange";
+        setKakaoPhase(stage);
+        const session = await loginWithKakao(code);
+        stage = "storage";
+        setKakaoPhase(stage);
+        await saveAuthSession(session);
+        onAuthenticated();
+      }
       catch (loginError) {
-        const message = getApiErrorMessage(loginError, "카카오 인증 결과를 처리하지 못했습니다.");
+        const explanation = getApiErrorMessage(loginError, "카카오 인증 결과를 처리하지 못했습니다.");
+        const message = typeof __DEV__ !== "undefined" && __DEV__
+          ? `${explanation}\n개발 진단: ${kakaoFailureDetail(loginError, stage)}` : explanation;
         setKakaoError(message);
         if (Platform.OS !== "web") Alert.alert("카카오 로그인 실패", message);
       }
-      finally { setIsKakaoLoading(false); }
+      finally { setIsKakaoLoading(false); setKakaoPhase(null); }
     };
     if (Platform.OS === "web" && typeof window !== "undefined") {
       // A browser OAuth redirect loads this URL as the document itself. Read it
@@ -106,6 +125,7 @@ export function AuthScreen({ onAuthenticated, initialSignup = false }: Props) {
     Keyboard.dismiss();
     setKakaoError(null);
     setIsKakaoLoading(true);
+    setKakaoPhase("prepare");
     try {
       const redirectUri = Platform.OS === "web" && typeof window !== "undefined"
         ? `${window.location.origin}/auth/kakao`
@@ -121,11 +141,13 @@ export function AuthScreen({ onAuthenticated, initialSignup = false }: Props) {
       }
     }
     catch (error: any) {
-      const message = getApiErrorMessage(error, "백엔드와 카카오 로그인 설정을 확인해 주세요.");
+      const explanation = getApiErrorMessage(error, "로그인 서버에 연결하지 못했습니다. 잠시 후 카카오 로그인을 새로 시작해 주세요.");
+      const message = typeof __DEV__ !== "undefined" && __DEV__
+        ? `${explanation}\n개발 진단: ${kakaoFailureDetail(error, "prepare")}` : explanation;
       setKakaoError(message);
       if (Platform.OS !== "web") Alert.alert("카카오 로그인 준비 필요", message);
     }
-    finally { setIsKakaoLoading(false); }
+    finally { setIsKakaoLoading(false); setKakaoPhase(null); }
   }
 
   return (
@@ -157,7 +179,8 @@ export function AuthScreen({ onAuthenticated, initialSignup = false }: Props) {
           </View>
           <Text style={styles.kakaoText}>{isKakaoLoading ? "카카오 연결 중…" : "카카오로 계속하기"}</Text>
         </Pressable>
-        {kakaoSlow ? <Text accessibilityLiveRegion="polite" style={styles.slowHint}>로그인 연결이 지연되고 있어요. 무료 서버가 준비되는 데 시간이 걸릴 수 있어요.</Text> : null}
+        {isKakaoLoading && kakaoPhase ? <Text accessibilityLiveRegion="polite" style={styles.slowHint}>{{ prepare: "카카오 로그인 연결을 준비하고 있어요.", foreground: "앱으로 돌아오는 것을 기다리고 있어요.", connection: "로그인 서버 연결을 확인하고 있어요.", exchange: "카카오 인증을 확인하고 있어요.", storage: "로그인을 마무리하고 있어요." }[kakaoPhase]}</Text> : null}
+        {kakaoSlow ? <Text accessibilityLiveRegion="polite" style={styles.slowHint}>로그인 연결이 지연되고 있어요. 연결을 확인하지 못하면 오류 안내 후 다시 시도할 수 있어요.</Text> : null}
         {isSignup ? <View style={styles.legalLinks}><Pressable accessibilityRole="link" accessibilityLabel="이용약관 보기" style={styles.linkButton} onPress={() => setLegal("terms")}><Text style={styles.link}>이용약관</Text></Pressable><Pressable accessibilityRole="link" accessibilityLabel="개인정보처리방침 보기" style={styles.linkButton} onPress={() => setLegal("privacy")}><Text style={styles.link}>개인정보처리방침</Text></Pressable></View> : null}
       </View>
       </ScrollView>
