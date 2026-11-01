@@ -7,7 +7,8 @@ import { loadAuthSession } from "../lib/auth";
 import { getReadingLog } from "../lib/readingProgress";
 import { countDailyReads, isAttendanceComplete, type DailyReadLog } from "../lib/readingProgressModel";
 
-export function AttendanceCard({ selectedDate, onSelectDate }: { selectedDate?: string | null; onSelectDate?: (date: string) => void } = {}) {
+export function AttendanceCard({ selectedDate, onSelectDate, compact = false }: { selectedDate?: string | null; onSelectDate?: (date: string) => void; compact?: boolean } = {}) {
+  const [expanded,setExpanded] = useState(false);
   const [readingLog, setReadingLog] = useState<DailyReadLog>({});
   const [today, setToday] = useState(() => new Date());
   const todayKey = kstDate(today);
@@ -27,6 +28,11 @@ export function AttendanceCard({ selectedDate, onSelectDate }: { selectedDate?: 
   const todayReadCount = Math.min(countDailyReads(readingLog, todayKey), 3);
   const checkedIn = isAttendanceComplete(readingLog, todayKey);
 
+  if (compact) return <View style={styles.compact}>
+    <Text style={styles.compactText}>이번 주 {completed}/7 · 오늘 {todayReadCount}/3</Text>
+    <Pressable accessibilityRole="button" accessibilityLabel="기록 날짜 필터 펼치기" onPress={() => setExpanded(!expanded)}><Text style={styles.compactLink}>{expanded ? "접기" : "날짜 선택"}</Text></Pressable>
+    {expanded ? week.map(day => <Pressable key={day.key} disabled={day.future || !onSelectDate} accessibilityRole="button" accessibilityLabel={`${day.key} ${day.label}요일 기록 필터`} onPress={() => onSelectDate?.(day.key)}><Text style={styles.compactLink}>{day.label}{selectedDate === day.key ? " ✓" : ""}</Text></Pressable>) : null}
+  </View>;
   return (
     <LinearGradient colors={["#0D1B4C", "#1746B8", "#2A72E8"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.card}>
       <View style={styles.header}>
@@ -64,6 +70,9 @@ export function AttendanceCard({ selectedDate, onSelectDate }: { selectedDate?: 
 }
 
 const styles = StyleSheet.create({
+  compact: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 12, padding: 12, borderRadius: 12, backgroundColor: "#EEF4FF" },
+  compactText: { fontSize: 14, color: "#344054", flex: 1 },
+  compactLink: { fontSize: 13, color: "#175CD3", paddingVertical: 12, minWidth: 44, textAlign: "center" },
   card: { borderRadius: 24, padding: 20, paddingHorizontal: 12, overflow: "hidden", shadowColor: "#0D1B4C", shadowOpacity: 0.2, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 5 },
   header: { minHeight: 78, flexDirection: "row", alignItems: "center" },
   headerCopy: { flex: 1 },
