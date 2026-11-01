@@ -94,7 +94,7 @@ export function NewsDetailScreen({ route, navigation }: Props) {
 
   const detail: NewsDetail = data;
   const hasContent = !!detail.rawContent.trim();
-  const importanceReason = detail.importanceReason;
+  const importanceReason = detail.importanceReasons?.[readingLevel]?.trim() || detail.importanceReason;
   const rawExcerpt = detail.rawContent;
 
   return (
@@ -107,7 +107,7 @@ export function NewsDetailScreen({ route, navigation }: Props) {
 
         {hasContent ? <BodyTabs value={bodyTab} onChange={setBodyTab} /> : <Text>원문 링크에서 확인하세요.</Text>}
 
-        {hasContent && bodyTab === "level" ? <LevelTabs value={readingLevel} onChange={(level: ReadingLevel) => setReadingLevel(newsId, level)} /> : null}
+        {hasContent && bodyTab === "level" ? <LevelTabs value={readingLevel} onChange={(level: ReadingLevel) => { setReadingLevel(newsId, level); navigation.setParams({ readingLevel: level }); }} /> : null}
 
         {hasContent ? (bodyTab === "raw" ? <View style={styles.bodyCard}>
           <Pressable style={styles.touchTarget} accessibilityRole="switch" accessibilityState={{ checked: showTerms }} accessibilityLabel="용어 밑줄 표시" onPress={() => setShowTerms(!showTerms)}><Text style={styles.backText}>용어 밑줄 {showTerms ? "켜짐" : "꺼짐"}</Text></Pressable>
@@ -126,7 +126,7 @@ export function NewsDetailScreen({ route, navigation }: Props) {
           />
         ) : null}
 
-        {hasContent && bodyTab === "raw" && importanceReason ? <ImportanceReasonCard reason={importanceReason} /> : null}
+        {hasContent && importanceReason ? <ImportanceReasonCard reason={importanceReason} /> : null}
         {hasContent ? <View onLayout={(event) => { if (route.params.openNotes) scroll.current?.scrollTo({ y: event.nativeEvent.layout.y, animated: true }); }}><ArticleNotesPanel newsId={newsId} sourceUrl={detail.url} /></View> : null}
       </ScrollView>
 
