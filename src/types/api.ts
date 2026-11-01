@@ -40,6 +40,7 @@ export interface JudgementTarget { symbol: string | null; name: string | null; u
 
 export interface NewsDetailRaw {
   judgementTarget?: JudgementTarget;
+  judgementReviewOnly?: boolean;
   judgementBaselineDate?: string;
   judgementComparisonDate?: string;
   id?: number;
@@ -78,6 +79,7 @@ export interface NewsDetailRaw {
 
 export interface NewsDetail {
   judgementTarget?: JudgementTarget;
+  judgementReviewOnly?: boolean;
   judgementBaselineDate?: string;
   judgementComparisonDate?: string;
   id: number;
