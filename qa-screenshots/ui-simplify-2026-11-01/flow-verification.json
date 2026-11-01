@@ -1,0 +1,15 @@
+{
+  "localOnly": true,
+  "fixture": true,
+  "login": true,
+  "donePath": "/news/1/judgement/done",
+  "doneReload": true,
+  "detailPath": "/history/judgements/1",
+  "detailReload": true,
+  "id": 1,
+  "invalid": [
+    "/history/judgements/not-a-number",
+    "/history/judgements/999999"
+  ],
+  "errors": []
+}
