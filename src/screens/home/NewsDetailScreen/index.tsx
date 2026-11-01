@@ -1,3 +1,4 @@
+import {RequestWaitNotice} from "../../../components/RequestWaitNotice";
 import { sourceExcerpt } from "../../../lib/text";
 import type { ComponentRef } from "react";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -64,7 +65,7 @@ export function NewsDetailScreen({ route, navigation }: Props) {
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["news-detail", newsId],
-    queryFn: () => getNewsDetail(newsId),
+    queryFn: ({signal}) => getNewsDetail(newsId,signal),
     retry: 0,
     staleTime: 60_000
   });
@@ -82,6 +83,7 @@ export function NewsDetailScreen({ route, navigation }: Props) {
   if (!data || !preferencesReady) {
     return (
       <SafeAreaView style={styles.safeArea}>
+        <RequestWaitNotice loading={isLoading} onRetry={()=>{void client.cancelQueries({queryKey:["news-detail",newsId]}).then(()=>refetch());}} onCancel={()=>{void client.cancelQueries({queryKey:["news-detail",newsId]});navigation.goBack();}} />
         <View style={styles.errorState}>
           <Text style={styles.errorTitle}>{isLoading || !preferencesReady ? "뉴스를 불러오는 중이에요" : "뉴스를 불러오지 못했어요"}</Text>
           <Text style={styles.errorBody}>{isError ? "실제 기사 데이터를 확인할 수 없어 예시 내용을 표시하지 않습니다." : "잠시만 기다려주세요."}</Text>

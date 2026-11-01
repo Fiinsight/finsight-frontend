@@ -106,7 +106,7 @@ test('market fallback numbers stay hidden and line prices never become fabricate
   payload = { fallback: false, price: 100, changePercent: 1, points: [{ date: '2026-10-01', value: 100 }] };
   const signal = new AbortController().signal;
   assert.equal((await exports.getChartData('TEST', 'D', 5, signal)).candles.length, 0);
-  assert.equal(requestOptions.timeout, 180_000);
+  assert.equal(requestOptions.timeout, 60_000);
   assert.equal(requestOptions.signal, signal);
   const docent = { relation: 'MARKET', whatHappened: '코스피 소식', possibleReason: '시장 흐름의 영향일 수 있어요.', marketImpact: '시장 흐름을 확인해요.', newsId: 1, mode: 'RULE' };
   payload = { fallback: false, moveInsights: [{ timestamp: '2026-10-07T00:00:00', changePercent: -3, docent }], docent };
