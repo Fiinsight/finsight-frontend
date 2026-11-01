@@ -93,7 +93,8 @@ function JudgementDetailContent({item,navigation}:{item:import("../../types/api"
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
-        <ScreenTopBar title="판단 기록" onBack={() => navigation.goBack()} />
+        {result.example ? <Text style={styles.muted}>예시 · 실제 적중 통계에서 제외해요</Text> : null}
+      <ScreenTopBar title="판단 기록" onBack={() => navigation.goBack()} />
 
         <Text style={styles.eyebrow}>판단 기록 상세</Text>
         <Text style={styles.title}>{item.newsTitle}</Text>
