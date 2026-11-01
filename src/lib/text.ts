@@ -30,3 +30,9 @@ export function judgementArticleSummary(detail: {levels?:Record<string,string>;r
     .filter(line => !/자료사진|재판매|DB 금지|현황판.*(?:표시|나타나)|딜링룸.*(?:보고|보이고|현황)|사진은|촬영/.test(line))
     .slice(0,2).join(' ') || '원문에서 판단 근거를 확인해주세요.';
 }
+
+export function sourceExcerpt(text:string):string {
+  const first=text.trim().split(/(?<=[.!?。！？])(?![0-9])\s+|\n+/).slice(0,3).join(' ');
+  const chars=Array.from(first);
+  return chars.length<=300?first:chars.slice(0,299).join('').trimEnd()+'…';
+}
