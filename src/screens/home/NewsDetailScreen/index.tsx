@@ -6,7 +6,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 import { BottomActionBar } from "../../../components/BottomActionBar";
-import { LevelTabs } from "../../../components/LevelTabs";
 import { TermPopup } from "../../../components/TermPopup";
 import { getLearningPreferences, getNewsDetail } from "../../../lib/api";
 import type { NewsFlowParamList, RootTabParamList } from "../../../navigation/types";
@@ -14,7 +13,7 @@ import { useAppStore } from "../../../store/useAppStore";
 import type { NewsDetail, ReadingLevel } from "../../../types/api";
 import { LearningPanel } from "./LearningPanel";
 import { ArticleBody } from "./ArticleBody";
-import { BodyTabs, type BodyTab } from "./BodyTabs";
+import { type BodyTab } from "./BodyTabs";
 import { DetailTopBar } from "./DetailTopBar";
 import { ImportanceReasonCard } from "./ImportanceReasonCard";
 import { SourceLinkRow } from "./SourceLinkRow";
@@ -37,7 +36,7 @@ export function NewsDetailScreen({ route, navigation }: Props) {
   };
   const { newsId } = route.params;
   const isFocused = useIsFocused();
-  const [bodyTab, setBodyTab] = useState<BodyTab>(route.params.readMode ?? "raw");
+  const [bodyTab, setBodyTab] = useState<BodyTab>(route.params.readMode ?? "level");
   useEffect(() => { if (route.params.readMode) setBodyTab(route.params.readMode); }, [newsId, route.params.readMode]);
   const [showTerms, setShowTerms] = useState(true);
   const [selectedTerm, setSelectedTerm] = useState<string | null>(null);
@@ -54,7 +53,7 @@ export function NewsDetailScreen({ route, navigation }: Props) {
       if (!active) return;
       setPreferredLevel(preferences.level);
       setShowTerms(preferences.painPoint === "terms");
-      if (!route.params.readMode) setBodyTab(preferences.painPoint === "overload" ? "level" : "raw");
+      if (!route.params.readMode) setBodyTab("level");
       setPreferencesReady(true);
     });
     return () => { active = false; };
@@ -103,11 +102,13 @@ export function NewsDetailScreen({ route, navigation }: Props) {
 
       <ScrollView ref={scroll} contentContainerStyle={styles.container}>
         <Text style={styles.title}>{detail.title}</Text>
-        <SourceLinkRow source={detail.source} url={detail.url} />
 
-        {hasContent ? <BodyTabs value={bodyTab} onChange={setBodyTab} /> : <Text>원문 링크에서 확인하세요.</Text>}
+        {!hasContent ? <Text>원문 링크에서 확인하세요.</Text> : null}
 
-        {hasContent && bodyTab === "level" ? <LevelTabs value={readingLevel} onChange={(level: ReadingLevel) => { setReadingLevel(newsId, level); navigation.setParams({ readingLevel: level }); }} /> : null}
+        {hasContent && bodyTab === "level" ? <Pressable accessibilityRole="button" accessibilityLabel={`읽기 수준 변경, 현재 ${readingLevel}`} style={styles.levelChip}
+          onPress={() => { const levels: ReadingLevel[] = ["beginner","normal","analyst"]; const level = levels[(levels.indexOf(readingLevel)+1)%levels.length]; setReadingLevel(newsId,level); navigation.setParams({readingLevel:level}); }}>
+          <Text>읽기 수준 · {{beginner:"초보자",normal:"일반",analyst:"분석"}[readingLevel]} ⌄</Text>
+        </Pressable> : null}
 
         {hasContent ? (bodyTab === "raw" ? <View style={styles.bodyCard}>
           <Pressable style={styles.touchTarget} accessibilityRole="switch" accessibilityState={{ checked: showTerms }} accessibilityLabel="용어 밑줄 표시" onPress={() => setShowTerms(!showTerms)}><Text style={styles.backText}>용어 밑줄 {showTerms ? "켜짐" : "꺼짐"}</Text></Pressable>
@@ -127,6 +128,7 @@ export function NewsDetailScreen({ route, navigation }: Props) {
         ) : null}
 
         {hasContent && importanceReason ? <ImportanceReasonCard reason={importanceReason} /> : null}
+        <SourceLinkRow source={detail.source} url={detail.url} />
         {hasContent ? <View onLayout={(event) => { if (route.params.openNotes) scroll.current?.scrollTo({ y: event.nativeEvent.layout.y, animated: true }); }}><ArticleNotesPanel newsId={newsId} sourceUrl={detail.url} /></View> : null}
       </ScrollView>
 
@@ -138,6 +140,7 @@ export function NewsDetailScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
+  levelChip: { alignSelf:"flex-start", minHeight:44, justifyContent:"center", paddingHorizontal:14, backgroundColor:"#EEF4FF", borderRadius:22 },
   safeArea: {
     flex: 1,
     backgroundColor: "#F8FAFC"

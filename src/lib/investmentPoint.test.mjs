@@ -40,6 +40,6 @@ test('legacy and blank per-level reasons use the existing article investment poi
 test('tab selection updates a reading level passed by navigation as well as the saved preference', () => {
   const selected = [];
   const tree = render('beginner', { beginner: '초보', analyst: '분석' }, 'level', selected);
-  tree.find(n => n.type === 'LevelTabs').props.onChange('analyst');
-  assert.deepEqual(selected, [[1, 'analyst'], 'analyst']);
+  tree.find(n => n.props?.accessibilityLabel === '읽기 수준 변경, 현재 beginner').props.onPress();
+  assert.deepEqual(selected, [[1, 'normal'], 'normal']);
 });
