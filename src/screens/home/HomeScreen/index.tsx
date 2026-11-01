@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { SafeAreaView, ScrollView, StyleSheet } from "react-native";
 import type { HomeStackParamList } from "../../../navigation/types";
+import { HomeDataGate } from "./HomeDataGate";
 import { HomeHeader } from "./HomeHeader";
 import { MarketPanel } from "./MarketPanel";
 import { NewsSection } from "./NewsSection";
@@ -23,7 +24,7 @@ export function HomeScreen({ navigation }: Props) {
   const watchlistFailed=watchlist.isError || watchedNews.isError;
   const watchedItems=watchlist.data?.length && !watchlistFailed ? watchedNews.data ?? [] : [];
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <HomeDataGate><SafeAreaView style={styles.safeArea}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.container}
@@ -33,7 +34,7 @@ export function HomeScreen({ navigation }: Props) {
         <MarketPanel />
         <NewsSection watchedNews={watchedItems} onSelectNews={(newsId) => navigation.navigate("NewsDetail", { newsId })} />
       </ScrollView>
-    </SafeAreaView>
+    </SafeAreaView></HomeDataGate>
   );
 }
 
