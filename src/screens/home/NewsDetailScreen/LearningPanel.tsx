@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { reshuffleQuizOptions } from "../../../lib/quizOptions";
 import { useRef, useState } from "react";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import { answerLearningQuestion, getNewsLesson } from "../../../lib/api";
@@ -8,6 +9,7 @@ import { ArticleBody } from "./ArticleBody";
 export function LearningPanel({ newsId, level, quizTerm, onTermPress, onReviewPress, onQuizLayout }: { newsId: number; level: ReadingLevel; quizTerm?: string; onTermPress: (term: string) => void; onReviewPress: () => void; onQuizLayout?: (y: number) => void }) {
   const client = useQueryClient();
   const [selected, setSelected] = useState<number | null>(null);
+  const [optionOrder,setOptionOrder] = useState<number[] | null>(null);
   const scale = useRef(new Animated.Value(1)).current;
   const shake = useRef(new Animated.Value(0)).current;
   const lesson = useQuery({ queryKey: ["news-lesson", newsId, level, quizTerm ?? null], queryFn: () => getNewsLesson(newsId, level, quizTerm), retry: 0, staleTime: 10 * 60_000 });
@@ -40,7 +42,8 @@ export function LearningPanel({ newsId, level, quizTerm, onTermPress, onReviewPr
       {data.question ? <View style={styles.quiz} onLayout={event => onQuizLayout?.(event.nativeEvent.layout.y)}>
         <Text style={styles.heading}>오늘의 퀴즈</Text>
         <Text style={styles.body}>Q. {data.question.prompt}</Text>
-        {data.question.options.map((option, index) => {
+        {(optionOrder ?? data.question.options.map((_,index)=>index)).map((index,displayIndex) => {
+          const option = data.question!.options[index];
           const chosen = selected === index;
           const correct = !!answer.data && option === answer.data.definition;
           const wrong = !!answer.data && chosen && !answer.data.correct;
@@ -49,16 +52,16 @@ export function LearningPanel({ newsId, level, quizTerm, onTermPress, onReviewPr
               disabled={answer.isPending || !!answer.data}
               style={[styles.option, correct && styles.correct, wrong && styles.wrong]}
               onPress={() => { setSelected(index); answer.mutate(index); }}>
-              <Text style={[styles.body, correct && styles.correctText, wrong && styles.wrongText]}>{["①", "②", "③"][index]} {option}{correct ? " ✓" : wrong ? " ✕" : ""}</Text>
+              <Text style={[styles.body, correct && styles.correctText, wrong && styles.wrongText]}>{["①", "②", "③"][displayIndex]} {option}{correct ? " ✓" : wrong ? " ✕" : ""}</Text>
             </Pressable>
           </Animated.View>;
         })}
         {answer.isPending ? <Text>답변을 저장하는 중이에요.</Text> : null}
         {answer.isError ? <Text style={styles.muted}>답변을 저장하지 못했습니다. 다시 선택해 주세요.</Text> : null}
-        {answer.data ? <View accessibilityLiveRegion="polite" style={styles.quiz}><Text style={styles.term}>{answer.data.correct ? "정답이에요!" : "아쉬워요"}</Text><Text style={styles.body}>{answer.data.termDefinition ?? answer.data.definition}</Text>
+        {answer.data ? <View accessibilityLiveRegion="polite" style={styles.quiz}>{answer.data.practice ? <Text style={styles.muted}>연습 기록이에요 · 숙련도에는 다시 반영하지 않아요</Text> : null}<Text style={styles.term}>{answer.data.correct ? "정답이에요!" : "아쉬워요"}</Text><Text style={styles.body}>{answer.data.termDefinition ?? answer.data.definition}</Text>
           {!answer.data.correct ? <>
             <Pressable accessibilityRole="button" accessibilityLabel={`${data.question.term} 다시 볼 개념을 학습 탭에서 보기`} onPress={onReviewPress}><Text style={styles.link}>{`'${data.question.term}'를 다시 볼 개념에 담았어요 · 학습 탭에서 보기 →`}</Text></Pressable>
-            <Pressable accessibilityRole="button" accessibilityLabel="틀린 퀴즈 다시 풀기" style={styles.option} onPress={() => { answer.reset(); setSelected(null); scale.setValue(1); shake.setValue(0); }}><Text style={styles.link}>다시 풀기</Text></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="틀린 퀴즈 다시 풀기" style={styles.option} onPress={() => { answer.reset(); setSelected(null); setOptionOrder(reshuffleQuizOptions(data.question!.options.length,optionOrder ?? undefined)); scale.setValue(1); shake.setValue(0); }}><Text style={styles.link}>다시 풀기</Text></Pressable>
           </> : null}
         </View> : null}
       </View> : <Text style={styles.muted}>이 기사는 퀴즈로 낼 개념이 없어요</Text>}
