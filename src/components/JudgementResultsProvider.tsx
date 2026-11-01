@@ -13,7 +13,7 @@ export function JudgementResultsProvider({owner,children}:{owner:number;children
   const [active,setActive]=useState(AppState.currentState==="active");
   const [seen,setSeen]=useState<Record<string,string>|null>(null);
   const results=useQuery({queryKey:["judgement-history",owner,"results"],queryFn:({signal})=>getJudgementHistory(signal),
-    enabled:active,retry:0,staleTime:60_000,refetchInterval:active?60_000:false,refetchIntervalInBackground:false});
+    enabled:active,retry:0,staleTime:60_000,refetchInterval:query=>active && overdueJudgement(query.state.data ?? [])?60_000:false,refetchIntervalInBackground:false});
   const refresh=useCallback(()=>{if(active && Date.now()-results.dataUpdatedAt>=60_000) void results.refetch();},[active,results.dataUpdatedAt,results.refetch]);
   useEffect(()=>{const listener=AppState.addEventListener("change",state=>setActive(state==="active"));return()=>listener.remove();},[]);
   useEffect(()=>{
