@@ -5,15 +5,15 @@ import vm from 'node:vm';
 import ts from 'typescript';
 import * as history from './historyRecords.ts';
 const compile=file=>ts.transpileModule(readFileSync(new URL(file,import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.React,esModuleInterop:true}}).outputText;
-const React={createElement:(type,props,...children)=>({type,props,children}),useEffect(){}};
+const React={createElement:(type,props,...children)=>typeof type==='function'?type(props):({type,props,children}),useEffect(){}};
 const nodes=n=>Array.isArray(n)?n.flatMap(nodes):n&&typeof n==='object'?[n,...nodes(n.children)]:[];
 const texts=tree=>tree.filter(n=>n.type==='Text').map(n=>n.children.flat().join(''));
 const reasons=[{title:'기사 근거',detail:'기사에서는 비용 증가를 알렸어요.'},{title:'판단 근거',detail:'남긴 근거의 비교 시점을 확인해보세요.'},{title:'실제 시장',detail:'카카오 종가는 -1.76% 움직였어요.'}];
 const base={id:10,newsId:153,newsTitle:'기업 실적 기사',choice:'DOWN',actualDirection:'DOWN',actualChangePercent:-1.76,comparisonDate:'2026-10-07',judgementClose:100,comparisonClose:98.24,feedbackText:'카카오 2026-10-07 종가 기준 -1.76%.',feedbackReasons:reasons,reasonText:'비용 증가를 예상했어요.',reasons:['비용 증가를 예상했어요.'],nextTip:'다음에도 비교 시점을 확인해보세요.',judgedAt:'2026-10-06T01:00:00Z',feedbackGeneratedAt:'2026-10-07T07:00:00Z',verdict:'CORRECT'};
-function render(item=base,latest) {
+function render(item=base,latest,queryError=false,routeId=item?.id) {
  const navigation=[],exports={};
- vm.runInNewContext(compile('../screens/history/JudgementDetailScreen.tsx'),{exports,React,require:name=>name==='react'?React:name==='react-native'?{View:'View',Text:'Text',SafeAreaView:'SafeAreaView',ScrollView:'ScrollView',TouchableOpacity:'TouchableOpacity',StyleSheet:{create:s=>s}}:name==='../../lib/historyRecords'?history:name==='@react-navigation/native'?{useIsFocused:()=>true}:name==='@tanstack/react-query'?{useQueryClient:()=>({invalidateQueries(){}}),useQuery:({queryKey})=>({data:queryKey[0]==='judgement-detail'?latest:queryKey[0]==='news-detail'?{relatedSymbol:'035720',relatedSymbolName:'카카오'}:queryKey[0]==='chart'?{points:[{date:'2026-10-06',value:100},{date:'2026-10-07',value:item.comparisonClose??100}]}:[]})}:{MiniLineChart:'MiniLineChart',ScreenTopBar:'ScreenTopBar'}});
- const tree=nodes(exports.JudgementDetailScreen({route:{params:{item}},navigation:{navigate:(...args)=>navigation.push(args),goBack(){}}}));return{tree,navigation};
+ vm.runInNewContext(compile('../screens/history/JudgementDetailScreen.tsx'),{exports,React,require:name=>name==='react'?React:name==='react-native'?{View:'View',Text:'Text',SafeAreaView:'SafeAreaView',ScrollView:'ScrollView',TouchableOpacity:'TouchableOpacity',StyleSheet:{create:s=>s}}:name==='../../lib/historyRecords'?history:name==='@react-navigation/native'?{useIsFocused:()=>true}:name==='@tanstack/react-query'?{useQueryClient:()=>({invalidateQueries(){}}),useQuery:({queryKey})=>({isError: queryKey[0]==='judgement-detail' && queryError, data:queryKey[0]==='judgement-detail'?latest:queryKey[0]==='news-detail'?{relatedSymbol:'035720',relatedSymbolName:'카카오'}:queryKey[0]==='chart'?{points:[{date:'2026-10-06',value:100},{date:'2026-10-07',value:item?.comparisonClose??100}]}:[]})}:{MiniLineChart:'MiniLineChart',ScreenTopBar:'ScreenTopBar'}});
+ const tree=nodes(exports.JudgementDetailScreen({route:{params:{judgementId:routeId,item}},navigation:{navigate:(...args)=>navigation.push(args),goBack(){}}}));return{tree,navigation};
 }
 const snapshotFile=new URL('./fixtures/judgement-feedback.json',import.meta.url);
 // Rule output mirrored from finsight-ai/tests/fixtures/feedback_context.json.
@@ -164,4 +164,14 @@ test('empty user reason is explained once by coaching while pending keeps its pl
  assert(!pending.some(t=>t.includes('다음엔 판단 근거를 한 줄 남겨보세요')));
  const noCoach=texts(render({...item,feedbackReasons:null}).tree);
  assert(noCoach.includes('남긴 판단 근거가 없어요.'));
+});
+
+test('direct judgement URL loads by id and invalid or forbidden records show a safe history return', () => {
+  const fresh=render(null,base,false,10);
+  assert(texts(fresh.tree).some(text=>text.includes('내 근거 점검')));
+  for (const [id,error] of [['not-a-number',false],[10,true],[0,false]]) {
+    const missing=render(null,undefined,error,id);
+    assert(texts(missing.tree).includes('기록을 찾을 수 없어요'));
+    assert(texts(missing.tree).includes('기록 탭으로'));
+  }
 });

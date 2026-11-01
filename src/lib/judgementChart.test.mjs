@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import ts from 'typescript';
 import { judgementClosingPoints, judgementResult, kstDate, feedbackVerdict } from './historyRecords.ts';
-const react = {useEffect() {}, createElement:(type,props,...children)=>({type,props,children})};
+const react = {useEffect() {}, createElement:(type,props,...children)=>typeof type==='function'?type(props):({type,props,children})};
 let news, chartResponse, queries=[];
 const exports={};
 vm.runInNewContext(ts.transpileModule(readFileSync(new URL('../screens/history/JudgementDetailScreen.tsx',import.meta.url),'utf8'),{
@@ -18,9 +18,9 @@ vm.runInNewContext(ts.transpileModule(readFileSync(new URL('../screens/history/J
   {MiniLineChart:'MiniLineChart',ScreenTopBar:'ScreenTopBar'}});
 const nodes=n=>Array.isArray(n)?n.flatMap(nodes):n&&typeof n==='object'?[n,...nodes(n.children)]:[];
 const text=tree=>tree.filter(n=>n.type==='Text').flatMap(n=>n.children).join(' ');
-const base={newsId:115,judgedAt:'2026-10-02T01:00:00Z',choice:'UP',actualDirection:'UP',actualChangePercent:1.2,reasons:[],feedbackText:'피드백',comparisonDate:'2026-10-06',judgementClose:100,comparisonClose:101.2};
+const base={id:10,newsId:115,judgedAt:'2026-10-02T01:00:00Z',choice:'UP',actualDirection:'UP',actualChangePercent:1.2,reasons:[],feedbackText:'피드백',comparisonDate:'2026-10-06',judgementClose:100,comparisonClose:101.2};
 const daily=[{date:'2026-10-01',value:99},{date:'2026-10-02',value:100},{date:'2026-10-06',value:101.2}];
-function render(item=base,symbol='005930',response={data:{points:daily}}) { queries=[];chartResponse=response;news={data:{relatedSymbol:symbol,relatedSymbolName:'삼성전자'}};return nodes(exports.JudgementDetailScreen({route:{params:{item}},navigation:{}})); }
+function render(item=base,symbol='005930',response={data:{points:daily}}) { queries=[];chartResponse=response;news={data:{relatedSymbol:symbol,relatedSymbolName:'삼성전자'}};return nodes(exports.JudgementDetailScreen({route:{params:{judgementId:item.id,item}},navigation:{}})); }
 test('daily chart uses shared key and cache policy, DB closes only add comparison',()=>{
   const tree=render();assert.match(text(tree),/삼성전자 005930/);assert.match(text(tree),/비교일 종가 101.2.*\+1.20%/);
   const chart=tree.find(n=>n.type==='MiniLineChart');assert.equal(chart.props.points,daily);assert.deepEqual(Array.from(chart.props.markers,m=>m.label),['판단','결과 +1.20%']);

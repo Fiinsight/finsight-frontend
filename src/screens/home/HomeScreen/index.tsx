@@ -29,7 +29,7 @@ export function HomeScreen({ navigation }: Props) {
         contentContainerStyle={styles.container}
       >
         <HomeHeader />
-        {result ? <JudgementResultBanner item={result} pending={!unseen.length} onPress={() => navigation.getParent()?.navigate("HistoryTab", {screen:"JudgementDetail",params:{item:result}})} /> : null}
+        {result ? <JudgementResultBanner item={result} pending={!unseen.length} onPress={() => navigation.getParent()?.navigate("HistoryTab", {screen:"JudgementDetail",params:{judgementId:result.id}})} /> : null}
         <MarketPanel />
         <NewsSection watchedNews={watchedItems} onSelectNews={(newsId) => navigation.navigate("NewsDetail", { newsId })} />
       </ScrollView>

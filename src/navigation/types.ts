@@ -10,7 +10,7 @@ export type NewsFlowParamList = {
   Judgement: { newsId: number };
   // Only an acknowledgment — the real result isn't known until the next
   // trading day (see FeedbackScreen for why there's no chart/aligned here).
-  Feedback: { newsId: number; ack: JudgementAck };
+  Feedback: { newsId: number; judgementId?: number; ack?: JudgementAck };
 };
 
 export type HomeStackParamList = NewsFlowParamList & {
@@ -23,7 +23,7 @@ export type ChartStackParamList = NewsFlowParamList & {
 
 export type HistoryStackParamList = NewsFlowParamList & {
   History: { initialTab?: "judgements" | "notes" } | undefined;
-  JudgementDetail: { item: JudgementHistoryItem };
+  JudgementDetail: { judgementId: number; item?: JudgementHistoryItem };
 };
 
 export type LearnStackParamList = NewsFlowParamList & { Learn: { section?: "reviews" } | undefined };

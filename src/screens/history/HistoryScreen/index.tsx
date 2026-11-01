@@ -97,7 +97,7 @@ export function HistoryScreen({ navigation, route }: Props) {
             <View style={styles.groupHeader}><Text style={styles.sectionTitle}>{group.label}</Text>
               <Text style={styles.groupSummary}>{`판단 ${summary.total}건 · 적중 ${summary.total - summary.pending - summary.unavailable - summary.legacy === 0 ? "-" : summary.hits} · 결과 대기 ${summary.pending}${summary.unavailable + summary.legacy ? ` · 기사 복습 ${summary.unavailable + summary.legacy}` : ""}`}</Text>
             </View>
-            {group.items.map((item) => <HistoryItem key={item.id} item={item} unread={hasUnreadFeedback(item, seen)} onPress={() => navigation.navigate("JudgementDetail", { item })} />)}
+            {group.items.map((item) => <HistoryItem key={item.id} item={item} unread={hasUnreadFeedback(item, seen)} onPress={() => navigation.navigate("JudgementDetail", { judgementId: item.id })} />)}
           </View>;
         }) : noteGroups.map((group) => <View key={group.key} style={styles.group}>
           <View style={styles.groupHeader}><Text style={styles.sectionTitle}>{group.label}</Text><Text style={styles.groupSummary}>메모 {group.items.length}건</Text></View>
