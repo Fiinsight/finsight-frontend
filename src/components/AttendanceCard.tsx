@@ -29,7 +29,7 @@ export function AttendanceCard({ selectedDate, onSelectDate, compact = false }: 
   const checkedIn = isAttendanceComplete(readingLog, todayKey);
 
   if (compact) return <View style={styles.compact}>
-    <Text style={styles.compactText}>이번 주 {completed}/7 · 오늘 {todayReadCount}/3</Text>
+    <Text style={styles.compactText}>이 기기 기준 · 이번 주 {completed}/7 · 오늘 {todayReadCount}/3</Text>
     <Pressable accessibilityRole="button" accessibilityLabel="기록 날짜 필터 펼치기" onPress={() => setExpanded(!expanded)}><Text style={styles.compactLink}>{expanded ? "접기" : "날짜 선택"}</Text></Pressable>
     {expanded ? week.map(day => <Pressable key={day.key} disabled={day.future || !onSelectDate} accessibilityRole="button" accessibilityLabel={`${day.key} ${day.label}요일 기록 필터`} onPress={() => onSelectDate?.(day.key)}><Text style={styles.compactLink}>{day.label}{selectedDate === day.key ? " ✓" : ""}</Text></Pressable>) : null}
   </View>;
@@ -37,7 +37,7 @@ export function AttendanceCard({ selectedDate, onSelectDate, compact = false }: 
     <LinearGradient colors={["#0D1B4C", "#1746B8", "#2A72E8"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.card}>
       <View style={styles.header}>
         <View style={styles.headerCopy}>
-          <Text style={styles.title}>오늘의 출석체크 <Text style={styles.titleAccent}>{completed}/7</Text></Text>
+          <Text style={styles.title}>오늘의 출석체크 (이 기기 기준) <Text style={styles.titleAccent}>{completed}/7</Text></Text>
           <Text style={styles.subtitle}>{checkedIn ? "오늘 읽기 목표를 달성했어요!" : "기사 3개를 읽으면 수달 배지가 자동으로 찍혀요."}</Text>
         </View>
       </View>
