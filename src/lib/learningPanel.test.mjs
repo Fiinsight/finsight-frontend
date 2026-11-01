@@ -51,7 +51,7 @@ test('excerpt disclosure is visible only for excerpts', () => {
   const labels = mode => render(true, mode).nodes.filter(node => node.type === 'Text').flatMap(node => node.children ?? []);
   assert(labels('EXCERPT').includes('원문에서 핵심 문장을 골라 보여드려요'));
   assert(!labels('REWRITTEN').includes('원문에서 핵심 문장을 골라 보여드려요'));
-  assert(labels('REWRITTEN').includes('핵심 사실과 비교 기준을 확인해보세요.'));
+  assert(labels('REWRITTEN').includes('AI가 수준에 맞게 다시 썼어요'));
 });
 
 test('an article without an eligible concept explains the absent quiz', () => {

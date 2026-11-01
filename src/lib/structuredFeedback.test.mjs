@@ -132,7 +132,7 @@ test('new and legacy reason coaching is visible under the user rationale and pen
   const detail='방향은 맞혔지만 근거가 약해 운이 섞였을 수 있어요.';
   const feedbackReasons=[reasons[0],{title,detail},reasons[2]];
   const tree=render({...base,feedbackReasons}).tree;
-  const card=tree.find(n=>n.type==='View'&&texts(nodes(n))[0]==='내 근거 점검');
+  const card=tree.find(n=>n.type==='View'&&texts(nodes(n)).includes('내 근거 점검') && texts(nodes(n)).includes(base.reasonText));
   assert(texts(nodes(card)).includes(base.reasonText));assert(texts(nodes(card)).includes(detail));
   assert.equal(texts(tree).filter(t=>t===detail).length,1);
   assert(!texts(tree).includes('다음엔 이렇게'));assert(!texts(tree).includes(base.nextTip));
@@ -174,4 +174,10 @@ test('direct judgement URL loads by id and invalid or forbidden records show a s
     assert(texts(missing.tree).includes('기록을 찾을 수 없어요'));
     assert(texts(missing.tree).includes('기록 탭으로'));
   }
+});
+
+test('feedback provenance distinguishes recorded AI, rules, and unknown legacy modes',()=>{
+  assert(texts(render({...base,feedbackMode:'LLM'}).tree).includes('AI가 기사와 판단 근거를 바탕으로 설명했어요'));
+  assert(texts(render({...base,feedbackMode:'RULE'}).tree).includes('기사와 가격을 바탕으로 규칙에 따라 설명해요'));
+  assert(texts(render(base).tree).includes('이 기록의 설명 생성 방식은 확인되지 않았어요'));
 });

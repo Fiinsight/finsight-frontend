@@ -19,6 +19,7 @@ export function ChartDocentPanel({ insight, period, onNewsPress, onPrevious, onN
       <Text style={styles.date}>{date}</Text>
       <Text style={[styles.change, { color: insight.changePercent >= 0 ? "#D92D20" : "#175CD3" }]}>{insight.changePercent > 0 ? "+" : ""}{insight.changePercent.toFixed(2)}%</Text>
     </View>
+    <Text style={styles.caption}>{docent?.mode === "LLM" ? "AI가 뉴스와 가격 흐름을 바탕으로 설명했어요" : docent?.mode === "RULE" ? "뉴스와 가격 흐름을 규칙에 따라 설명해요" : "설명 생성 방식을 확인할 수 없어요"}</Text>
     <Text style={styles.badge}>{relations[relation]}</Text>
     <View style={styles.block}><Text style={styles.label}>무슨 일이 있었나요?</Text><Text style={styles.body}>{docent?.whatHappened || "이 지점의 뉴스 설명을 확인할 수 없어요."}</Text></View>
     <View style={styles.highlightBox}><Text style={styles.label}>왜 주가가 움직였을까요?</Text><Text style={styles.body}>{docent?.possibleReason || insight.explanation || "수급이나 시장 전체 요인이 영향을 줬을 수 있어요."}</Text></View>

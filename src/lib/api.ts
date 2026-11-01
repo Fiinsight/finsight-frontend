@@ -294,6 +294,7 @@ function normalizeHistoryItem(raw: JudgementHistoryItemRaw, index: number): Judg
     headline: raw.headline ?? null,
     verdict: ["CORRECT", "WRONG", "PARTIAL"].includes(raw.verdict ?? "") ? raw.verdict : null,
     nextTip: raw.nextTip ?? null,
+    feedbackMode: raw.feedbackMode === "RULE" || raw.feedbackMode === "LLM" ? raw.feedbackMode : null,
     feedbackGeneratedAt: raw.feedbackGeneratedAt ?? null,
     feedbackReasons: Array.isArray(raw.reasons) && raw.reasons.length >= 2 && raw.reasons.length <= 3 && raw.reasons.every(reason => typeof reason === "object" && reason !== null && typeof reason.title === "string" && reason.title.trim() && typeof reason.detail === "string" && reason.detail.trim()) ? raw.reasons as import("../types/api").FeedbackReason[] : null,
     reasonText: raw.reasonText ?? "",
