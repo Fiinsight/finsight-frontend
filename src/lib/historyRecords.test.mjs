@@ -76,3 +76,11 @@ test('verdict follows saved prediction versus actual direction rather than confl
  assert.equal(feedbackVerdict({...item,actualDirection:'UP',actualChangePercent:.8}),'PARTIAL');
  assert.equal(feedbackVerdict({...item,gradingIssue:'TARGET_MISMATCH'}),null);assert.equal(feedbackVerdict({...item,comparisonDate:null}),null);
 });
+
+
+test('marked demo outcomes have an example label and never count as hits',()=>{
+ const example={choice:'UP',actualDirection:'UP',actualChangePercent:2,comparisonDate:'2026-10-07',feedbackText:'[시연용 가상 결과] 상승'};
+ assert.equal(judgementResult(example).label,'예시');
+ assert.equal(judgementSummary([example]).hits,0);
+ assert.equal(feedbackVerdict(example),null);
+});

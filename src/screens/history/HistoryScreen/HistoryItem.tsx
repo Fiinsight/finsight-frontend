@@ -20,6 +20,7 @@ export function HistoryItem({ item, onPress, unread = false }: { item: Judgement
   const partial = feedbackVerdict(item) === "PARTIAL";
   return (
     <TouchableOpacity accessibilityRole="button" style={styles.card} activeOpacity={0.85} onPress={onPress}>
+      {result.example ? <Text style={styles.arrived}>예시</Text> : null}
       {unread ? <Text style={styles.arrived} accessibilityLabel="새 판단 결과 도착">결과 도착</Text> : null}
       <Text style={styles.title} numberOfLines={2}>
         {item.newsTitle}
