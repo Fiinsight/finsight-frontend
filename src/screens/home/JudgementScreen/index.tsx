@@ -59,7 +59,7 @@ export function JudgementScreen({ route, navigation }: Props) {
       void queryClient.invalidateQueries({ queryKey: ["learning-progress"] });
       void queryClient.invalidateQueries({ queryKey: ["learning-recommendations"] });
       clearJudgementDraft(newsId);
-      navigation.navigate("Feedback", { newsId, ack });
+      navigation.navigate("Feedback", { newsId, judgementId: ack.judgementId });
     } catch (error) {
       // Real market/AI feedback can't exist yet at submit time either way —
       // but if the submission itself failed, the judgement was never saved,

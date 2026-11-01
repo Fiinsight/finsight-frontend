@@ -130,10 +130,10 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <NavigationContainer<RootTabParamList> linking={{ prefixes: [], config: { screens: {
-        HomeTab: { screens: { Home: "", NewsDetail: "news/:newsId", Judgement: "news/:newsId/judgement", Feedback: "feedback" } },
-        ChartTab: { screens: { Chart: "chart", NewsDetail: "chart/news/:newsId", Judgement: "chart/news/:newsId/judgement", Feedback: "chart/feedback" } },
-        HistoryTab: { screens: { History: "history", JudgementDetail: "history/detail", NewsDetail: "history/news/:newsId", Judgement: "history/news/:newsId/judgement", Feedback: "history/feedback" } },
-        LearnTab: { screens: { Learn: "learn", NewsDetail: "learn/news/:newsId", Judgement: "learn/news/:newsId/judgement", Feedback: "learn/feedback" } },
+        HomeTab: { screens: { Home: "", NewsDetail: "news/:newsId", Judgement: "news/:newsId/judgement", Feedback: { path: "news/:newsId/judgement/done", parse: { newsId: Number, judgementId: Number } } } },
+        ChartTab: { screens: { Chart: "chart", NewsDetail: "chart/news/:newsId", Judgement: "chart/news/:newsId/judgement", Feedback: { path: "chart/news/:newsId/judgement/done", parse: { newsId: Number, judgementId: Number } } } },
+        HistoryTab: { screens: { History: "history", JudgementDetail: { path: "history/judgements/:judgementId", parse: { judgementId: Number } }, NewsDetail: "history/news/:newsId", Judgement: "history/news/:newsId/judgement", Feedback: { path: "history/news/:newsId/judgement/done", parse: { newsId: Number, judgementId: Number } } } },
+        LearnTab: { screens: { Learn: "learn", NewsDetail: "learn/news/:newsId", Judgement: "learn/news/:newsId/judgement", Feedback: { path: "learn/news/:newsId/judgement/done", parse: { newsId: Number, judgementId: Number } } } },
         ProfileTab: "profile"
       } } }} documentTitle={{ formatter: (options) => `${options?.title ?? "핀사이트"} · 핀사이트` }}>
         <StatusBar style="dark" />

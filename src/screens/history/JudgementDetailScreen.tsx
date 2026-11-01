@@ -16,12 +16,24 @@ import { markFeedbackSeen } from "../../lib/feedbackSeen";
 type Props = NativeStackScreenProps<HistoryStackParamList, "JudgementDetail">;
 
 export function JudgementDetailScreen({ route, navigation }: Props) {
-  const focused = useIsFocused();
   const initial = route.params.item;
-  const detailQuery = useQuery({ queryKey: ["judgement-detail", initial.id], queryFn: ({ signal }) => getJudgementDetail(initial.id, signal),
-    enabled: Number.isSafeInteger(initial.id) && initial.id > 0, retry: 0, staleTime: 60_000,
-    refetchInterval: query => focused && !(query.state.data?.actualDirection ?? initial.actualDirection) ? 60_000 : false });
-  const item = Number.isSafeInteger(detailQuery.data?.id) && detailQuery.data?.id === initial.id ? detailQuery.data : initial;
+  const rawId = route.params.judgementId ?? initial?.id;
+  const id = Number(rawId);
+  const valid = /^[1-9]\d*$/.test(String(rawId)) && Number.isSafeInteger(id);
+  const focused = useIsFocused();
+  const detailQuery = useQuery({ queryKey: ["judgement-detail", id], queryFn: ({ signal }) => getJudgementDetail(id, signal),
+    enabled: valid, retry: 0, staleTime: 60_000,
+    refetchInterval: query => focused && !query.state.data?.actualDirection ? 60_000 : false });
+  const item = detailQuery.data?.id === id ? detailQuery.data : initial?.id === id ? initial : undefined;
+  if (!valid || detailQuery.isError || !item) return <SafeAreaView style={styles.safeArea}>
+    <Text>{valid && detailQuery.isLoading ? "기록을 불러오는 중이에요" : "기록을 찾을 수 없어요"}</Text>
+    <TouchableOpacity accessibilityRole="button" onPress={() => navigation.navigate("History")}><Text>기록 탭으로</Text></TouchableOpacity>
+  </SafeAreaView>;
+  return <JudgementDetailContent item={item} navigation={navigation} />;
+}
+
+function JudgementDetailContent({item,navigation}:{item:import("../../types/api").JudgementHistoryItem;navigation:Props["navigation"]}) {
+  const focused = useIsFocused();
   const client = useQueryClient();
   useEffect(() => {
     if (focused) void recordJudgementView(item.id).then(() => client.invalidateQueries({ queryKey: ["learning-progress"] }));
@@ -102,7 +114,6 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
           </View> : null}
           {reviewOnly ? <Text style={styles.muted}>{item.unavailableReason || (result.legacy ? "당일 가격으로 비교한 기록이라 다음 거래일 적중 통계에는 포함하지 않아요." : "비교할 가격이 없어 적중 여부 대신 기사 내용으로 복습해요.")}</Text> : null}
         </View>
-        {detailQuery.isError ? <TouchableOpacity accessibilityRole="button" accessibilityLabel="판단 결과 다시 시도" onPress={() => void detailQuery.refetch()}><Text style={styles.back}>최신 결과 다시 시도</Text></TouchableOpacity> : null}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>내 근거 점검</Text>
           {item.reasons.length > 0 ? item.reasons.map((reason, index) => (
