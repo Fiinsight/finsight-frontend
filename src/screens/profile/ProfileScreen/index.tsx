@@ -1,10 +1,10 @@
 import { judgementNotificationsEnabled, setJudgementNotificationsEnabled } from "../../../lib/judgementNotifications";
 import { useQueryClient } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
-import { Platform, SafeAreaView, ScrollView, StyleSheet, View, Text, Pressable, Modal, Switch } from "react-native";
-import type { AuthSession } from "../../../lib/auth";
+import { Platform, SafeAreaView, ScrollView, StyleSheet, View, Text, Pressable, Modal, Switch, TextInput } from "react-native";
+import { saveAuthSession, type AuthSession } from "../../../lib/auth";
 import { getDefaultLearningPreferences, type LearningLevel } from "../../../lib/onboarding";
-import { getLearningPreferences, setDefaultReadingLevel, saveLearningSettings, getOnboardingAnswers, deleteAccount } from "../../../lib/api";
+import { getLearningPreferences, setDefaultReadingLevel, saveLearningSettings, getOnboardingAnswers, deleteAccount, updateNickname } from "../../../lib/api";
 import { useEffect, useState } from "react";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
@@ -18,6 +18,18 @@ import { TabScreenHeader } from "../../../components/TabScreenHeader";
 
 export function ProfileScreen({ session, onLogout }: { session: AuthSession; onLogout: () => void }) {
   const client = useQueryClient();
+  const [nickname, setNickname] = useState(session.nickname);
+  const [nicknameDraft, setNicknameDraft] = useState(session.nickname);
+  const [nicknameOpen, setNicknameOpen] = useState(false);
+  async function saveNickname() {
+    setSaving(true); setMessage("");
+    try {
+      const value = await updateNickname(nicknameDraft.trim());
+      await saveAuthSession({...session, nickname: value});
+      setNickname(value); setNicknameOpen(false); setMessage("닉네임을 저장했어요.");
+    } catch { setMessage("닉네임을 저장하지 못했어요. 2~30자로 입력하고 다시 시도해 주세요."); }
+    finally { setSaving(false); }
+  }
   const [level, setLevel] = useState<LearningLevel>(getDefaultLearningPreferences().level);
 
   const navigation = useNavigation<BottomTabNavigationProp<RootTabParamList>>();
@@ -72,13 +84,23 @@ export function ProfileScreen({ session, onLogout }: { session: AuthSession; onL
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
         <TabScreenHeader title="프로필" subtitle="내 투자 학습과 계정 설정을 관리하세요." />
-        <View style={{ marginTop: 24 }}><ProfileHeader session={session} /></View>
+        <View style={{ marginTop: 24 }}><ProfileHeader session={{...session,nickname}} /></View>
+        <Pressable accessibilityRole="button" accessibilityLabel="닉네임 수정" onPress={() => {setNicknameDraft(nickname); setNicknameOpen(true); setMessage("");}}><Text style={{paddingVertical:12}}>닉네임 수정</Text></Pressable>
         <SettingsList notificationsEnabled={notificationsEnabled} onNotificationsPress={() => setNotificationsOpen(true)} onDeleteAccount={() => setDeleteStep(1)} level={level} onLogout={() => setLogoutConfirm(true)}
           onEditLevel={() => { setEditing(true); setMessage(""); }}
           onEditLearning={() => { setSettingsOpen(true); setMessage(""); }}
           onTerms={() => setLegal("terms")} onPrivacy={() => setLegal("privacy")} />
         {message ? <Text accessibilityRole="alert">{message}</Text> : null}
       </ScrollView>
+      <Modal visible={nicknameOpen} transparent animationType="slide" onRequestClose={() => {if(!saving)setNicknameOpen(false);}}>
+        <View style={styles.sheetBackdrop}><View style={styles.sheet} accessibilityViewIsModal>
+          <Text style={styles.sheetTitle}>닉네임 수정</Text>
+          <TextInput accessibilityLabel="새 닉네임" value={nicknameDraft} onChangeText={setNicknameDraft} maxLength={30} editable={!saving} style={styles.levelRow} />
+          <Pressable accessibilityRole="button" disabled={saving || nicknameDraft.trim().length<2} onPress={() => void saveNickname()} style={styles.levelRow}><Text>{saving?"저장 중…":"닉네임 저장"}</Text></Pressable>
+          <Pressable accessibilityRole="button" disabled={saving} onPress={() => setNicknameOpen(false)} style={styles.levelRow}><Text>취소</Text></Pressable>
+          {message?<Text accessibilityRole="alert">{message}</Text>:null}
+        </View></View>
+      </Modal>
       <Modal visible={logoutConfirm || deleteStep > 0} transparent animationType="slide" onRequestClose={() => { if (!saving) { setLogoutConfirm(false); setDeleteStep(0); } }}>
         <View style={styles.sheetBackdrop}>
           <Pressable style={styles.sheetDismiss} accessibilityRole="button" accessibilityLabel="계정 확인 닫기" disabled={saving} onPress={() => { setLogoutConfirm(false); setDeleteStep(0); }} />

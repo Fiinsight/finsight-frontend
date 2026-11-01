@@ -161,7 +161,6 @@ export function AuthScreen({ onAuthenticated, initialSignup = false }: Props) {
         <Pressable accessibilityRole="button" accessibilityLabel={isSignup ? "회원가입" : "로그인"} accessibilityState={{ disabled: isBusy, busy: isSubmitting }} disabled={isBusy} onPress={submit} style={({ pressed }) => [styles.primary, pressed && styles.pressed]}><Text style={styles.primaryText}>{isSubmitting ? "처리 중..." : isSignup ? "회원가입" : "로그인"}</Text></Pressable>
         {authError ? <Text accessibilityRole="alert" style={styles.kakaoError}>{authError}</Text> : null}
         <View style={styles.links}>
-          {!isSignup && <Pressable accessibilityRole="button" accessibilityLabel="비밀번호 찾기" style={styles.linkButton} onPress={() => setAuthError("비밀번호 재설정은 아직 지원하지 않아요. 로그인할 수 있는 계정이나 카카오 로그인을 이용해 주세요.")}><Text style={styles.link}>비밀번호 찾기</Text></Pressable>}
           <Pressable accessibilityRole="button" accessibilityLabel={isSignup ? "로그인으로 전환" : "회원가입으로 전환"} style={styles.linkButton} onPress={() => { setAuthError(null); setIsSignup((value) => !value); }}><Text style={styles.link}>{isSignup ? "로그인" : "회원가입"}</Text></Pressable>
         </View>
         <Text style={styles.socialLabel}>간편하게 로그인하세요.</Text>

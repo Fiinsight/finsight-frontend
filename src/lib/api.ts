@@ -1,3 +1,4 @@
+import { defaultNickname } from "./nickname";
 import { scheduleJudgementReminder } from "./judgementNotifications";
 import { getDefaultLearningPreferences, goalTypeFor, type GoalType, type LearningPainPoint } from "./learningPreferences";
 import { getJudgementViewLog, getReadingLog } from "./readingProgress";
@@ -99,7 +100,7 @@ export interface AuthResponse {
 }
 
 export async function signup(email: string, password: string): Promise<AuthResponse> {
-  const { data } = await api.post<AuthResponse>("/auth/signup", { email, password, nickname: "FinSight 사용자" });
+  const { data } = await api.post<AuthResponse>("/auth/signup", { email, password, nickname: defaultNickname(email) });
   return data;
 }
 
@@ -594,3 +595,5 @@ export async function getLearningRecommendations(): Promise<{items: LearningReco
   const ids = [...new Set(Object.entries(log).filter(([day]) => day >= from && day <= today).sort(([a],[b]) => a.localeCompare(b)).flatMap(([,values]) => values))].slice(-200);
   return (await api.get("/learning/recommendations", {params: {readNewsIds: ids.join(",")}})).data;
 }
+
+export async function updateNickname(nickname: string): Promise<string> { return (await api.put<{nickname:string}>("/profile/nickname", {nickname})).data.nickname; }

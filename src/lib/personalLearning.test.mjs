@@ -77,7 +77,7 @@ test('learning focus callbacks run without invoking hooks inside an effect', () 
 });
 
 test('profile updates reading level only after successful server persistence', async () => {
-  const values = ['analyst', null, 0, false, false, null, true, false, ''];
+  const values = ['사용자','사용자',false,'analyst', null, 0, false, false, null, true, false, ''];
   let cursor = 0, fail = true, requested;
   const react = { createElement: (type, props, ...children) => ({ type, props, children }), useEffect() {}, useState: (initial) => {
     const index = cursor++;
@@ -93,18 +93,18 @@ test('profile updates reading level only after successful server persistence', a
     if (name.endsWith('/api')) return { setDefaultReadingLevel: async (level) => { requested = level; if (fail) throw new Error('offline'); } };
     return {};
   } });
-  const render = () => { cursor = 0; return visit(screen.ProfileScreen({ session: {}, onLogout() {} })); };
+  const render = () => { cursor = 0; return visit(screen.ProfileScreen({ session: {nickname:"사용자", userId:1}, onLogout() {} })); };
   render().find((node) => node.type === 'Pressable' && visit(node.children).filter((n) => n.type === 'Text').flatMap((n) => n.children).join(' ').includes('초보자용')).props.onPress();
   await new Promise(setImmediate);
   assert.equal(requested, 'beginner');
-  assert.equal(values[0], 'analyst');
-  assert.match(values[8], /저장하지 못했습니다/);
+  assert.equal(values[3], 'analyst');
+  assert.match(values[11], /저장하지 못했습니다/);
   fail = false;
   render().find((node) => node.type === 'Pressable' && visit(node.children).filter((n) => n.type === 'Text').flatMap((n) => n.children).join(' ').includes('초보자용')).props.onPress();
   await new Promise(setImmediate);
-  assert.equal(values[0], 'beginner');
-  assert.equal(values[6], false);
-  assert.match(values[8], /저장했어요/);
+  assert.equal(values[3], 'beginner');
+  assert.equal(values[9], false);
+  assert.match(values[11], /저장했어요/);
 });
 
 test('recommendation request forwards only this device owner recent reading IDs', async () => {

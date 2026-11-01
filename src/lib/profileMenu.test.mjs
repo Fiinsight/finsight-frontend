@@ -51,7 +51,7 @@ test('logout and deletion warnings appear only in confirmation sheets and requir
   '../../../lib/onboarding': { getDefaultLearningPreferences: () => ({ level: 'beginner' }) },
   '../../../lib/api': { deleteAccount: async () => { deleted++; } }, './SettingsList': { SettingsList: 'SettingsList' }
  });
- const render = () => { cursor = 0; return nodes(screen.ProfileScreen({ session: {}, onLogout() { loggedOut++; } })); };
+ const render = () => { cursor = 0; return nodes(screen.ProfileScreen({ session: {nickname:"사용자", userId:1}, onLogout() { loggedOut++; } })); };
  let tree = render();
  assert(!tree.some(n => n.type === 'Text' && n.children.includes('FinSight v0.1.0')));
  assert(tree.filter(n => n.type === 'Modal').every(n => !n.props.visible));
