@@ -85,7 +85,6 @@ export function JudgementScreen({ route, navigation }: Props) {
           {isLoading ? <Text style={styles.errorText}>뉴스를 불러오는 중이에요.</Text> : null}
           {isError || (!isLoading && !data) ? <Text style={styles.errorText}>실제 뉴스를 확인할 수 없어 판단을 저장할 수 없어요. 이전 화면에서 다시 시도해주세요.</Text> : null}
           {isError ? <Pressable accessibilityRole="button" onPress={() => void refetch()}><Text>뉴스 다시 시도</Text></Pressable> : null}
-          <Text style={styles.subtitle}>학습용 서비스이며 투자 권유가 아닙니다.</Text>
           {data ? <NewsSummaryCard summary={judgementArticleSummary(data,readingLevel ?? profileLevel)} /> : null}
           {history.isError ? <Pressable accessibilityRole="button" onPress={() => void history.refetch()}><Text style={styles.errorText}>기존 판단을 확인하지 못했어요. 다시 시도</Text></Pressable> : null}
           {confirmed ? <Text style={styles.errorText}>이미 결과가 나온 판단이에요</Text> : existing ? <Text style={styles.subtitle}>저장된 판단을 수정할 수 있어요.</Text> : null}
@@ -94,6 +93,7 @@ export function JudgementScreen({ route, navigation }: Props) {
           {symbol ? <DirectionChoices isIndex={!!marketLabel} disabled={confirmed} value={choice} onChange={(next) => { if (!confirmed) { setJudgementReason(newsId, reason); setJudgementChoice(newsId, next); } }} /> : null}
           {symbol && data ? <ReasonInput recommended={recommendEvidence} candidates={evidenceCandidates(judgementArticleSummary(data,readingLevel ?? profileLevel))} editable={!confirmed} value={reason} onChange={(text) => setJudgementReason(newsId, text)} /> : null}
 
+          <Text style={styles.subtitle}>학습용 서비스이며 투자 권유가 아닙니다.</Text>
           {submitError ? <Text style={styles.errorText}>{submitError}</Text> : null}
         </ScrollView>
       </KeyboardAvoidingView>

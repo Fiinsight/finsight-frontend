@@ -126,15 +126,15 @@ export function LearnScreen() {
         <TabScreenHeader title="학습" subtitle="오늘 할 일을 하나씩 이어가요." />
 
         <View style={styles.hero}>
-          <View style={styles.goalRow}><Text style={styles.goalLabel}>학습 목표</Text>
+          <View style={styles.goalRow}><Text style={styles.goalLabel}>오늘 할 일</Text>
             {loaded ? <Text style={styles.goalValue} numberOfLines={1} accessibilityLabel={`학습 목표 ${preferences.dailyGoal}`}>{preferences.dailyGoal}</Text> : <View style={[styles.skeleton, styles.goalSkeleton]} accessibilityLabel="학습 목표 불러오는 중" />}
           </View>
           {goal ? <Text style={styles.heroAuxiliary}>{goal.achievedToday ? "✓ 오늘 목표 달성" : "○ 오늘 목표 진행 중"}</Text> : null}
           {goal?.type === "minutes5" ? <Text style={styles.heroAuxiliary}>활동 3개 = 5분 학습 (퀴즈·메모·판단 기준)</Text> : null}
-          <View style={styles.metrics}>
-            {metrics.map((metric) => <View key={metric.label} style={styles.metricTile}>
-              <Pressable accessibilityRole="button" accessibilityLabel={`${metric.label} 기준 안내`} hitSlop={8} style={styles.infoButton}
-                onPress={() => setInfo({ title: metric.label, description: metric.description })}><Text style={styles.infoIcon}>ⓘ</Text></Pressable>
+          <View style={{gap:4}}>
+            {metrics.map((metric) => <View key={metric.label} style={styles.checklistRow}>
+              <Pressable accessibilityRole="button" accessibilityLabel={`${metric.label} 기준 안내`} hitSlop={8} style={{minHeight:44,justifyContent:"center"}}
+                onPress={() => setInfo({ title: metric.label, description: metric.description })}><Text style={styles.metricLabel}>· {metric.label} 기준 보기</Text></Pressable>
               {metric.loading ? <View style={[styles.skeleton, styles.numberSkeleton]} accessibilityLabel={`${metric.label} 불러오는 중`} /> : <Text style={styles.metricValue}>{metric.value}</Text>}
               <Text style={styles.metricLabel}>{metric.label}</Text>
             </View>)}
@@ -261,6 +261,7 @@ export function LearnScreen() {
 }
 
 const styles = StyleSheet.create({
+  checklistRow: { flexDirection:"row", flexWrap:"wrap", alignItems:"center", gap:8, paddingVertical:8 },
   safeArea: { flex: 1, backgroundColor: colors.canvas },
   container: { padding: spacing.lg, paddingBottom: 40, gap: spacing.xl },
   section: { gap: spacing.sm },
