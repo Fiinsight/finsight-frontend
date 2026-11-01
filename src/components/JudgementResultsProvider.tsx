@@ -10,10 +10,19 @@ interface Results { unseen:JudgementHistoryItem[]; pending:JudgementHistoryItem|
 const ResultsContext=createContext<Results>({unseen:[],pending:null,refresh(){}});
 export const useJudgementResults=()=>useContext(ResultsContext);
 export function JudgementResultsProvider({owner,children}:{owner:number;children:ReactNode}) {
+  const [now,setNow]=useState(Date.now());
   const [active,setActive]=useState(AppState.currentState==="active");
   const [seen,setSeen]=useState<Record<string,string>|null>(null);
   const results=useQuery({queryKey:["judgement-history",owner,"results"],queryFn:({signal})=>getJudgementHistory(signal),
     enabled:active,retry:0,staleTime:60_000,refetchInterval:query=>active && overdueJudgement(query.state.data ?? [])?60_000:false,refetchIntervalInBackground:false});
+  useEffect(()=>{
+    if(!active)return;
+    const next=(results.data ?? []).filter(item=>!item.actualDirection && item.expectedResultAt)
+      .map(item=>Date.parse(item.expectedResultAt!)).filter(time=>Number.isFinite(time)&&time>Date.now()).sort((a,b)=>a-b)[0];
+    if(next===undefined)return;
+    const timer=setTimeout(()=>{setNow(Date.now());if(Date.now()>=next)void results.refetch();},Math.min(next-Date.now()+50,2_147_000_000));
+    return()=>clearTimeout(timer);
+  },[active,results.data,now]);
   const refresh=useCallback(()=>{if(active && Date.now()-results.dataUpdatedAt>=60_000) void results.refetch();},[active,results.dataUpdatedAt,results.refetch]);
   useEffect(()=>{const listener=AppState.addEventListener("change",state=>setActive(state==="active"));return()=>listener.remove();},[]);
   useEffect(()=>{
