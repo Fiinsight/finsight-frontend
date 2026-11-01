@@ -1,3 +1,5 @@
+import { judgementArticleSummary } from "../../../lib/text";
+import { resultDateLabel } from "../../../lib/judgementResults";
 import { evidenceCandidates } from "../../../lib/learningPreferences";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -28,8 +30,10 @@ export function JudgementScreen({ route, navigation }: Props) {
   const setJudgementChoice = useAppStore((state) => state.setJudgementChoice);
   const setJudgementReason = useAppStore((state) => state.setJudgementReason);
   const clearJudgementDraft = useAppStore((state) => state.clearJudgementDraft);
+  const readingLevel = useAppStore((state) => state.readingLevelByNewsId[newsId]);
+  const [profileLevel,setProfileLevel] = useState("beginner");
   const [recommendEvidence, setRecommendEvidence] = useState(false);
-  useEffect(() => { void getLearningPreferences().then(value => setRecommendEvidence(value.painPoint === "evidence")); }, []);
+  useEffect(() => { void getLearningPreferences().then(value => { setRecommendEvidence(value.painPoint === "evidence"); setProfileLevel(value.level); }); }, []);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const { data, isError, isLoading, refetch } = useQuery({
@@ -82,12 +86,13 @@ export function JudgementScreen({ route, navigation }: Props) {
           {isError || (!isLoading && !data) ? <Text style={styles.errorText}>실제 뉴스를 확인할 수 없어 판단을 저장할 수 없어요. 이전 화면에서 다시 시도해주세요.</Text> : null}
           {isError ? <Pressable accessibilityRole="button" onPress={() => void refetch()}><Text>뉴스 다시 시도</Text></Pressable> : null}
           <Text style={styles.subtitle}>학습용 서비스이며 투자 권유가 아닙니다.</Text>
-          {data ? <NewsSummaryCard summary={data.summary} /> : null}
+          {data ? <NewsSummaryCard summary={judgementArticleSummary(data,readingLevel ?? profileLevel)} /> : null}
           {history.isError ? <Pressable accessibilityRole="button" onPress={() => void history.refetch()}><Text style={styles.errorText}>기존 판단을 확인하지 못했어요. 다시 시도</Text></Pressable> : null}
           {confirmed ? <Text style={styles.errorText}>이미 결과가 나온 판단이에요</Text> : existing ? <Text style={styles.subtitle}>저장된 판단을 수정할 수 있어요.</Text> : null}
-          <Text style={styles.subtitle}>다음 거래일 종가의 변화가 ±0.5% 이내면 중립으로 비교해요.</Text>
+          <Text style={styles.subtitle}>판단한 날이 거래일이면 당일 종가, 휴일이면 직전 거래일 종가가 기준이에요. 장중 판단도 당일 종가를 써요. 다음 거래일 종가와 비교하며 ±0.5% 이내면 중립이에요.</Text>
+          {data?.judgementBaselineDate && data.judgementComparisonDate ? <Text style={styles.subtitle}>기준 종가: {resultDateLabel(data.judgementBaselineDate)} · 예정 비교일: {resultDateLabel(data.judgementComparisonDate)} 장 마감</Text> : null}
           {symbol ? <DirectionChoices isIndex={!!marketLabel} disabled={confirmed} value={choice} onChange={(next) => { if (!confirmed) { setJudgementReason(newsId, reason); setJudgementChoice(newsId, next); } }} /> : null}
-          {symbol && data ? <ReasonInput recommended={recommendEvidence} candidates={evidenceCandidates(data.summary)} editable={!confirmed} value={reason} onChange={(text) => setJudgementReason(newsId, text)} /> : null}
+          {symbol && data ? <ReasonInput recommended={recommendEvidence} candidates={evidenceCandidates(judgementArticleSummary(data,readingLevel ?? profileLevel))} editable={!confirmed} value={reason} onChange={(text) => setJudgementReason(newsId, text)} /> : null}
 
           {submitError ? <Text style={styles.errorText}>{submitError}</Text> : null}
         </ScrollView>

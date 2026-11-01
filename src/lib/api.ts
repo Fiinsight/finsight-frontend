@@ -219,6 +219,7 @@ function normalizeNewsDetail(raw: NewsDetailRaw, fallbackId: number): NewsDetail
     raw.summary ?? (levels.normal ? `${levels.normal.slice(0, 80)}${levels.normal.length > 80 ? "…" : ""}` : raw.importanceReason ?? "");
 
   return {
+    judgementBaselineDate: raw.judgementBaselineDate, judgementComparisonDate: raw.judgementComparisonDate,
     judgementTarget: raw.judgementTarget ?? (raw.relatedSymbol ? { symbol: raw.relatedSymbol, name: raw.relatedSymbolName ?? raw.relatedSymbol, unavailableReason: null } : { symbol: null, name: null, unavailableReason: "판단 대상이 정해지지 않은 기사예요" }),
     id: raw.id ?? fallbackId,
     title: raw.title ?? "",
