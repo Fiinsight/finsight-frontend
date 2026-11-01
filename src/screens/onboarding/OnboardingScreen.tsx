@@ -37,26 +37,7 @@ const steps: Array<{ id: string; title: string; options: Option[] }> = [
       { label: "아직 정하지 않았어요", description: "핀사이트가 함께 찾아볼게요" },
     ],
   },
-  {
-    id: "difficulty",
-    title: "투자 소식을 접할 때\n가장 어려운 점은 무엇인가요?",
-    options: [
-      { label: "용어가 어려워요" },
-      { label: "정보가 너무 많아요" },
-      { label: "판단할 근거가 부족해요" },
-      { label: "기록하고 돌아보기 어려워요" },
-    ],
-  },
-  {
-    id: "goal",
-    title: "오늘 핀사이트에서\n어떤 습관을 시작해볼까요?",
-    options: [
-      { label: "뉴스 하나 읽기" },
-      { label: "기사 메모 남기고 복습하기" },
-      { label: "투자 판단 돌아보기" },
-      { label: "매일 5분 이어가기" },
-    ],
-  },
+
 ];
 
 type Props = { onComplete: (answers: OnboardingAnswer[]) => void; allowSkip?: boolean; saving?: boolean; initialAnswers?: OnboardingAnswer[]; onClose?: () => void; onLogin?: () => void };
@@ -148,7 +129,7 @@ export function OnboardingScreen({ onComplete, allowSkip = true, saving = false,
           )}
 
           <View style={styles.footer}>
-            {!isWelcome ? <Pressable accessibilityRole="button" accessibilityLabel="이전 질문" disabled={saving || (!allowSkip && step === 1)} onPress={() => setStep((current) => current - 1)} style={styles.skipButton}><Text style={styles.skipText}>이전</Text></Pressable> : null}
+            {!isWelcome && step > 1 ? <Pressable accessibilityRole="button" accessibilityLabel="이전 질문" disabled={saving || (!allowSkip && step === 1)} onPress={() => setStep((current) => current - 1)} style={styles.skipButton}><Text style={styles.skipText}>이전</Text></Pressable> : null}
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={isWelcome ? "시작하기" : isLast ? "저장" : "다음 질문"}
