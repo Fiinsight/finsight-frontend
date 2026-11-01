@@ -5,7 +5,7 @@ import vm from 'node:vm';
 import ts from 'typescript';
 
 const nodes = node => Array.isArray(node) ? node.flatMap(nodes) : node && typeof node === 'object' ? [node, ...nodes(node.children)] : [];
-function render(level, reasons, mode = 'level', selected = []) {
+function render(level, reasons, mode = 'level', selected = [], reviewOnly = false) {
   const exports = {};
   const react = {
     createElement: (type, props, ...children) => ({ type, props, children }),
@@ -18,7 +18,7 @@ function render(level, reasons, mode = 'level', selected = []) {
     if (name === 'react') return react;
     if (name === 'react-native') return { SafeAreaView: 'SafeAreaView', ScrollView: 'ScrollView', Text: 'Text', View: 'View', Pressable: 'Pressable', StyleSheet: { create: x => x } };
     if (name === '@react-navigation/native') return { useIsFocused: () => true };
-    if (name === '@tanstack/react-query') return { useQueryClient: () => ({}), useQuery: () => ({ data: { id: 1, title: '기사', rawContent: '매출 2% 증가', importanceReason: '이전 투자 포인트', importanceReasons: reasons } }) };
+    if (name === '@tanstack/react-query') return { useQueryClient: () => ({}), useQuery: () => ({ data: { id: 1, judgementReviewOnly:reviewOnly, title: '기사', rawContent: '매출 2% 증가', importanceReason: '이전 투자 포인트', importanceReasons: reasons } }) };
     if (name.endsWith('/useAppStore')) return { useAppStore: selector => selector({ readingLevelByNewsId: {}, setReadingLevel: (id, value) => selected.push([id, value]) }) };
     const component = name.split('/').at(-1);
     return { [component]: component };
@@ -42,4 +42,10 @@ test('tab selection updates a reading level passed by navigation as well as the 
   const tree = render('beginner', { beginner: '초보', analyst: '분석' }, 'level', selected);
   tree.find(n => n.props?.accessibilityLabel === '읽기 수준 변경, 현재 beginner').props.onPress();
   assert.deepEqual(selected, [[1, 'normal'], 'normal']);
+});
+
+test('server review-only policy replaces judgement action on old articles',()=>{
+ const tree=render('beginner',undefined,'level',[],true);
+ assert(tree.some(n=>n.type==='Text' && n.children.some(text=>typeof text==='string' && text.includes('복습용'))));
+ assert(!tree.some(n=>n.type==='BottomActionBar'));
 });

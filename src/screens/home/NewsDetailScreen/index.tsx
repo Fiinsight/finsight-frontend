@@ -132,7 +132,7 @@ export function NewsDetailScreen({ route, navigation }: Props) {
         {hasContent ? <View onLayout={(event) => { if (route.params.openNotes) scroll.current?.scrollTo({ y: event.nativeEvent.layout.y, animated: true }); }}><ArticleNotesPanel newsId={newsId} sourceUrl={detail.url} /></View> : null}
       </ScrollView>
 
-      {hasContent ? detail.judgementTarget?.symbol ? <BottomActionBar label="판단하기" onPress={() => navigation.navigate("Judgement", { newsId })} /> : <View style={{ padding: 20 }}><Text style={{ color: "#667085", fontSize: 14 }}>이 기사는 판단할 대상이 없어요</Text></View> : null}
+      {hasContent ? detail.judgementReviewOnly ? <View style={{padding:20}}><Text>복습용 · 발행일이 확인된 최근 기사에서 새 판단을 남겨주세요</Text></View> : detail.judgementTarget?.symbol ? <BottomActionBar label="판단하기" onPress={() => navigation.navigate("Judgement", { newsId })} /> : <View style={{ padding: 20 }}><Text style={{ color: "#667085", fontSize: 14 }}>이 기사는 판단할 대상이 없어요</Text></View> : null}
 
       <TermPopup visible={!!selectedTerm} term={selectedTerm} newsId={newsId} level={readingLevel} onClose={() => setSelectedTerm(null)} />
     </SafeAreaView>
