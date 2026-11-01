@@ -115,6 +115,7 @@ function JudgementDetailContent({item,navigation}:{item:import("../../types/api"
           {reviewOnly ? <Text style={styles.muted}>{item.unavailableReason || (result.legacy ? "당일 가격으로 비교한 기록이라 다음 거래일 적중 통계에는 포함하지 않아요." : "비교할 가격이 없어 적중 여부 대신 기사 내용으로 복습해요.")}</Text> : null}
         </View>
         <View style={styles.card}>
+          {!result.pending ? <Text style={styles.muted}>{item.feedbackMode === "LLM" ? "AI가 기사와 판단 근거를 바탕으로 설명했어요" : item.feedbackMode === "RULE" ? "기사와 가격을 바탕으로 규칙에 따라 설명해요" : "이 기록의 설명 생성 방식은 확인되지 않았어요"}</Text> : null}
           <Text style={styles.sectionTitle}>내 근거 점검</Text>
           {item.reasons.length > 0 ? item.reasons.map((reason, index) => (
             <View key={`${reason}-${index}`} style={styles.reasonRow}>

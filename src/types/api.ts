@@ -167,6 +167,7 @@ export interface JudgementHistoryItemRaw {
   headline?: string | null;
   verdict?: FeedbackVerdict | null;
   nextTip?: string | null;
+  feedbackMode?: "RULE" | "LLM" | null;
   feedbackGeneratedAt?: string | null;
   id?: number;
   // Actual finsight-backend JudgementHistoryResponse uses `judgementId`.
@@ -198,6 +199,7 @@ export interface JudgementHistoryItem {
   headline?: string | null;
   verdict?: FeedbackVerdict | null;
   nextTip?: string | null;
+  feedbackMode?: "RULE" | "LLM" | null;
   feedbackGeneratedAt?: string | null;
   feedbackReasons?: FeedbackReason[] | null;
   reasonText?: string;
