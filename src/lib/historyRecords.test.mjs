@@ -84,3 +84,10 @@ test('marked demo outcomes have an example label and never count as hits',()=>{
  assert.equal(judgementSummary([example]).hits,0);
  assert.equal(feedbackVerdict(example),null);
 });
+
+test('price adjustment holds hide directional correctness for pending and old outcomes',()=>{
+ for(const actualDirection of [null,'UP']){
+  const result=judgementResult({choice:'UP',actualDirection,actualChangePercent:50,comparisonDate:'2026-10-06',gradingIssue:'PRICE_ADJUSTMENT'});
+  assert.equal(result.correct,null);assert.equal(result.label,'가격 조정 확인 필요');assert.match(result.feedbackText,/가격 조정 확인 필요/);
+ }
+});

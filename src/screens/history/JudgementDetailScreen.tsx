@@ -113,6 +113,7 @@ function JudgementDetailContent({item,navigation}:{item:import("../../types/api"
             <Text style={styles.marketValue}>{stockName || symbol} {percent}</Text>
             <Text style={styles.marketValue}>같은 날 {item.indexName} {item.indexChangePercent >= 0 ? "+" : ""}{item.indexChangePercent.toFixed(2)}%</Text>
           </View> : null}
+          {item.gradingIssue === "PRICE_ADJUSTMENT" ? <Text style={styles.muted}>{item.unavailableReason || "가격 조정 확인 필요"}</Text> : null}
           {reviewOnly ? <Text style={styles.muted}>{item.unavailableReason || (result.legacy ? "당일 가격으로 비교한 기록이라 다음 거래일 적중 통계에는 포함하지 않아요." : "비교할 가격이 없어 적중 여부 대신 기사 내용으로 복습해요.")}</Text> : null}
         </View>
         <View style={styles.card}>
