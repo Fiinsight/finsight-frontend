@@ -1,3 +1,4 @@
+import { reshuffleQuizOptions } from './quizOptions.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
@@ -8,11 +9,12 @@ function render(correct, mode = 'EXCERPT', hasQuestion = true) {
   const create = (type, props) => ({ type, props, children: props?.children });
   const Value = class { setValue() {} };
   let reset = false, reviewOpened = false, refreshed = false;
+  let stateSlot = 0;
   const exports = {};
   const source = readFileSync(new URL('../screens/home/NewsDetailScreen/LearningPanel.tsx', import.meta.url), 'utf8');
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText, {
     exports, require: name => name === 'react/jsx-runtime' ? { jsx: create, jsxs: create, Fragment: 'Fragment' }
-      : name === 'react' ? { useRef: value => ({ current: value }), useState: () => [1, () => {}] }
+      : name.endsWith('/quizOptions') ? {reshuffleQuizOptions} : name === 'react' ? { useRef: value => ({ current: value }), useState: initial => [stateSlot++ === 0 ? 1 : initial, () => {}] }
       : name === 'react-native' ? { Animated: { Value, View: 'AnimatedView' }, Pressable: 'Pressable', Text: 'Text', View: 'View', StyleSheet: { create: s => s } }
       : name === '@tanstack/react-query' ? {
         useQueryClient: () => ({}), useQuery: () => ({ refetch: () => { refreshed = true; }, isFetching: false, data: { mode, glossary: [], summary: '', question: hasQuestion ? { term: '금리', prompt: '질문', options: ['정답', '오답', '다른 오답'] } : null } }),
