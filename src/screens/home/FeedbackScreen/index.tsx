@@ -44,7 +44,6 @@ export function FeedbackScreen({ route, navigation }: Props) {
         <Text style={styles.message}>뉴스를 읽고 남긴 판단은 기록 탭에서 바로 확인할 수 있어요.</Text>
 
         {promptMemo ? <Pressable style={{ minHeight: 44, justifyContent: "center" }} accessibilityRole="button" accessibilityLabel="이 기사에 메모 남기기" onPress={() => navigation.navigate("NewsDetail", { newsId: route.params.newsId, openNotes: true })}><Text style={styles.noticeStrong}>메모 남기기</Text></Pressable> : null}
-        <Text style={styles.message}>학습용 서비스이며 투자 권유가 아닙니다.</Text>
         <View style={styles.noticeCard}>
           <Ionicons name="time-outline" size={18} color="#175CD3" />
           <Text style={styles.noticeText}>
