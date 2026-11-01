@@ -126,6 +126,7 @@ export function LearnScreen() {
         <TabScreenHeader title="학습" subtitle="오늘 할 일을 하나씩 이어가요." />
 
         <View style={styles.hero}>
+          <Text style={styles.heroAuxiliary}>읽기·출석 연속 기록은 이 기기 기준이에요</Text>
           <View style={styles.goalRow}><Text style={styles.goalLabel}>오늘 할 일</Text>
             {loaded ? <Text style={styles.goalValue} numberOfLines={1} accessibilityLabel={`학습 목표 ${preferences.dailyGoal}`}>{preferences.dailyGoal}</Text> : <View style={[styles.skeleton, styles.goalSkeleton]} accessibilityLabel="학습 목표 불러오는 중" />}
           </View>
