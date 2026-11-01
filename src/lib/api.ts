@@ -72,8 +72,8 @@ function resolveApiBaseUrl(): string {
 
 export const api = axios.create({
   baseURL: resolveApiBaseUrl(),
-  // Render 무료 인스턴스가 잠든 뒤 다시 시작하는 시간을 기다린다.
-  timeout: 240_000,
+  // Bound normal requests; liveness guidance handles cold starts.
+  timeout: 60_000,
   // localtunnel shows a browser warning page unless this header is present.
   // Keep it limited to the free development tunnel; production hosts do not need it.
   headers: process.env.EXPO_PUBLIC_API_BASE_URL?.includes(".loca.lt")
@@ -176,8 +176,8 @@ export async function getLearningPreferences(): Promise<LearningPreferences> {
 // Briefings
 // ---------------------------------------------------------------------------
 
-export async function getTodayBriefing(): Promise<NewsBrief[]> {
-  const { data } = await api.get<NewsBrief[]>("/briefings/today");
+export async function getTodayBriefing(context?: {signal?: AbortSignal}): Promise<NewsBrief[]> {
+  const { data } = await api.get<NewsBrief[]>("/briefings/today", {signal:context?.signal});
   return data;
 }
 
@@ -241,8 +241,8 @@ function normalizeNewsDetail(raw: NewsDetailRaw, fallbackId: number): NewsDetail
   };
 }
 
-export async function getNewsDetail(id: number): Promise<NewsDetail> {
-  const { data } = await api.get<NewsDetailRaw>(`/news/${id}`);
+export async function getNewsDetail(id: number, signal?: AbortSignal): Promise<NewsDetail> {
+  const { data } = await api.get<NewsDetailRaw>(`/news/${id}`, {signal});
   return normalizeNewsDetail(data, id);
 }
 
@@ -415,8 +415,8 @@ function normalizeMarketStat(
   return { label, value, change, tone };
 }
 
-export async function getMarketSummary(): Promise<MarketSummary> {
-  const { data } = await api.get<MarketSummaryRaw>("/market/summary");
+export async function getMarketSummary(context?: {signal?: AbortSignal}): Promise<MarketSummary> {
+  const { data } = await api.get<MarketSummaryRaw>("/market/summary", {signal:context?.signal});
 
   return {
     kospi: normalizeMarketStat("KOSPI", data.kospi),
@@ -505,7 +505,7 @@ function normalizeChartData(raw: ChartDataRaw, symbol: string): ChartData {
 }
 
 export async function getChartData(symbol: string, period: "D" | "W" | "MINUTE" = "D", interval = 5, signal?: AbortSignal): Promise<ChartData> {
-  const { data } = await api.get<ChartDataRaw>(`/charts/${symbol}`, { params: { period, ...(period === "MINUTE" ? { interval } : {}) }, signal, timeout: period === "MINUTE" ? 90_000 : 180_000 });
+  const { data } = await api.get<ChartDataRaw>(`/charts/${symbol}`, { params: { period, ...(period === "MINUTE" ? { interval } : {}) }, signal, timeout: 60_000 });
   return normalizeChartData(data, symbol);
 }
 

@@ -1,3 +1,4 @@
+import {RequestWaitNotice} from "../../../components/RequestWaitNotice";
 import type { ComponentRef } from "react";
 import { colors, radius, spacing, typography } from "../../../theme";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -155,6 +156,7 @@ export function ChartScreen({ route, navigation }: Props) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView ref={scroll} contentContainerStyle={styles.container}>
+        <RequestWaitNotice loading={isFetching} onRetry={() => {void client.cancelQueries({queryKey:["chart"]}).then(()=>refetchChart());}} onCancel={()=>{void client.cancelQueries({queryKey:["chart"]});}} />
         <StockSearchBar value={query} onChange={setQuery} />
         {searchTerm ? (
           <View style={styles.searchResults}>
