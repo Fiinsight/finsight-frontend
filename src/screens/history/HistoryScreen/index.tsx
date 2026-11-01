@@ -71,7 +71,7 @@ export function HistoryScreen({ navigation, route }: Props) {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
         <TabScreenHeader title="기록" subtitle="출석과 투자 판단을 함께 돌아보세요" />
-        <AttendanceCard selectedDate={selectedDate} onSelectDate={(day) => setSelectedDate((current) => current === day ? null : day)} />
+        <AttendanceCard compact selectedDate={selectedDate} onSelectDate={(day) => setSelectedDate((current) => current === day ? null : day)} />
         <View style={styles.tabs} accessibilityRole="tablist">
           {(["judgements", "notes"] as const).map((value) => (
             <Pressable key={value} accessibilityRole="tab" accessibilityState={{ selected: tab === value }}
