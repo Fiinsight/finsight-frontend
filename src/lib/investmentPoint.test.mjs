@@ -1,3 +1,4 @@
+import { sourceExcerpt } from './text.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import fs from 'node:fs';
@@ -15,6 +16,7 @@ function render(level, reasons, mode = 'level', selected = [], reviewOnly = fals
   vm.runInNewContext(ts.transpileModule(fs.readFileSync(new URL('../screens/home/NewsDetailScreen/index.tsx', import.meta.url), 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.React, esModuleInterop: true }
   }).outputText, { exports, React: react, require(name) {
+    if (name.endsWith('/text')) return {sourceExcerpt};
     if (name === 'react') return react;
     if (name === 'react-native') return { SafeAreaView: 'SafeAreaView', ScrollView: 'ScrollView', Text: 'Text', View: 'View', Pressable: 'Pressable', StyleSheet: { create: x => x } };
     if (name === '@react-navigation/native') return { useIsFocused: () => true };
