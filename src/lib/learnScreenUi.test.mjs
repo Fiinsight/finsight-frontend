@@ -1,3 +1,4 @@
+import * as preview from './termDefinitionPreview.ts';
 import * as actions from './learningActions.ts';
 import * as theme from '../theme/index.ts';
 import test from 'node:test';
@@ -25,6 +26,7 @@ function harness({ owner = 1, count = 1, completed = [], reviewItems, weak = [],
   const exports = {};
   const query = (data, key) => ({ data: pending || error ? undefined : data, isPending: pending, isFetching: fetching, isLoading: pending, isError: error, refetch: () => retries.push(key) });
   vm.runInNewContext(ts.transpileModule(fs.readFileSync(new URL('../screens/learn/LearnScreen/index.tsx', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.React } }).outputText, { exports, React, require: name => {
+    if (name.endsWith('/termDefinitionPreview')) return preview;
     if (name.endsWith('/learningActions')) return actions;
     if (name.endsWith('/storage')) return {storageSetItem:async()=>{},storageGetItem:async()=>null};
     if (name.endsWith('/auth')) return {loadAuthSession:async()=>owner === null ? null : {userId:owner}};
@@ -51,12 +53,11 @@ function harness({ owner = 1, count = 1, completed = [], reviewItems, weak = [],
 
 const button = (nodes, name) => nodes.find(node=>node.type==='Pressable' && node.props.accessibilityLabel?.startsWith(name));
 
-test('one primary action follows the first unfinished task and completed tasks lead to review',()=>{
- const goal=harness({goal:{type:'read1',achievedToday:false,streakDays:0},reads:0,count:0});button(goal.render(),'기사 읽으러 가기').props.onPress();assert.equal(goal.navigation[0][0],'HomeTab');
- const reading=harness({reads:0});button(reading.render(),'기사 읽으러 가기').props.onPress();assert.equal(reading.navigation[0][0],'HomeTab');
+test('quiz primary action prioritizes unfinished articles then review and daily concepts',()=>{
  const quiz=harness({count:0,completed:[100,101,102]});button(quiz.render(),'퀴즈 풀기').props.onPress();assert.equal(quiz.navigation[0][1].newsId,103);assert.equal(quiz.navigation[0][1].openQuiz,true);
  const review=harness({count:0,completed:[100,101,102,103]});button(review.render(),'퀴즈 풀기').props.onPress();assert.equal(review.navigation[0][1].newsId,232);
- const done=harness();button(done.render(),'복습할 개념 보기').props.onPress();assert.equal(done.params[0].section,'reviews');
+ const unfinished=harness({count:0,completed:[100,101,102]});assert(unfinished.text(unfinished.render()).includes('1개 남음'));
+ const done=harness({count:1,completed:[100,101,102,103]});assert(done.text(done.render()).includes('0개 남음'));
 });
 
 test('small samples hide accuracy and reading count matches attendance cap', () => {
@@ -81,7 +82,7 @@ test('checklist has no repeated info controls and weak areas only appear when pr
 test('loading reserves article cards, error retries are local, and buttons have names', () => {
   const loading=harness({pending:true}); const loadingNodes=loading.render();
   assert.equal(button(loadingNodes,'오늘 할 일 확인 중').props.disabled,true);
-  assert.equal(loadingNodes.filter(node=>node.props?.accessibilityLabel==='풀다 만 퀴즈 기사 불러오는 중').length,2);
+  assert.equal(loadingNodes.filter(node=>node.props?.accessibilityLabel==='이어서 풀 퀴즈 기사 불러오는 중').length,2);
   const error=harness({error:true}); const nodes=error.render();
   button(nodes,'학습 진행도 다시 시도').props.onPress(); button(nodes,'다시 볼 개념 다시 시도').props.onPress();
   assert.deepEqual(error.retries,['progress','reviews']);
@@ -94,11 +95,9 @@ test('pain point terms keeps three definitions after the main learning flow', ()
  button(initial,'환율 뜻 보기').props.onPress();
  assert(screen.text(screen.render()).includes('통화 교환 비율'));
 });
-test('the personal goal determines the first route and the five minute approximation is explicit',()=>{
- for(const [type,label,target] of [['read1','기사 읽으러 가기','HomeTab'],['memo','기사 읽으러 가기','NewsDetail'],['reviewJudgement','판단 돌아보기','HistoryTab'],['minutes5','퀴즈 풀기','NewsDetail']]){
-  const screen=harness({goal:{type,achievedToday:false,streakDays:2}});const nodes=screen.render();assert.match(screen.text(nodes),/2일 연속 목표 달성/);button(nodes,label).props.onPress();assert.equal(screen.navigation[0][0],target);
-  if(type==='memo')assert.equal(screen.navigation[0][1].openNotes,true);
-  if(type==='minutes5')assert(screen.text(nodes).includes('활동 3개 = 5분 학습'));
+test('the primary quiz action is independent of the selected personal goal',()=>{
+ for(const type of ['read1','memo','reviewJudgement','minutes5']) {
+  const screen=harness({goal:{type,achievedToday:false,streakDays:2}});const nodes=screen.render();assert.match(screen.text(nodes),/2일 연속 목표 달성/);button(nodes,'퀴즈 풀기').props.onPress();assert.equal(screen.navigation[0][0],'NewsDetail');
  }
 });
 test('level suggestion changes only after the named button is pressed', () => {
@@ -128,8 +127,8 @@ test('empty mastery groups are not padded and daily choices show reasons and lin
  for(const reason of ['지난번에 틀린 개념','익히는 중인 개념']) assert(daily.text(initial).includes(reason));
  assert(!daily.text(initial).includes('처음 보는 개념'));assert(daily.text(initial).includes('통화 교환 비율'));
  button(initial,'금리 뜻 보기').props.onPress();const sheet=daily.render();assert(daily.text(sheet).includes('이자 비율'));
- button(sheet,'금리 오늘 기사에서 읽기').props.onPress();
- assert.equal(daily.navigation.at(-1)[0],'NewsDetail');assert.equal(daily.navigation.at(-1)[1].newsId,232);
+ assert.equal(button(sheet,'금리 뜻 보기').props.accessibilityState.expanded,true);
+ button(sheet,'금리 뜻 보기').props.onPress();assert.equal(button(daily.render(),'금리 뜻 보기').props.accessibilityState.expanded,false);
  const hidden=harness({painPoint:'evidence'});assert(!hidden.text(hidden.render()).includes('오늘의 용어 3개'));
 });
 
@@ -153,7 +152,7 @@ test('watchlist recommendations without a prior activity stay visible and open a
 test('learning sections explain the flow, keep their order, hide unrelated recommendations and scroll to reviews', () => {
  const item={newsId:777,reasonNewsId:115,basis:'RULE_INTEREST',title:'추천 기사',reason:"'금리' 퀴즈를 틀린 기사와 비슷해요"};
  const screen=harness({recommendations:[item],section:'reviews'});const tree=screen.render();const text=screen.text(tree);
- const titles=['오늘 할 일','풀다 만 퀴즈','다시 볼 개념','비슷한 기사 더 읽기','내 개념 숙련도'];
+ const titles=['오늘 할 일','이어서 풀 퀴즈','다시 볼 개념','비슷한 기사 더 읽기','내 개념 숙련도'];
  assert(titles.every((title,index)=>!index || text.indexOf(title)>text.indexOf(titles[index-1])));
  for(const description of ['읽었지만 아직 퀴즈를 풀지 않은 기사예요','퀴즈에서 틀렸거나 아직 익숙하지 않은 개념이에요','내가 공부한 기사와 비슷한 주제예요']) assert(text.includes(description));
  const target=tree.find(node=>node.type==='View' && node.props?.onLayout);target.props.onLayout({nativeEvent:{layout:{y:480}}});
@@ -161,18 +160,13 @@ test('learning sections explain the flow, keep their order, hide unrelated recom
  const busy=harness({pending:true,section:'reviews'});busy.render().find(node=>node.type==='View' && node.props?.onLayout).props.onLayout({nativeEvent:{layout:{y:800}}});assert.equal(busy.scrolls.length,0);
  const cached=harness({fetching:true,section:'reviews'});cached.render().find(node=>node.type==='View' && node.props?.onLayout).props.onLayout({nativeEvent:{layout:{y:800}}});assert.equal(cached.scrolls.length,0);
  const empty=harness({reviewItems:[],recommendations:[{...item,reasonNewsId:null,basis:'RULE_RECENT'}]});const emptyText=empty.text(empty.render());
- assert(emptyText.includes('지금은 다시 볼 개념이 없어요'));assert(!emptyText.includes('비슷한 기사 더 읽기'));assert(!emptyText.includes('최근 수집된 기사'));
+ assert(emptyText.includes('아직 틀린 개념이 없어요. 퀴즈를 풀면 여기에 모여요'));assert(!emptyText.includes('비슷한 기사 더 읽기'));assert(!emptyText.includes('최근 수집된 기사'));
 });
 
-test('an achieved personal goal does not claim that the unfinished checklist is complete',()=>{
+test('an achieved personal goal does not hide remaining quizzes',()=>{
  const screen=harness({reads:0,count:0,completed:[42],goal:{type:'read1',achievedToday:true,streakDays:2}});screen.values[0]={};
- const nodes=screen.render();const text=screen.text(nodes);
- assert(text.includes('내 목표'));assert(!text.includes('✓ 오늘 목표 달성'));assert(text.includes('0/3'));assert.match(text,/1\s*\/3/);assert(text.includes('0/1'));
- const rows=nodes.filter(n=>n.props?.accessibilityLabel?.includes(' · 완료 · '));assert.equal(rows.length,1);assert.match(rows[0].props.accessibilityLabel,/내 목표/);
- const bar=nodes.find(n=>n.props?.accessibilityLabel==='오늘 할 일 완료율');assert.equal(bar.props.accessibilityValue.now,1);
- assert.equal(nodes.filter(n=>n.props?.accessibilityRole==='progressbar').length,1);
- button(nodes,'기사 읽으러 가기').props.onPress();assert.equal(screen.navigation[0][0],'HomeTab');
- assert(text.includes('최근 읽은 기사의 퀴즈를 모두 마쳤어요.'));assert(!text.includes('아직 읽은 기사가 없어요.'));
+ const nodes=screen.render();const text=screen.text(nodes);assert(text.includes('0개 남음'));assert(!text.includes('✓ 오늘 목표 달성'));assert(text.includes('0/3'));
+ button(nodes,'퀴즈 풀기').props.onPress();assert.equal(screen.navigation[0][0],'NewsDetail');
 });
 
 test('focus refresh preserves loaded goal and count, while a missing session ends loaders', async () => {
@@ -219,12 +213,16 @@ test('personalized guides and tips wait for learning preferences', () => {
  assert(ready.some(node=>node.type==='GuideList')); assert(ready.some(node=>node.type==='DailyTips'));
 });
 
-test('completed reading and quizzes do not complete an unmet personal judgement goal',()=>{
- const screen=harness({reads:3,count:5,goal:{type:'reviewJudgement',achievedToday:false,streakDays:0}});
- const nodes=screen.render();const text=screen.text(nodes);
- assert(!text.includes('✓ 오늘 목표 달성'));assert(text.includes('오늘 정답률 100%'));
- const goalRow=nodes.find(n=>n.props?.accessibilityLabel?.startsWith('내 목표 ·'));
- assert.match(goalRow.props.accessibilityLabel,/진행 중 · 0\/1/);
- assert.equal(nodes.find(n=>n.props?.accessibilityLabel==='오늘 할 일 완료율').props.accessibilityValue.now,2);
- button(nodes,'판단 돌아보기').props.onPress();assert.equal(screen.navigation[0][0],'HistoryTab');
+test('quiz completion is not described as completing every personal goal',()=>{
+ const screen=harness({reads:3,count:5,completed:[100,101,102,103],goal:{type:'reviewJudgement',achievedToday:false,streakDays:0}});const text=screen.text(screen.render());
+ assert(text.includes('0개 남음'));assert(text.includes('오늘 정답률 100%'));assert(!text.includes('✓ 오늘 목표 달성'));
+});
+
+
+test('daily definitions expand to full text and empty review has a concrete explanation',()=>{
+ const definition='기업이 일정 기간 동안 사업을 운영하며 얻은 성과를 뜻합니다. 매출과 이익을 함께 확인할 수 있습니다.';
+ const screen=harness({painPoint:'terms',reviewItems:[],dailyItems:[{term:'실적',definition,newsId:540,title:'실적 기사',reason:'처음 보는 개념'}]});
+ const initial=screen.render();assert(!screen.text(initial).includes(definition));assert(screen.text(initial).includes('아직 틀린 개념이 없어요. 퀴즈를 풀면 여기에 모여요'));
+ button(initial,'실적 뜻 보기').props.onPress();assert(screen.text(screen.render()).includes(definition));
+ const article=button(initial,'복습할 기사');assert(article.children.flat(Infinity).some(n=>n?.children?.includes('퀴즈 풀기 →')));
 });

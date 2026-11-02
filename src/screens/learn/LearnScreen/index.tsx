@@ -1,3 +1,4 @@
+import { termDefinitionPreview } from "../../../lib/termDefinitionPreview";
 import type { ComponentRef } from "react";
 import { colors, radius, spacing, typography } from "../../../theme";
 import { useCallback, useRef, useState } from "react";
@@ -10,7 +11,7 @@ import type { RootTabParamList, LearnStackParamList } from "../../../navigation/
 import { useFocusEffect, useNavigation, useIsFocused, useRoute } from "@react-navigation/native";
 import { loadAuthSession } from "../../../lib/auth";
 import { getReadingLog } from "../../../lib/readingProgress";
-import { countDailyReads, DAILY_ARTICLE_GOAL, localDateKey, resumeLearningIds, resumeLearningEmptyMessage, type DailyReadLog } from "../../../lib/readingProgressModel";
+import { countDailyReads, localDateKey, resumeLearningIds, resumeLearningEmptyMessage, type DailyReadLog } from "../../../lib/readingProgressModel";
 import { PainPointCard } from "./PainPointCard";
 import { parsePromotionSnoozes, promotionStorageKey, promotionVisible, snoozePromotion, type PromotionSnoozes } from "../../../lib/learningActions";
 import { storageGetItem, storageSetItem } from "../../../lib/storage";
@@ -18,7 +19,6 @@ import { DailyTips } from "./DailyTips";
 import { GuideList } from "./GuideList";
 import { getDefaultLearningPreferences, type LearningPreferences } from "../../../lib/onboarding";
 import { getLearningRecommendations, getDailyLearningTerms, setDefaultReadingLevel, getLearningPreferences, getLearningReviews, getLearningProgress, getNewsDetail } from "../../../lib/api";
-import { TabScreenHeader } from "../../../components/TabScreenHeader";
 
 export function LearnScreen() {
   const navigation = useNavigation<CompositeNavigationProp<NativeStackNavigationProp<LearnStackParamList>, BottomTabNavigationProp<RootTabParamList>>>();
@@ -65,7 +65,7 @@ export function LearnScreen() {
       if (active) setOwnerId(session.userId);
       const [log, saved] = await Promise.all([getReadingLog(session.userId), storageGetItem(promotionStorageKey(session.userId))]);
       if (active) { setReadCount(countDailyReads(log, localDateKey(new Date()))); setReadingLog(log); setSnoozes(parsePromotionSnoozes(saved)); setPromotionReady(session.userId); }
-    }).catch(() => { if (active) { setOwnerId(null); setReadCount(0); setReadingLog({}); } });
+    }).catch(() => { if (active) { setReadCount(null); setReadingLog({}); } });
     return () => { active = false; };
   }, []));
 
@@ -74,6 +74,7 @@ export function LearnScreen() {
   const [snoozes, setSnoozes] = useState<PromotionSnoozes>({});
   const [promotionReady, setPromotionReady] = useState<number | null>(null);
   const [promotionMessage, setPromotionMessage] = useState<string | null>(null);
+  const [expandedTerms, setExpandedTerms] = useState<Record<string, boolean>>({});
   const deferPromotion = async () => {
     const level = progress.data?.levelSuggestion;
     if (ownerId === null || !level) return;
@@ -89,15 +90,6 @@ export function LearnScreen() {
     void client.invalidateQueries({ queryKey: ["learning-progress"] });
   } });
   const goal = progress.data?.goal;
-  const goalAction = () => {
-    if (goal?.type === "reviewJudgement") navigation.navigate("HistoryTab", { screen: "History", params: { initialTab: "judgements" } });
-    else if (goal?.type === "memo") {
-      const id = resumeIds[0] ?? Object.values(readingLog).flat().at(-1);
-      if (id) navigation.navigate("NewsDetail", { newsId: id, openNotes: true });
-      else navigation.navigate("HomeTab", { screen: "Home" });
-    } else if (goal?.type === "minutes5") openNextTask();
-    else navigation.navigate("HomeTab", { screen: "Home" });
-  };
   const closeSheet = () => { setInfo(null); setSelectedReview(null); };
   const openNextTask = () => {
     if (resumeIds.length) {
@@ -112,59 +104,36 @@ export function LearnScreen() {
       navigation.navigate("HomeTab", { screen: "Home" });
     }
   };
-  const checklist = [
-    {key:"goal",label:preferences.dailyGoal,myGoal:true,done:goal?.achievedToday === true,value:goal ? `${goal.achievedToday?1:0}/1` : "—/1"},
-    {key:"reading",label:"기사 3개 읽기",myGoal:false,done:readCount !== null && readCount >= DAILY_ARTICLE_GOAL,value:readCount === null ? "—/3" : `${Math.min(readCount,DAILY_ARTICLE_GOAL)}/3`},
-    {key:"quiz",label:"퀴즈 1개 풀기",myGoal:false,done:(progress.data?.today.answeredCount ?? 0)>=1,value:progress.data ? `${Math.min(progress.data.today.answeredCount,1)}/1` : "—/1"}
-  ];
-  const completedTasks = checklist.filter(item=>item.done).length;
-  const firstTask = checklist.find(item=>!item.done);
-  const primaryLabel = !firstTask ? "복습할 개념 보기" : firstTask.key === "reading" ? "기사 읽으러 가기"
-    : firstTask.key === "quiz" ? "퀴즈 풀기" : goal?.type === "reviewJudgement" ? "판단 돌아보기"
-    : goal?.type === "minutes5" ? "퀴즈 풀기" : "기사 읽으러 가기";
-  const tasksLoading = !loaded || readCount === null || progressPending || reviewsLoading || !progress.data;
-  const openChecklistTask = () => {
-    if(!firstTask) navigation.setParams({section:"reviews"});
-    else if(firstTask.key === "goal") goalAction();
-    else if(firstTask.key === "reading") navigation.navigate("HomeTab",{screen:"Home"});
-    else openNextTask();
-  };
+  const remainingQuizzes = [...new Set(Object.values(readingLog).flat())].filter(id => !progress.data?.completedNewsIds.includes(id)).length;
+  const dailyQuizGoalDone = (progress.data?.today.answeredCount ?? 0) >= 1;
+  const tasksLoading = !loaded || progressPending || !progress.data;
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView ref={scroll} contentContainerStyle={styles.container}>
-        <TabScreenHeader title="학습" subtitle="오늘 할 일을 하나씩 이어가요." />
+        <View style={{gap:4}}><Text accessibilityRole="header" style={{fontSize:22,fontWeight:"800",color:colors.text}}>학습</Text><Text style={styles.auxiliary}>오늘 할 일을 하나씩 이어가요.</Text></View>
 
         <View style={styles.hero}>
           <View style={styles.goalRow}>
             <Text accessibilityRole="header" style={styles.sectionTitle}>오늘 할 일</Text>
-            <Text style={styles.taskCount} accessibilityLabel={`오늘 할 일 3개 중 ${completedTasks}개 완료`}>{completedTasks}/3</Text>
+            <Text style={styles.taskCount}>{progress.data ? `퀴즈 ${remainingQuizzes}개 남음` : "퀴즈 확인 중"}</Text>
           </View>
-          <Text style={styles.auxiliary}>{goal ? `${goal.streakDays}일 연속 목표 달성` : "연속 기록 확인 중"}</Text>
-          {checklist.map(item=><View key={item.key} style={styles.checklistItem}>
-            <View style={styles.checklistRow} accessibilityLabel={`${item.myGoal?"내 목표 · ":""}${item.label} · ${item.done?"완료":"진행 중"} · ${item.value}`}>
-              <Text style={[styles.checkIcon,item.done && styles.completedColor]} accessibilityElementsHidden importantForAccessibility="no">{item.done?"✓":"○"}</Text>
-              <View style={styles.checklistLabel}><Text style={[styles.body,item.done && styles.completedText]}>{item.label}</Text>{item.myGoal?<Text style={styles.goalBadge}>내 목표</Text>:null}</View>
-              <Text style={[styles.checklistValue,item.done && styles.completedText]}>{item.value}</Text>
-            </View>
-            {item.key === "quiz" && progress.data ? <Text style={styles.quizHelper}>{progress.data.today.answeredCount>=5 ? `오늘 정답률 ${accuracy(progress.data.today.accuracy)}` : `퀴즈 ${5-progress.data.today.answeredCount}개 더 풀면 정답률이 보여요`}</Text>:null}
-            {item.myGoal && goal?.type === "minutes5" ? <Text style={styles.quizHelper}>활동 3개 = 5분 학습 (퀴즈·메모·판단 기준)</Text>:null}
-          </View>)}
-          <View style={styles.taskProgress} accessibilityRole="progressbar" accessibilityLabel="오늘 할 일 완료율" accessibilityValue={{min:0,max:3,now:completedTasks,text:`3개 중 ${completedTasks}개 완료`}}><View style={[styles.taskProgressFill,{width:`${completedTasks/3*100}%`}]} /></View>
-          <Text style={styles.auxiliary}>기사 읽기 기록은 이 기기 기준</Text>
-          {progress.isError ? <Pressable accessibilityRole="button" accessibilityLabel="학습 진행도 다시 시도" style={styles.heroRetry} onPress={() => void progress.refetch()}><Text style={styles.auxiliary}>진행도를 불러오지 못했어요 · 다시 시도</Text></Pressable>:null}
-          <Pressable accessibilityRole="button" accessibilityLabel={tasksLoading?"오늘 할 일 확인 중":primaryLabel} accessibilityState={{disabled:tasksLoading}} disabled={tasksLoading} onPress={openChecklistTask} style={[styles.primaryButton,tasksLoading&&styles.disabledButton]}>
-            <Text style={styles.primaryButtonText}>{tasksLoading?"오늘 할 일 확인 중":primaryLabel}</Text><Text style={styles.primaryButtonText} aria-hidden>→</Text>
+          <Text style={styles.body}>{dailyQuizGoalDone ? "오늘 퀴즈 목표를 마쳤어요. 이어서 연습해 볼까요?" : "퀴즈 1개로 오늘의 개념을 확인해 보세요."}</Text>
+          <Text style={styles.auxiliary}>{goal ? `${goal.streakDays}일 연속 목표 달성` : "연속 기록 확인 중"} · 최근 읽은 기사 기준 · 기사 읽기 {readCount === null ? "연결 확인 중" : `${Math.min(readCount,3)}/3`}</Text>
+          {progress.data ? <Text style={styles.auxiliary}>{progress.data.today.answeredCount >= 5 ? `오늘 정답률 ${accuracy(progress.data.today.accuracy)}` : `퀴즈 ${Math.max(0,5-progress.data.today.answeredCount)}개 더 풀면 정답률이 보여요`}</Text> : null}
+          {progress.isError ? <Pressable accessibilityRole="button" accessibilityLabel="학습 진행도 다시 시도" style={styles.heroRetry} onPress={() => void progress.refetch()}><Text style={styles.link}>진행도를 불러오지 못했어요 · 다시 시도</Text></Pressable> : null}
+          <Pressable accessibilityRole="button" accessibilityLabel={tasksLoading ? "오늘 할 일 확인 중" : "퀴즈 풀기"} disabled={tasksLoading} accessibilityState={{disabled:tasksLoading}} onPress={openNextTask} style={[styles.primaryButton,tasksLoading&&styles.disabledButton]}>
+            <Text style={styles.primaryButtonText}>{tasksLoading ? "오늘 할 일 확인 중" : "퀴즈 풀기"}</Text><Text style={styles.primaryButtonText} aria-hidden>→</Text>
           </Pressable>
-          {loaded && preferences.source === "default" ? <Pressable accessibilityRole="button" accessibilityLabel="프로필에서 학습 설정하기" onPress={() => navigation.navigate("ProfileTab", { openLearningSettings: true })}><Text style={styles.auxiliary}>내 목표 설정하기</Text></Pressable>:null}
         </View>
 
         {preferences.painPoint === "terms" ? <View style={styles.section}>
           <Text accessibilityRole="header" style={styles.sectionTitle}>오늘의 용어 3개</Text>
           {ownerId === null ? <Text style={styles.auxiliary}>로그인하면 오늘의 용어를 확인할 수 있어요.</Text> : dailyTerms.isPending ? <View style={[styles.skeleton, styles.termSkeleton]} /> : dailyTerms.isError ? <Pressable accessibilityRole="button" accessibilityLabel="오늘의 용어 다시 시도" onPress={() => void dailyTerms.refetch()}><Text style={styles.link}>다시 시도</Text></Pressable> : dailyTerms.data?.length ? <View style={styles.dailyTermList}>
-            {dailyTerms.data.map((item,index) => <Pressable key={item.term} style={[styles.dailyTermItem,index===dailyTerms.data!.length-1 && styles.lastRow]} accessibilityRole="button" accessibilityLabel={`${item.term} 뜻 보기${item.reason === "지난번에 틀린 개념" || item.reason === "익히는 중인 개념" ? ` · ${item.reason}` : ""}`} onPress={() => setInfo({ title: item.term, description: item.definition, reason: item.reason === "지난번에 틀린 개념" || item.reason === "익히는 중인 개념" ? item.reason : undefined, newsId: item.newsId, newsTitle: item.title })}>
+            {dailyTerms.data.map((item,index) => <Pressable key={item.term} style={[styles.dailyTermItem,index===dailyTerms.data!.length-1 && styles.lastRow]} accessibilityRole="button" accessibilityLabel={`${item.term} 뜻 보기${item.reason === "지난번에 틀린 개념" || item.reason === "익히는 중인 개념" ? ` · ${item.reason}` : ""}`} accessibilityState={{expanded:!!expandedTerms[item.term]}} onPress={() => setExpandedTerms({...expandedTerms,[item.term]:!expandedTerms[item.term]})}>
               <View style={styles.termHeading}><Text style={styles.termText}>{item.term}</Text>{item.reason === "지난번에 틀린 개념" || item.reason === "익히는 중인 개념" ? <Text style={styles.goalBadge}>{item.reason}</Text>:null}</View>
-              <Text style={styles.auxiliary} numberOfLines={2}>{item.definition}</Text>
+              <Text style={styles.body} numberOfLines={expandedTerms[item.term] ? undefined : 2} ellipsizeMode="clip">{expandedTerms[item.term] ? item.definition : termDefinitionPreview(item.definition)}</Text>
+              <Text style={styles.link}>{expandedTerms[item.term] ? "정의 접기" : "정의 펼치기"}</Text>
             </Pressable>)}
           </View> : <Text style={styles.auxiliary}>오늘 기사에서 새로 볼 개념을 찾지 못했어요.</Text>}
         </View> : null}
@@ -173,11 +142,11 @@ export function LearnScreen() {
           onHistory={initialTab => navigation.navigate("HistoryTab", { screen: "History", params: { initialTab } })} />
 
         <View style={styles.section}>
-          <Text accessibilityRole="header" style={styles.sectionTitle}>풀다 만 퀴즈</Text>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>이어서 풀 퀴즈</Text>
           <Text style={styles.auxiliary}>읽었지만 아직 퀴즈를 풀지 않은 기사예요</Text>
-          {progressPending ? [0, 1].map((key) => <View key={key} style={styles.articleRow} accessibilityLabel="풀다 만 퀴즈 기사 불러오는 중">
+          {progressPending ? [0, 1].map((key) => <View key={key} style={styles.articleRow} accessibilityLabel="이어서 풀 퀴즈 기사 불러오는 중">
             <View style={[styles.skeleton, styles.chipSkeleton]} /><View style={[styles.skeleton, styles.titleSkeleton]} /><View style={[styles.skeleton, styles.shortSkeleton]} />
-          </View>) : progress.isError ? <View style={styles.section}><Text style={styles.body}>풀다 만 퀴즈 기사를 확인하지 못했어요.</Text><Pressable accessibilityRole="button" accessibilityLabel="풀다 만 퀴즈 다시 시도" style={styles.retryButton} onPress={() => void progress.refetch()}><Text style={styles.link}>다시 시도</Text></Pressable></View>
+          </View>) : progress.isError ? <View style={styles.section}><Text style={styles.body}>이어서 풀 퀴즈 기사를 확인하지 못했어요.</Text><Pressable accessibilityRole="button" accessibilityLabel="이어서 풀 퀴즈 다시 시도" style={styles.retryButton} onPress={() => void progress.refetch()}><Text style={styles.link}>다시 시도</Text></Pressable></View>
           : !resumeIds.length ? <Text style={styles.auxiliary}>{resumeLearningEmptyMessage(readingLog, progress.data?.completedNewsIds ?? [])}</Text>
           : resumeArticles.slice(0, 3).map((article, index) => article.isPending ? <View key={resumeIds[index]} style={styles.articleRow} accessibilityLabel="기사 제목 불러오는 중">
             <View style={[styles.skeleton, styles.chipSkeleton]} /><View style={[styles.skeleton, styles.titleSkeleton]} /><View style={[styles.skeleton, styles.shortSkeleton]} />
@@ -185,6 +154,7 @@ export function LearnScreen() {
             onPress={() => navigation.navigate("NewsDetail", { newsId: resumeIds[index], readMode: "level", readingLevel: preferences.level, openQuiz: true })}>
             <View style={styles.articleMeta}><Text style={styles.categoryChip}>{article.data.category}</Text><Text style={styles.remainingBadge}>퀴즈 남음</Text></View>
             <Text style={styles.articleTitle} numberOfLines={2}>{article.data.title}</Text>
+            <Text style={styles.link}>퀴즈 풀기 →</Text>
           </Pressable> : <View key={resumeIds[index]} style={styles.articleRow}><Text style={styles.auxiliary}>기사 내용을 확인할 수 없어요.</Text><Pressable accessibilityRole="button" accessibilityLabel="기사 다시 시도" style={styles.retryButton} onPress={() => void article.refetch()}><Text style={styles.link}>다시 시도</Text></Pressable></View>)}
         </View>
 
@@ -198,7 +168,7 @@ export function LearnScreen() {
               <Text style={styles.termText}>{item.term}</Text>
               <Text style={styles.auxiliary} numberOfLines={2}>{item.definition}</Text>
             </Pressable>)}
-          </View> : <Text style={styles.auxiliary}>지금은 다시 볼 개념이 없어요</Text>}
+          </View> : <Text style={styles.auxiliary}>아직 틀린 개념이 없어요. 퀴즈를 풀면 여기에 모여요</Text>}
         </View>
 
         {ownerId !== null && (recommendations.isPending || recommendations.isError || recommendedArticles.length) ? <View style={styles.section}>
@@ -272,27 +242,17 @@ export function LearnScreen() {
 }
 
 const styles = StyleSheet.create({
-  checklistItem: {gap:4},
-  checklistRow: {flexDirection:"row",alignItems:"center",gap:10,minHeight:44},
-  checkIcon: {fontSize:20,color:colors.text,width:22,textAlign:"center"},
-  checklistLabel: {flex:1,minWidth:0,flexDirection:"row",flexWrap:"wrap",alignItems:"center",gap:6},
-  checklistValue: {color:colors.text,fontSize:16,fontWeight:"600",minWidth:40,textAlign:"right"},
-  completedColor: {color:colors.muted},
-  completedText: {color:colors.muted,textDecorationLine:"line-through"},
-  taskCount: {color:colors.primary,fontSize:typography.size.meta,fontWeight:typography.weight.semibold,textAlign:"right"},
-  goalBadge: {color:colors.muted,fontSize:11,paddingHorizontal:6,paddingVertical:3,borderRadius:4},
-  quizHelper: {color:colors.muted,fontSize:12,lineHeight:18,paddingLeft:32},
-  taskProgress: {height:5,backgroundColor:colors.border,borderRadius:3,overflow:"hidden"},
-  taskProgressFill: {height:5,backgroundColor:colors.primary,borderRadius:3},
-  dailyTermList: {gap:0},
-  dailyTermItem: {minHeight:70,paddingVertical:12,gap:4,borderBottomWidth:0.5,borderColor:colors.border},
+  taskCount: {color:colors.primary,fontSize:15,fontWeight:typography.weight.semibold,textAlign:"right"},
+  goalBadge: {color:colors.muted,fontSize:15,paddingHorizontal:6,paddingVertical:3,borderRadius:4},
+  dailyTermList: {gap:12},
+  dailyTermItem: {minHeight:100,padding:16,gap:8,borderWidth:1,borderRadius:12,backgroundColor:colors.surface,borderColor:colors.borderStrong},
   termHeading: {flexDirection:"row",alignItems:"center",flexWrap:"wrap",gap:8},
   safeArea: { flex: 1, backgroundColor: colors.canvas },
   container: { width:"100%",maxWidth:880,alignSelf:"center",padding: spacing.lg, paddingBottom: 40, gap: spacing.xl },
-  section: { gap: spacing.sm },
+  section: { gap: spacing.sm, padding:spacing.md, backgroundColor:colors.surface, borderWidth:1, borderColor:colors.border, borderRadius:radius.card },
   sectionTitle: { fontSize: typography.size.subheading, fontWeight: typography.weight.bold, color: colors.text, lineHeight: typography.lineHeight.heading },
   body: { fontSize: typography.size.reading, lineHeight: typography.lineHeight.body, color: colors.text },
-  auxiliary: { fontSize: typography.size.meta, lineHeight: typography.lineHeight.compact, color: colors.muted },
+  auxiliary: { fontSize: 15, lineHeight: typography.lineHeight.compact, color: colors.muted },
   hero: { backgroundColor: colors.surface, borderWidth:1, borderColor:colors.borderStrong, borderRadius: radius.card, padding: spacing.lg, gap: spacing.sm },
   goalRow: { flexDirection: "row", justifyContent:"space-between", flexWrap:"wrap", alignItems: "center", gap: spacing.xs, minHeight: 26 },
   heroRetry: { minHeight: 44, justifyContent: "center", alignSelf: "flex-start" },
@@ -301,8 +261,8 @@ const styles = StyleSheet.create({
   disabledButton: { opacity: 0.6 },
   articleRow: { minHeight: 80, paddingVertical: spacing.md, gap: spacing.xs, borderBottomWidth: 0.5, borderBottomColor: colors.border },
   articleMeta: { flexDirection: "row", gap: spacing.xs, alignItems: "center", justifyContent: "space-between" },
-  categoryChip: { color: colors.body, borderRadius: radius.small, paddingHorizontal: spacing.xs, paddingVertical: spacing.xxs, fontSize: typography.size.caption, lineHeight: 16, flexShrink: 1 },
-  remainingBadge: { color: colors.muted, borderRadius: radius.small, paddingHorizontal: spacing.xs, paddingVertical: spacing.xxs, fontSize: typography.size.caption, lineHeight: 16, fontWeight: typography.weight.bold, flexShrink: 0 },
+  categoryChip: { color: colors.body, borderRadius: radius.small, paddingHorizontal: spacing.xs, paddingVertical: spacing.xxs, fontSize: 15, lineHeight: 22, flexShrink: 1 },
+  remainingBadge: { color: colors.primary, backgroundColor:colors.primarySoft, borderWidth:1, borderColor:colors.primary, borderRadius: radius.small, paddingHorizontal: spacing.xs, paddingVertical: spacing.xxs, fontSize: 15, lineHeight: 22, fontWeight: typography.weight.bold, flexShrink: 0 },
   articleTitle: { color: colors.text, fontSize: typography.size.reading, fontWeight: typography.weight.bold, lineHeight: typography.lineHeight.body },
   retryButton: { minHeight: 44, justifyContent: "center", alignSelf: "flex-start" },
   link: { fontSize: typography.size.reading, lineHeight: typography.lineHeight.body, fontWeight: typography.weight.bold, color: colors.body },
