@@ -157,3 +157,15 @@ test('an old pending page cannot appear after the briefing changes', async () =>
   assert.deepEqual(ui.ids(), [4, 5, 6]);
   assert.equal(ui.button().props.disabled, false);
 });
+
+
+test('local overflow appears immediately and survives a failed first server request', async () => {
+  let reject;
+  const ui = mount({ watchedNews: articles(8, 9), loadMore: () => new Promise((_, fail) => { reject = fail; }) });
+  await ui.click();
+  assert.deepEqual(ui.ids(), [8, 1, 2, 3, 9]);
+  reject(new Error('offline'));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(ui.ids(), [8, 1, 2, 3, 9]);
+  assert.equal(ui.button().children[0].children[0], '다시 시도');
+});

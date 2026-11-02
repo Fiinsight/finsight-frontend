@@ -47,9 +47,10 @@ function NewsFeed({ data, watchedNews = [], onSelectNews, isLoading, isError, re
     if (!canLoadMore || loadingMore) return;
     setLoadingMore(true);
     setMoreError(false);
+    if (nextPage === 0) setOlderNews(selectHomeNewsOverflow(data ?? [], watchedNews));
     try {
       const more = await getMoreBriefing(nextPage, 10);
-      setOlderNews(previous => [...previous, ...(nextPage === 0 ? selectHomeNewsOverflow(data ?? [], watchedNews) : []), ...more]);
+      setOlderNews(previous => [...previous, ...more]);
       setNextPage(page => page + 1);
       setHasMore(more.length === 10);
     } catch {

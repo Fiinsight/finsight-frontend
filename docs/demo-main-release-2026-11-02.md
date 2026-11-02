@@ -10,9 +10,9 @@
 | backend | `7997f1daa6d2bcc6feff808a236c345b3e62a0a9` | Render Live `dep-dbjva9942hec73e5trn0` | [backend #169](https://github.com/Fiinsight/finsight-backend/pull/169) |
 | AI | `514a47e827fd758429a7d7ec9af94ac46b14a66b` | 위 backend의 `Dockerfile.render-free`가 고정한 ADD URL | [AI #68](https://github.com/Fiinsight/finsight-ai/pull/68) |
 
-프론트 작업 1 수정 커밋은 `89e372f13b512e6e0a26bf64beabd4b89654fbe3`이며 **아직 운영에 배포하지 않았습니다**. 첫 더보기 클릭에서 화면에 잘린 핵심 브리핑과 관심종목 뉴스를 먼저 복원합니다. 이후 서버 페이지를 붙이고 id 중복을 제거합니다. 한국 날짜 또는 브리핑 id가 달라진 뒤 렌더링하면 페이지 상태를 새로 시작하고, 이전 요청의 응답은 새 목록에 반영되지 않습니다.
+프론트 작업 1 수정 커밋은 `89e372f13b512e6e0a26bf64beabd4b89654fbe3`이며 **아직 운영에 배포하지 않았습니다**. 첫 더보기 클릭에서 화면에 잘린 핵심 브리핑과 관심종목 뉴스를 서버 응답 전에 먼저 복원하며, 요청이 실패해도 유지합니다. 이후 서버 페이지를 붙이고 id 중복을 제거합니다. 한국 날짜 또는 브리핑 id가 달라진 뒤 렌더링하면 페이지 상태를 새로 시작하고, 이전 요청의 응답은 새 목록에 반영되지 않습니다.
 
-작업 1 검증: `npx tsc --noEmit`, `npm test` 163개 통과(실패·제외 0), `npx expo export --platform web` 성공. 6개 테스트를 추가했습니다. 상태를 초기화하지 않아야 하는 동일 id 응답과 이전 페이지의 지연 응답도 확인했습니다.
+작업 1 검증: `npx tsc --noEmit`, `npm test` 164개 통과(실패·제외 0), `npx expo export --platform web` 성공. 7개 테스트를 추가했습니다. 상태를 초기화하지 않아야 하는 동일 id 응답과 이전 페이지의 지연 응답도 확인했습니다.
 
 ## 이력과 충돌
 
