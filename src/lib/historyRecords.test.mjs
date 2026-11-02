@@ -102,3 +102,12 @@ test('pending labels distinguish the next session, missing prices, QA and unsupp
  const summary=judgementSummary([{...base,pendingReason:'EXCLUDED_QA'}]);assert.equal(summary.pending,0);assert.equal(summary.testRecords,1);assert.equal(summary.total,0);assert.equal(summary.unavailable,0);
  assert.equal(judgementResult({...base,pendingReason:'NOT_DUE',expectedResultDate:'2026-11-03'}).label,'11월 3일(화) 15:40 이후 결과');
 });
+
+
+test('neutral predictions inside the neutral band are correct, not partial, without changing hit counts',()=>{
+ for(const percent of [-.5,0,.5]){
+  const item={choice:'NEUTRAL',actualDirection:'NEUTRAL',actualChangePercent:percent,comparisonDate:'2026-10-07',verdict:'PARTIAL'};
+  assert.equal(feedbackVerdict(item),'CORRECT');
+  assert.equal(judgementSummary([item]).hits,1);
+ }
+});
