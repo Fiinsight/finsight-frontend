@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
   tipRow: { minHeight: 88, flexDirection: "row", alignItems: "flex-end", gap: spacing.xs },
   mascot: { width: 58, height: 70 },
   speechBubble: { flex: 1, paddingVertical: spacing.sm },
-  tipLabel: { color: colors.muted, fontSize: typography.size.caption, fontWeight: typography.weight.bold, marginBottom: 5 },
+  tipLabel: { color: colors.muted, fontSize: 15, fontWeight: typography.weight.bold, marginBottom: 5 },
   tipText: { color: colors.body, fontSize: typography.size.reading, lineHeight: typography.lineHeight.body },
-  exampleText: { color: colors.muted, fontSize: typography.size.meta, lineHeight: typography.lineHeight.compact, marginTop: 5 }
+  exampleText: { color: colors.muted, fontSize: 15, lineHeight: typography.lineHeight.compact, marginTop: 5 }
 });
