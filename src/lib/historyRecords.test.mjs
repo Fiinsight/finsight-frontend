@@ -23,7 +23,7 @@ test('groups are newest first, day filter applies and pending never counts as a 
     {judgedAt:'2026-10-06T04:00:00Z',choice:'UP',actualDirection:'UNKNOWN',actualChangePercent:null}];
   assert.deepEqual(groupRecords(rows,r=>r.judgedAt,'2026-10-06',null).map(g=>g.label),['오늘','어제','지난 기록']);
   assert.equal(groupRecords(rows,r=>r.judgedAt,'2026-10-06','2026-10-05')[0].items.length,1);
-  assert.deepEqual(judgementSummary(rows),{total:4,hits:1,pending:1,unavailable:1,legacy:0});
+  assert.deepEqual(judgementSummary(rows),{total:4,testRecords:0,hits:1,pending:1,unavailable:1,legacy:0});
   assert.deepEqual(groupRecords([],r=>r.createdAt,'2026-10-06',null),[]);
 });
 
@@ -53,7 +53,7 @@ test('old confirmed outcomes without comparison date never count as hits', () =>
   const current = { ...legacy, comparisonDate: '2026-10-07' };
   assert.equal(judgementResult(legacy).legacy, true);
   assert.equal(judgementResult(legacy).correct, null);
-  assert.deepEqual(judgementSummary([legacy, current]), { total: 2, hits: 1, pending: 0, unavailable: 0, legacy: 1 });
+  assert.deepEqual(judgementSummary([legacy, current]), { total: 2, testRecords: 0, hits: 1, pending: 0, unavailable: 0, legacy: 1 });
 });
 
 test('mismatched targets exclude old success and praise from history summaries',()=>{
