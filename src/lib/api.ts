@@ -83,7 +83,7 @@ export const api = axios.create({
 
 api.interceptors.request.use(async (config) => {
   const token = getActiveAccessToken() ?? (await loadAuthSession())?.accessToken;
-  if (token) config.headers.set("Authorization", `Bearer ${token}`);
+  if (token && !config.headers.has("Authorization")) config.headers.set("Authorization", `Bearer ${token}`);
   return config;
 });
 
@@ -598,3 +598,15 @@ export async function getLearningRecommendations(): Promise<{items: LearningReco
 }
 
 export async function updateNickname(nickname: string): Promise<string> { return (await api.put<{nickname:string}>("/profile/nickname", {nickname})).data.nickname; }
+
+
+// An explicit token keeps a local import attached to its original account during account switches.
+export async function getServerReadingLog(token: string): Promise<import("./readingProgressModel").DailyReadLog> {
+  return (await api.get("/learning/reads", {headers:{Authorization:`Bearer ${token}`}})).data;
+}
+export async function mergeServerReadingLog(token: string, deviceId: string, days: import("./readingProgressModel").DailyReadLog): Promise<import("./readingProgressModel").DailyReadLog> {
+  return (await api.post("/learning/reads/merge", {deviceId,days}, {headers:{Authorization:`Bearer ${token}`}})).data;
+}
+export async function putServerReading(token: string, newsId: number): Promise<import("./readingProgressModel").DailyReadLog> {
+  return (await api.put(`/learning/reads/${newsId}`, undefined, {headers:{Authorization:`Bearer ${token}`}})).data;
+}

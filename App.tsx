@@ -13,6 +13,7 @@ import { AuthScreen } from "./src/screens/auth/AuthScreen";
 import { clearAuthSession, loadAuthSession, saveAuthSession, setAuthFailureHandler, type AuthSession } from "./src/lib/auth";
 import { clearOnboardingProfile, loadOnboardingProfile, saveOnboardingProfile } from "./src/lib/onboarding";
 import { getCurrentUser, syncOnboardingProfile } from "./src/lib/api";
+import { syncReadingProgress } from "./src/lib/readingProgress";
 import { isKakaoWebCallback } from "./src/lib/kakaoCallback";
 import { useAppStore } from "./src/store/useAppStore";
 
@@ -88,6 +89,7 @@ export default function App() {
 
   useEffect(() => {
     if (!session) return;
+    void syncReadingProgress(session.userId).catch(() => { /* Retry when reading data is next requested. */ });
     void syncOnboardingProfile(onboardingDoneThisRun).catch(() => {
       // The local profile remains available and can be retried on the next launch.
     });
