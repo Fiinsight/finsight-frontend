@@ -42,10 +42,10 @@ export function PainPointCard({ painPoint, ownerId, focused, onArticle, onHistor
   </View>;
 }
 const styles = StyleSheet.create({
-  card: { backgroundColor: colors.surface, borderRadius: radius.card, borderWidth: 1, borderColor: colors.border, padding: spacing.lg, gap: spacing.sm },
+  card: { backgroundColor: colors.surface, borderRadius: radius.card, borderWidth: 0.5, borderColor: colors.border, padding: spacing.lg, gap: spacing.sm },
   title: { color: colors.text, fontSize: typography.size.reading, fontWeight: typography.weight.bold, lineHeight: typography.lineHeight.body },
   body: { color: colors.body, fontSize: typography.size.reading, lineHeight: typography.lineHeight.body },
-  link: { color: colors.primary, fontSize: typography.size.reading, fontWeight: typography.weight.bold },
+  link: { color: colors.body, fontSize: typography.size.reading, fontWeight: typography.weight.bold },
   button: { minHeight: 44, justifyContent: 'center' },
-  option: { minHeight: 44, padding: spacing.md, backgroundColor: colors.primarySoft, borderRadius: radius.control }
+  option: { borderWidth:0.5,borderColor:colors.border,minHeight: 44, padding: spacing.md, backgroundColor: colors.surface, borderRadius: radius.control }
 });

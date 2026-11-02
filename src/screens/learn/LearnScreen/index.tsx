@@ -98,7 +98,6 @@ export function LearnScreen() {
     } else if (goal?.type === "minutes5") openNextTask();
     else navigation.navigate("HomeTab", { screen: "Home" });
   };
-  const goalActionLabel = goal?.type === "memo" ? "기사 메모 남기기" : goal?.type === "reviewJudgement" ? "판단 돌아보기" : goal?.type === "minutes5" ? "학습 활동 이어가기" : "오늘의 뉴스 읽기";
   const closeSheet = () => { setInfo(null); setSelectedReview(null); };
   const openNextTask = () => {
     if (resumeIds.length) {
@@ -106,19 +105,30 @@ export function LearnScreen() {
     } else if (reviews.data?.length) {
       const first = reviews.data[0];
       navigation.navigate("NewsDetail", { newsId: first.newsId, readMode: "level", readingLevel: first.level, openQuiz: true, quizTerm: first.term });
+    } else if (dailyTerms.data?.length) {
+      const first=dailyTerms.data[0];
+      navigation.navigate("NewsDetail",{newsId:first.newsId,readMode:"level",readingLevel:preferences.level,openQuiz:true,quizTerm:first.term});
     } else {
       navigation.navigate("HomeTab", { screen: "Home" });
     }
   };
-  const nextTaskHint = resumeIds.length ? "이어서 풀 퀴즈로 이동해요" : reviews.data?.length ? "다시 볼 개념으로 돌아가요" : "홈에서 오늘의 뉴스를 읽어보세요";
-  const metrics = [
-    { label: "출석용 기사 읽기", value: readCount === null ? "-" : `${Math.min(readCount, DAILY_ARTICLE_GOAL)}/${DAILY_ARTICLE_GOAL}`, loading: readCount === null && !loaded,
-      description: "개인 학습 목표와 별개인 출석 기준이에요. 기사 3개를 읽으면 수달 배지가 자동으로 찍혀요. 같은 기사를 다시 읽어도 한 번만 세며, 기록 탭과 동일한 한국 시간 기준이에요." },
-    { label: "오늘 퀴즈", value: progress.data ? `${progress.data.today.answeredCount}개` : "-", loading: progressPending,
-      description: "오늘 답한 퀴즈 수예요. 다시 풀었을 때는 저장된 마지막 답변을 기준으로 보여드려요." },
-    { label: "연속 목표 달성", value: goal ? `${goal.streakDays}일` : "-", loading: progressPending,
-      description: "현재 학습 목표를 달성한 날이 연속으로 이어진 기간이에요. 기사 3개를 읽는 출석 기준과는 별개예요." }
+  const checklist = [
+    {key:"goal",label:preferences.dailyGoal,myGoal:true,done:goal?.achievedToday === true,value:goal ? `${goal.achievedToday?1:0}/1` : "—/1"},
+    {key:"reading",label:"기사 3개 읽기",myGoal:false,done:readCount !== null && readCount >= DAILY_ARTICLE_GOAL,value:readCount === null ? "—/3" : `${Math.min(readCount,DAILY_ARTICLE_GOAL)}/3`},
+    {key:"quiz",label:"퀴즈 1개 풀기",myGoal:false,done:(progress.data?.today.answeredCount ?? 0)>=1,value:progress.data ? `${Math.min(progress.data.today.answeredCount,1)}/1` : "—/1"}
   ];
+  const completedTasks = checklist.filter(item=>item.done).length;
+  const firstTask = checklist.find(item=>!item.done);
+  const primaryLabel = !firstTask ? "복습할 개념 보기" : firstTask.key === "reading" ? "기사 읽으러 가기"
+    : firstTask.key === "quiz" ? "퀴즈 풀기" : goal?.type === "reviewJudgement" ? "판단 돌아보기"
+    : goal?.type === "minutes5" ? "퀴즈 풀기" : "기사 읽으러 가기";
+  const tasksLoading = !loaded || readCount === null || progressPending || reviewsLoading || !progress.data;
+  const openChecklistTask = () => {
+    if(!firstTask) navigation.setParams({section:"reviews"});
+    else if(firstTask.key === "goal") goalAction();
+    else if(firstTask.key === "reading") navigation.navigate("HomeTab",{screen:"Home"});
+    else openNextTask();
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -126,40 +136,36 @@ export function LearnScreen() {
         <TabScreenHeader title="학습" subtitle="오늘 할 일을 하나씩 이어가요." />
 
         <View style={styles.hero}>
-          <Text style={styles.heroAuxiliary}>읽기·출석 연속 기록은 이 기기 기준이에요</Text>
-          <View style={styles.goalRow}><Text style={styles.goalLabel}>오늘 할 일</Text>
-            {loaded ? <Text style={styles.goalValue} numberOfLines={1} accessibilityLabel={`학습 목표 ${preferences.dailyGoal}`}>{preferences.dailyGoal}</Text> : <View style={[styles.skeleton, styles.goalSkeleton]} accessibilityLabel="학습 목표 불러오는 중" />}
+          <View style={styles.goalRow}>
+            <Text accessibilityRole="header" style={styles.sectionTitle}>오늘 할 일</Text>
+            <Text style={styles.auxiliary}>♧ {goal ? `${goal.streakDays}일 연속 목표 달성` : "연속 기록 확인 중"}</Text>
           </View>
-          {goal ? <Text style={styles.heroAuxiliary}>{goal.achievedToday ? "✓ 오늘 목표 달성" : "○ 오늘 목표 진행 중"}</Text> : null}
-          {goal?.type === "minutes5" ? <Text style={styles.heroAuxiliary}>활동 3개 = 5분 학습 (퀴즈·메모·판단 기준)</Text> : null}
-          <View style={{gap:4}}>
-            {metrics.map((metric) => <View key={metric.label} style={styles.checklistRow}>
-              <Pressable accessibilityRole="button" accessibilityLabel={`${metric.label} 기준 안내`} hitSlop={8} style={{minHeight:44,justifyContent:"center"}}
-                onPress={() => setInfo({ title: metric.label, description: metric.description })}><Text style={styles.metricLabel}>· {metric.label} 기준 보기</Text></Pressable>
-              {metric.loading ? <View style={[styles.skeleton, styles.numberSkeleton]} accessibilityLabel={`${metric.label} 불러오는 중`} /> : <Text style={styles.metricValue}>{metric.value}</Text>}
-              <Text style={styles.metricLabel}>{metric.label}</Text>
-            </View>)}
-          </View>
-          <View style={styles.accuracyArea}>
-            {progressPending ? <View style={[styles.skeleton, styles.accuracySkeleton]} /> : progress.data ? <Text style={styles.heroAuxiliary}>
-              {progress.data.today.answeredCount >= 5 ? `오늘 정답률 ${accuracy(progress.data.today.accuracy)}` : `퀴즈 ${5 - progress.data.today.answeredCount}개 더 풀면 정답률이 보여요`}
-              {progress.data.week.answeredCount >= 5 ? ` · 이번 주 ${accuracy(progress.data.week.accuracy)}` : ""}
-            </Text> : <Text style={styles.heroAuxiliary}>학습 진행도를 확인할 수 없어요.</Text>}
-          </View>
-          {progress.isError ? <Pressable accessibilityRole="button" accessibilityLabel="학습 진행도 다시 시도" style={styles.heroRetry} onPress={() => void progress.refetch()}><Text style={styles.heroAuxiliary}>다시 시도</Text></Pressable> : null}
-          <Pressable accessibilityRole="button" accessibilityLabel={progressPending || reviewsLoading ? "다음 할 일 확인 중" : goal && !goal.achievedToday ? goalActionLabel : `다음 할 일 · ${nextTaskHint}`} accessibilityState={{ disabled: progressPending || reviewsLoading }}
-            disabled={progressPending || reviewsLoading} onPress={goal && !goal.achievedToday ? goalAction : openNextTask} style={[styles.primaryButton, (progressPending || reviewsLoading) && styles.disabledButton]}>
-            <Text style={styles.primaryButtonText}>{goal && !goal.achievedToday ? goalActionLabel : "다음 할 일"}</Text><Text style={styles.primaryButtonText} aria-hidden>→</Text>
+          {checklist.map(item=><View key={item.key} style={styles.checklistItem}>
+            <View style={styles.checklistRow} accessibilityLabel={`${item.myGoal?"내 목표 · ":""}${item.label} · ${item.done?"완료":"진행 중"} · ${item.value}`}>
+              <Text style={styles.checkIcon} accessibilityElementsHidden importantForAccessibility="no">{item.done?"✓":"○"}</Text>
+              <View style={styles.checklistLabel}><Text style={styles.body}>{item.label}</Text>{item.myGoal?<Text style={styles.goalBadge}>내 목표</Text>:null}</View>
+              <Text style={styles.checklistValue}>{item.value}</Text>
+            </View>
+            {item.key === "quiz" && progress.data ? <Text style={styles.quizHelper}>{progress.data.today.answeredCount>=5 ? `오늘 정답률 ${accuracy(progress.data.today.accuracy)}` : `퀴즈 ${5-progress.data.today.answeredCount}개 더 풀면 정답률이 보여요`}</Text>:null}
+            {item.myGoal && goal?.type === "minutes5" ? <Text style={styles.quizHelper}>활동 3개 = 5분 학습 (퀴즈·메모·판단 기준)</Text>:null}
+          </View>)}
+          <View style={styles.taskProgress} accessibilityRole="progressbar" accessibilityLabel="오늘 할 일 완료율" accessibilityValue={{min:0,max:3,now:completedTasks,text:`3개 중 ${completedTasks}개 완료`}}><View style={[styles.taskProgressFill,{width:`${completedTasks/3*100}%`}]} /></View>
+          <Text style={styles.auxiliary}>{completedTasks}/3 완료 · 기사 읽기 기록은 이 기기 기준</Text>
+          {progress.isError ? <Pressable accessibilityRole="button" accessibilityLabel="학습 진행도 다시 시도" style={styles.heroRetry} onPress={() => void progress.refetch()}><Text style={styles.auxiliary}>진행도를 불러오지 못했어요 · 다시 시도</Text></Pressable>:null}
+          <Pressable accessibilityRole="button" accessibilityLabel={tasksLoading?"오늘 할 일 확인 중":primaryLabel} accessibilityState={{disabled:tasksLoading}} disabled={tasksLoading} onPress={openChecklistTask} style={[styles.primaryButton,tasksLoading&&styles.disabledButton]}>
+            <Text style={styles.primaryButtonText}>{tasksLoading?"오늘 할 일 확인 중":primaryLabel}</Text><Text style={styles.primaryButtonText} aria-hidden>→</Text>
           </Pressable>
-          <Text style={styles.heroAuxiliary}>{progressPending || reviewsLoading ? "다음 할 일을 확인하고 있어요" : goal && !goal.achievedToday ? "오늘 목표를 이어가세요" : nextTaskHint}</Text>
-          {loaded && preferences.source === "default" ? <Pressable accessibilityRole="button" accessibilityLabel="프로필에서 학습 설정하기" onPress={() => navigation.navigate("ProfileTab", { openLearningSettings: true })}><Text style={styles.heroAuxiliary}>기본 학습 목표예요 · 학습 설정하기</Text></Pressable> : null}
+          {loaded && preferences.source === "default" ? <Pressable accessibilityRole="button" accessibilityLabel="프로필에서 학습 설정하기" onPress={() => navigation.navigate("ProfileTab", { openLearningSettings: true })}><Text style={styles.auxiliary}>내 목표 설정하기</Text></Pressable>:null}
         </View>
 
         {preferences.painPoint === "terms" ? <View style={styles.card}>
           <Text accessibilityRole="header" style={styles.sectionTitle}>오늘의 용어 3개</Text>
-          {ownerId === null ? <Text style={styles.auxiliary}>로그인하면 오늘의 용어를 확인할 수 있어요.</Text> : dailyTerms.isPending ? <View style={[styles.skeleton, styles.termSkeleton]} /> : dailyTerms.isError ? <Pressable accessibilityRole="button" accessibilityLabel="오늘의 용어 다시 시도" onPress={() => void dailyTerms.refetch()}><Text style={styles.link}>다시 시도</Text></Pressable> : dailyTerms.data?.length ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.termRow}>
-            {dailyTerms.data.map(item => <Pressable key={item.term} style={[styles.termChip, { width: 150, borderRadius: radius.control, gap: spacing.xxs }]} accessibilityRole="button" accessibilityLabel={`${item.term} 뜻 보기 · ${item.reason}`} onPress={() => setInfo({ title: item.term, description: item.definition, reason: item.reason, newsId: item.newsId, newsTitle: item.title })}><Text style={styles.termText} numberOfLines={1}>{item.term}</Text><Text style={styles.auxiliary}>{item.reason}</Text></Pressable>)}
-          </ScrollView> : <Text style={styles.auxiliary}>오늘 기사에서 새로 볼 개념을 찾지 못했어요.</Text>}
+          {ownerId === null ? <Text style={styles.auxiliary}>로그인하면 오늘의 용어를 확인할 수 있어요.</Text> : dailyTerms.isPending ? <View style={[styles.skeleton, styles.termSkeleton]} /> : dailyTerms.isError ? <Pressable accessibilityRole="button" accessibilityLabel="오늘의 용어 다시 시도" onPress={() => void dailyTerms.refetch()}><Text style={styles.link}>다시 시도</Text></Pressable> : dailyTerms.data?.length ? <View style={styles.dailyTermList}>
+            {dailyTerms.data.map(item => <Pressable key={item.term} style={styles.dailyTermItem} accessibilityRole="button" accessibilityLabel={`${item.term} 뜻 보기${item.reason === "지난번에 틀린 개념" || item.reason === "익히는 중인 개념" ? ` · ${item.reason}` : ""}`} onPress={() => setInfo({ title: item.term, description: item.definition, reason: item.reason === "지난번에 틀린 개념" || item.reason === "익히는 중인 개념" ? item.reason : undefined, newsId: item.newsId, newsTitle: item.title })}>
+              <View style={styles.termHeading}><Text style={styles.termText}>{item.term}</Text>{item.reason === "지난번에 틀린 개념" || item.reason === "익히는 중인 개념" ? <Text style={styles.goalBadge}>{item.reason}</Text>:null}</View>
+              <Text style={styles.auxiliary} numberOfLines={2}>{item.definition}</Text>
+            </Pressable>)}
+          </View> : <Text style={styles.auxiliary}>오늘 기사에서 새로 볼 개념을 찾지 못했어요.</Text>}
         </View> : null}
         <PainPointCard painPoint={preferences.painPoint} ownerId={ownerId} focused={isFocused}
           onArticle={newsId => navigation.navigate("NewsDetail", { newsId, readMode: "level", readingLevel: preferences.level })}
@@ -262,46 +268,44 @@ export function LearnScreen() {
 }
 
 const styles = StyleSheet.create({
-  checklistRow: { flexDirection:"row", flexWrap:"wrap", alignItems:"center", gap:8, paddingVertical:8 },
+  checklistItem: {gap:4},
+  checklistRow: {flexDirection:"row",alignItems:"center",gap:10,minHeight:44},
+  checkIcon: {fontSize:20,color:colors.body,width:22,textAlign:"center"},
+  checklistLabel: {flex:1,minWidth:0,flexDirection:"row",flexWrap:"wrap",alignItems:"center",gap:6},
+  checklistValue: {color:colors.text,fontSize:16,fontWeight:"600"},
+  goalBadge: {color:colors.muted,backgroundColor:colors.surfaceMuted,fontSize:11,paddingHorizontal:6,paddingVertical:3,borderRadius:4},
+  quizHelper: {color:colors.muted,fontSize:12,lineHeight:18,paddingLeft:32},
+  taskProgress: {height:5,backgroundColor:colors.border,borderRadius:3,overflow:"hidden"},
+  taskProgressFill: {height:5,backgroundColor:colors.muted,borderRadius:3},
+  dailyTermList: {gap:0},
+  dailyTermItem: {minHeight:70,paddingVertical:12,gap:4,borderTopWidth:0.5,borderColor:colors.border},
+  termHeading: {flexDirection:"row",alignItems:"center",flexWrap:"wrap",gap:8},
   safeArea: { flex: 1, backgroundColor: colors.canvas },
-  container: { padding: spacing.lg, paddingBottom: 40, gap: spacing.xl },
+  container: { width:"100%",maxWidth:880,alignSelf:"center",padding: spacing.lg, paddingBottom: 40, gap: spacing.xl },
   section: { gap: spacing.sm },
   sectionTitle: { fontSize: typography.size.subheading, fontWeight: typography.weight.bold, color: colors.text, lineHeight: typography.lineHeight.heading },
   body: { fontSize: typography.size.reading, lineHeight: typography.lineHeight.body, color: colors.body },
   auxiliary: { fontSize: typography.size.meta, lineHeight: typography.lineHeight.compact, color: colors.muted },
-  card: { borderRadius: radius.card, padding: spacing.lg, gap: spacing.sm, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
-  hero: { backgroundColor: colors.primary, borderRadius: radius.card, padding: spacing.lg, gap: spacing.sm },
-  goalRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs, minHeight: 26 },
-  goalLabel: { flexShrink: 0, color: colors.onPrimarySoft, fontSize: typography.size.caption, lineHeight: 16 },
-  goalValue: { flex: 1, minWidth: 0, color: colors.surface, fontSize: typography.size.subheading, fontWeight: typography.weight.bold, lineHeight: typography.lineHeight.heading },
-  metrics: { flexDirection: "row", gap: spacing.xs },
-  metricTile: { flex: 1, minWidth: 0, minHeight: 124, padding: 6, paddingTop: 44, backgroundColor: colors.surface, borderRadius: radius.control, alignItems: "center", justifyContent: "center", gap: 6 },
-  metricValue: { fontSize: typography.size.display, lineHeight: typography.lineHeight.display, fontWeight: typography.weight.bold, color: colors.text, textAlign: "center" },
-  metricLabel: { fontSize: typography.size.caption, lineHeight: 17, color: colors.muted, textAlign: "center", minHeight: 34 },
-  infoButton: { position: "absolute", top: 2, right: 2, width: 44, height: 44, alignItems: "center", justifyContent: "center" },
-  infoIcon: { color: colors.muted, fontSize: 17 },
-  accuracyArea: { minHeight: 40, justifyContent: "center" },
-  heroAuxiliary: { color: colors.onPrimarySoft, fontSize: typography.size.meta, lineHeight: typography.lineHeight.compact },
+  card: { borderRadius: radius.card, padding: spacing.lg, gap: spacing.sm, backgroundColor: colors.surface, borderWidth: 0.5, borderColor: colors.border },
+  hero: { backgroundColor: colors.surface, borderWidth:0.5, borderColor:colors.border, borderRadius: radius.card, padding: spacing.lg, gap: spacing.sm },
+  goalRow: { flexDirection: "row", justifyContent:"space-between", flexWrap:"wrap", alignItems: "center", gap: spacing.xs, minHeight: 26 },
   heroRetry: { minHeight: 44, justifyContent: "center", alignSelf: "flex-start" },
-  primaryButton: { minHeight: 48, paddingHorizontal: spacing.md, borderRadius: radius.control, backgroundColor: colors.surface, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  primaryButtonText: { color: colors.primary, fontSize: typography.size.reading, fontWeight: typography.weight.bold, lineHeight: typography.lineHeight.body },
+  primaryButton: { minHeight: 48, paddingHorizontal: spacing.md, borderRadius: radius.control, backgroundColor: colors.primary, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  primaryButtonText: { color: colors.surface, fontSize: typography.size.reading, fontWeight: typography.weight.bold, lineHeight: typography.lineHeight.body },
   disabledButton: { opacity: 0.6 },
-  articleCard: { minHeight: 116, borderRadius: radius.card, padding: spacing.lg, gap: spacing.xs, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  articleCard: { minHeight: 116, borderRadius: radius.card, padding: spacing.lg, gap: spacing.xs, backgroundColor: colors.surface, borderWidth: 0.5, borderColor: colors.border },
   articleMeta: { flexDirection: "row", gap: spacing.xs, alignItems: "center", justifyContent: "space-between" },
-  categoryChip: { color: colors.primary, backgroundColor: colors.primarySoft, borderRadius: radius.small, paddingHorizontal: spacing.xs, paddingVertical: spacing.xxs, fontSize: typography.size.caption, lineHeight: 16, flexShrink: 1 },
+  categoryChip: { color: colors.body, backgroundColor: colors.surfaceMuted, borderRadius: radius.small, paddingHorizontal: spacing.xs, paddingVertical: spacing.xxs, fontSize: typography.size.caption, lineHeight: 16, flexShrink: 1 },
   remainingBadge: { color: colors.muted, backgroundColor: colors.surfaceMuted, borderRadius: radius.small, paddingHorizontal: spacing.xs, paddingVertical: spacing.xxs, fontSize: typography.size.caption, lineHeight: 16, fontWeight: typography.weight.bold, flexShrink: 0 },
   articleTitle: { color: colors.text, fontSize: typography.size.reading, fontWeight: typography.weight.bold, lineHeight: typography.lineHeight.body },
   retryButton: { minHeight: 44, justifyContent: "center", alignSelf: "flex-start" },
-  link: { fontSize: typography.size.reading, lineHeight: typography.lineHeight.body, fontWeight: typography.weight.bold, color: colors.primary },
+  link: { fontSize: typography.size.reading, lineHeight: typography.lineHeight.body, fontWeight: typography.weight.bold, color: colors.body },
   termRow: { flexDirection: "row", gap: 10 },
-  termChip: { minHeight: 44, maxWidth: 260, borderRadius: radius.pill, paddingHorizontal: 18, paddingVertical: 11, backgroundColor: colors.primarySoft, justifyContent: "center" },
-  termText: { fontSize: typography.size.reading, lineHeight: typography.lineHeight.body, fontWeight: typography.weight.bold, color: colors.primary },
+  termChip: { minHeight: 44, maxWidth: 260, borderRadius: radius.pill, paddingHorizontal: 18, paddingVertical: 11, backgroundColor: colors.surface, justifyContent: "center" },
+  termText: { fontSize: typography.size.reading, lineHeight: typography.lineHeight.body, fontWeight: typography.weight.bold, color: colors.body },
   skeleton: { backgroundColor: colors.border, borderRadius: radius.small },
   masteryTrack: { height: 8, backgroundColor: colors.border, borderRadius: 4, overflow: "hidden" },
-  masteryFill: { height: 8, backgroundColor: colors.primary, borderRadius: 4 },
-  goalSkeleton: { width: "75%", height: 26 },
-  numberSkeleton: { width: 48, height: 32 },
-  accuracySkeleton: { width: "90%", height: 20 },
+  masteryFill: { height: 8, backgroundColor: colors.muted, borderRadius: 4 },
   chipSkeleton: { width: 72, height: 24 },
   titleSkeleton: { width: "100%", height: 20 },
   shortSkeleton: { width: "75%", height: 16 },
@@ -312,6 +316,6 @@ const styles = StyleSheet.create({
   sheetHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: spacing.sm },
   closeButton: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   closeText: { color: colors.muted, fontSize: typography.size.display },
-  sheetAction: { minHeight: 48, borderRadius: radius.control, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center", paddingHorizontal: spacing.md },
+  sheetAction: { minHeight: 48, borderRadius: radius.control, backgroundColor: colors.text, alignItems: "center", justifyContent: "center", paddingHorizontal: spacing.md },
   sheetActionText: { color: colors.surface, fontSize: typography.size.reading, fontWeight: typography.weight.bold, lineHeight: typography.lineHeight.body }
 });

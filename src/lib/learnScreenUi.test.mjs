@@ -10,10 +10,10 @@ const model = {};
 vm.runInNewContext(ts.transpileModule(fs.readFileSync(new URL('./readingProgressModel.ts', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, { exports: model, require: () => ({ kstDate }) });
 const { resumeLearningIds, DAILY_ARTICLE_GOAL } = model;
 
-function harness({ owner = 1, count = 1, completed = [], reviewItems, weak = [], pending = false, fetching = false, error = false, painPoint, goal, mastery, recommendations = [], suggestion = null, section, dailyItems, hasInnerView = true } = {}) {
+function harness({ owner = 1, count = 1, completed = [], reviewItems, weak = [], pending = false, fetching = false, error = false, painPoint, goal = {type:"read1",achievedToday:true,streakDays:3}, reads = 4, mastery, recommendations = [], suggestion = null, section, dailyItems, hasInnerView = true } = {}) {
   const reviews = reviewItems ?? [{ newsId: 232, term: '코스피', definition: '시장 흐름을 보여주는 지수예요.', title: '기사 제목', level: 'analyst' }];
   const preferences = { level: 'beginner', focus: 'news', pace: 'micro', dailyGoal: '뉴스 하나 읽기', source: 'onboarding', painPoint };
-  const values = [{ '2026-10-12': [100,101,102,103] }, owner, preferences, 4, true, null, null, {}, owner];
+  const values = [{ '2026-10-12': [100,101,102,103] }, owner, preferences, reads, true, null, null, {}, owner];
   const effects = [], mutations = [];
   const navigation = [], retries = [], changes = [], scrolls = [], params = [];
   let slot = 0;
@@ -51,13 +51,12 @@ function harness({ owner = 1, count = 1, completed = [], reviewItems, weak = [],
 
 const button = (nodes, name) => nodes.find(node=>node.type==='Pressable' && node.props.accessibilityLabel?.startsWith(name));
 
-test('next task prioritizes unfinished quiz, review article, then home news', () => {
-  const first = harness(); button(first.render(), '다음 할 일').props.onPress();
-  assert.equal(first.navigation[0][0],'NewsDetail'); assert.equal(first.navigation[0][1].newsId,103);
-  const second = harness({completed:[100,101,102,103]}); button(second.render(),'다음 할 일').props.onPress();
-  assert.equal(second.navigation[0][1].newsId,232); assert.equal(second.navigation[0][1].readingLevel,'analyst');
-  const home = harness({completed:[100,101,102,103],reviewItems:[]}); button(home.render(),'다음 할 일').props.onPress();
-  assert.equal(home.navigation[0][0],'HomeTab'); assert.equal(home.navigation[0][1].screen,'Home');
+test('one primary action follows the first unfinished task and completed tasks lead to review',()=>{
+ const goal=harness({goal:{type:'read1',achievedToday:false,streakDays:0},reads:0,count:0});button(goal.render(),'기사 읽으러 가기').props.onPress();assert.equal(goal.navigation[0][0],'HomeTab');
+ const reading=harness({reads:0});button(reading.render(),'기사 읽으러 가기').props.onPress();assert.equal(reading.navigation[0][0],'HomeTab');
+ const quiz=harness({count:0,completed:[100,101,102]});button(quiz.render(),'퀴즈 풀기').props.onPress();assert.equal(quiz.navigation[0][1].newsId,103);assert.equal(quiz.navigation[0][1].openQuiz,true);
+ const review=harness({count:0,completed:[100,101,102,103]});button(review.render(),'퀴즈 풀기').props.onPress();assert.equal(review.navigation[0][1].newsId,232);
+ const done=harness();button(done.render(),'복습할 개념 보기').props.onPress();assert.equal(done.params[0].section,'reviews');
 });
 
 test('small samples hide accuracy and reading count matches attendance cap', () => {
@@ -74,17 +73,14 @@ test('review chip opens definition sheet and returns to its original reading lev
   assert.equal(screen.values[5],null);
 });
 
-test('criteria are kept in the info sheet and weak areas only appear when present', () => {
-  const screen=harness(); const initial=screen.render();
-  assert(!screen.text(initial).includes('현재 학습 목표를 달성한 날')); assert(!screen.text(initial).includes('판단 결과가 엇갈린 분야'));
-  button(initial,'연속 목표 달성 기준 안내').props.onPress(); assert(screen.text(screen.render()).includes('현재 학습 목표를 달성한 날'));
-  const weak=harness({weak:[{category:'국내증시',decidedCount:3,hitCount:1,recentNewsIds:[232]}]});
-  assert(weak.text(weak.render()).includes('판단 결과가 엇갈린 분야'));
+test('checklist has no repeated info controls and weak areas only appear when present',()=>{
+ const screen=harness();const initial=screen.render();assert(!initial.some(n=>n.props?.accessibilityLabel?.includes('기준 안내')));assert(!screen.text(initial).includes('판단 결과가 엇갈린 분야'));
+ const weak=harness({weak:[{category:'국내증시',decidedCount:3,hitCount:1,recentNewsIds:[232]}]});assert(weak.text(weak.render()).includes('판단 결과가 엇갈린 분야'));
 });
 
 test('loading reserves article cards, error retries are local, and buttons have names', () => {
   const loading=harness({pending:true}); const loadingNodes=loading.render();
-  assert.equal(button(loadingNodes,'다음 할 일').props.disabled,true);
+  assert.equal(button(loadingNodes,'오늘 할 일 확인 중').props.disabled,true);
   assert.equal(loadingNodes.filter(node=>node.props?.accessibilityLabel==='풀다 만 퀴즈 기사 불러오는 중').length,2);
   const error=harness({error:true}); const nodes=error.render();
   button(nodes,'학습 진행도 다시 시도').props.onPress(); button(nodes,'다시 볼 개념 다시 시도').props.onPress();
@@ -94,17 +90,15 @@ test('loading reserves article cards, error retries are local, and buttons have 
 
 test('pain point terms keeps three definitions after the main learning flow', () => {
  const screen=harness({painPoint:'terms'}); const initial=screen.render();
- assert(screen.text(initial).indexOf('학습 목표') < screen.text(initial).indexOf('오늘의 용어 3개'));
+ assert(screen.text(initial).indexOf('오늘 할 일') < screen.text(initial).indexOf('오늘의 용어 3개'));
  button(initial,'환율 뜻 보기').props.onPress();
  assert(screen.text(screen.render()).includes('통화 교환 비율'));
 });
-test('each unmet goal offers one action and five minute approximation is explicit', () => {
- for (const [type,label,target] of [['read1','오늘의 뉴스 읽기','HomeTab'],['memo','기사 메모 남기기','NewsDetail'],['reviewJudgement','판단 돌아보기','HistoryTab'],['minutes5','학습 활동 이어가기','NewsDetail']]) {
-  const screen=harness({goal:{type,achievedToday:false,streakDays:2}}); const initial=screen.render();
-  assert.match(screen.text(initial), /2일\s+연속 목표 달성/); button(initial,label).props.onPress();
-  assert.equal(screen.navigation[0][0],target);
-  if(type==='memo') assert.equal(screen.navigation[0][1].openNotes,true);
-  if(type==='minutes5') assert(screen.text(initial).includes('활동 3개 = 5분 학습'));
+test('the personal goal determines the first route and the five minute approximation is explicit',()=>{
+ for(const [type,label,target] of [['read1','기사 읽으러 가기','HomeTab'],['memo','기사 읽으러 가기','NewsDetail'],['reviewJudgement','판단 돌아보기','HistoryTab'],['minutes5','퀴즈 풀기','NewsDetail']]){
+  const screen=harness({goal:{type,achievedToday:false,streakDays:2}});const nodes=screen.render();assert.match(screen.text(nodes),/2일 연속 목표 달성/);button(nodes,label).props.onPress();assert.equal(screen.navigation[0][0],target);
+  if(type==='memo')assert.equal(screen.navigation[0][1].openNotes,true);
+  if(type==='minutes5')assert(screen.text(nodes).includes('활동 3개 = 5분 학습'));
  }
 });
 test('level suggestion changes only after the named button is pressed', () => {
@@ -119,7 +113,7 @@ test('concept mastery card renders strongest and learning estimates without dupl
  const tree=screen.render();const text=screen.text(tree);
  assert(text.includes('내 개념 숙련도'));assert(/최근 퀴즈\s+12\s*회 기준 추정/.test(text));
  assert(/83\s*%/.test(text));assert(/65\s*%/.test(text)); assert.equal(tree.filter(node=>node.type==='Text' && node.children.includes('다시 볼 개념')).length,1);
- const bars=tree.filter(node=>node.props?.accessibilityRole==='progressbar');
+ const bars=tree.filter(node=>node.props?.accessibilityRole==='progressbar' && node.props.accessibilityLabel!=='오늘 할 일 완료율');
  assert.equal(bars.length,2);assert.equal(bars[0].props.accessibilityValue.now,83);
  assert(text.includes('80% 이상·3번 이상 풀면 잘 아는 개념이에요'));
  assert(/익히는 중\s+1\s*개/.test(text));
@@ -129,9 +123,10 @@ test('concept mastery card renders strongest and learning estimates without dupl
 test('empty mastery groups are not padded and daily choices show reasons and link to their source', () => {
  const empty=harness({mastery:{strongest:[],weakest:[],totalAttempts:4,learningCount:2}});
  const nodes=empty.render();assert.equal(nodes.filter(node=>node.type==='Text' && node.children.includes('아직 충분히 풀지 않았어요')).length,2);
- assert.equal(nodes.filter(node=>node.props?.accessibilityRole==='progressbar').length,0);
+ assert.equal(nodes.filter(node=>node.props?.accessibilityRole==='progressbar' && node.props.accessibilityLabel!=='오늘 할 일 완료율').length,0);
  const daily=harness({painPoint:'terms'});const initial=daily.render();
- for(const reason of ['지난번에 틀린 개념','처음 보는 개념','익히는 중인 개념']) assert(daily.text(initial).includes(reason));
+ for(const reason of ['지난번에 틀린 개념','익히는 중인 개념']) assert(daily.text(initial).includes(reason));
+ assert(!daily.text(initial).includes('처음 보는 개념'));assert(daily.text(initial).includes('통화 교환 비율'));
  button(initial,'금리 뜻 보기').props.onPress();const sheet=daily.render();assert(daily.text(sheet).includes('이자 비율'));
  button(sheet,'금리 오늘 기사에서 읽기').props.onPress();
  assert.equal(daily.navigation.at(-1)[0],'NewsDetail');assert.equal(daily.navigation.at(-1)[1].newsId,232);
@@ -158,7 +153,7 @@ test('watchlist recommendations without a prior activity stay visible and open a
 test('learning sections explain the flow, keep their order, hide unrelated recommendations and scroll to reviews', () => {
  const item={newsId:777,reasonNewsId:115,basis:'RULE_INTEREST',title:'추천 기사',reason:"'금리' 퀴즈를 틀린 기사와 비슷해요"};
  const screen=harness({recommendations:[item],section:'reviews'});const tree=screen.render();const text=screen.text(tree);
- const titles=['학습 목표','풀다 만 퀴즈','다시 볼 개념','비슷한 기사 더 읽기','내 개념 숙련도'];
+ const titles=['오늘 할 일','풀다 만 퀴즈','다시 볼 개념','비슷한 기사 더 읽기','내 개념 숙련도'];
  assert(titles.every((title,index)=>!index || text.indexOf(title)>text.indexOf(titles[index-1])));
  for(const description of ['읽었지만 아직 퀴즈를 풀지 않은 기사예요','퀴즈에서 틀렸거나 아직 익숙하지 않은 개념이에요','내가 공부한 기사와 비슷한 주제예요']) assert(text.includes(description));
  const target=tree.find(node=>node.type==='View' && node.props?.onLayout);target.props.onLayout({nativeEvent:{layout:{y:480}}});
@@ -169,17 +164,16 @@ test('learning sections explain the flow, keep their order, hide unrelated recom
  assert(emptyText.includes('지금은 다시 볼 개념이 없어요'));assert(!emptyText.includes('비슷한 기사 더 읽기'));assert(!emptyText.includes('최근 수집된 기사'));
 });
 
-test('attendance is separate from the read-one goal and server completions survive a device change', () => {
- const screen=harness({completed:[42],goal:{type:'read1',achievedToday:true,streakDays:2}});
- screen.values[0]={}; screen.values[3]=0;
- const nodes=screen.render(); const text=screen.text(nodes);
- assert(text.includes('출석용 기사 읽기')); assert(text.includes('0/3'));
- assert(text.includes('최근 읽은 기사의 퀴즈를 모두 마쳤어요.'));
- assert(!text.includes('아직 읽은 기사가 없어요.')); assert(!text.includes('연속 학습'));
- button(nodes,'출석용 기사 읽기 기준 안내').props.onPress();
- assert(screen.text(screen.render()).includes('개인 학습 목표와 별개인 출석 기준'));
+test('an achieved personal goal does not claim that the unfinished checklist is complete',()=>{
+ const screen=harness({reads:0,count:0,completed:[42],goal:{type:'read1',achievedToday:true,streakDays:2}});screen.values[0]={};
+ const nodes=screen.render();const text=screen.text(nodes);
+ assert(text.includes('내 목표'));assert(!text.includes('✓ 오늘 목표 달성'));assert(text.includes('0/3'));assert.match(text,/1\s*\/3/);assert(text.includes('0/1'));
+ const rows=nodes.filter(n=>n.props?.accessibilityLabel?.includes(' · 완료 · '));assert.equal(rows.length,1);assert.match(rows[0].props.accessibilityLabel,/내 목표/);
+ const bar=nodes.find(n=>n.props?.accessibilityLabel==='오늘 할 일 완료율');assert.equal(bar.props.accessibilityValue.now,1);
+ assert.equal(nodes.filter(n=>n.props?.accessibilityRole==='progressbar').length,1);
+ button(nodes,'기사 읽으러 가기').props.onPress();assert.equal(screen.navigation[0][0],'HomeTab');
+ assert(text.includes('최근 읽은 기사의 퀴즈를 모두 마쳤어요.'));assert(!text.includes('아직 읽은 기사가 없어요.'));
 });
-
 
 test('focus refresh preserves loaded goal and count, while a missing session ends loaders', async () => {
  const screen=harness();screen.render();const cleanup=screen.effects.at(-1)();
@@ -223,4 +217,14 @@ test('personalized guides and tips wait for learning preferences', () => {
  assert(tree.some(node=>node.props?.accessibilityLabel==='맞춤 가이드와 팁 불러오는 중'));
  screen.values[4]=true; const ready=screen.render();
  assert(ready.some(node=>node.type==='GuideList')); assert(ready.some(node=>node.type==='DailyTips'));
+});
+
+test('completed reading and quizzes do not complete an unmet personal judgement goal',()=>{
+ const screen=harness({reads:3,count:5,goal:{type:'reviewJudgement',achievedToday:false,streakDays:0}});
+ const nodes=screen.render();const text=screen.text(nodes);
+ assert(!text.includes('✓ 오늘 목표 달성'));assert(text.includes('오늘 정답률 100%'));
+ const goalRow=nodes.find(n=>n.props?.accessibilityLabel?.startsWith('내 목표 ·'));
+ assert.match(goalRow.props.accessibilityLabel,/진행 중 · 0\/1/);
+ assert.equal(nodes.find(n=>n.props?.accessibilityLabel==='오늘 할 일 완료율').props.accessibilityValue.now,2);
+ button(nodes,'판단 돌아보기').props.onPress();assert.equal(screen.navigation[0][0],'HistoryTab');
 });

@@ -147,7 +147,7 @@ export function GuideList({ focus, level }: { focus: LearningFocus; level: Learn
           onPress={() => { setSelectedGuide(guide); setSelectedTerm(null); }}
         >
           <View style={styles.iconCircle}>
-            <Ionicons name={guide.icon} size={18} color={colors.primary} />
+            <Ionicons name={guide.icon} size={18} color={colors.body} />
           </View>
           <View style={styles.textGroup}>
             <Text style={styles.title}>{guide.title}</Text>
@@ -177,11 +177,11 @@ export function GuideList({ focus, level }: { focus: LearningFocus; level: Learn
 }
 
 const styles = StyleSheet.create({
-  termLink: { color: colors.primary, paddingVertical: 6, fontSize: typography.size.body, fontWeight: typography.weight.semibold, lineHeight: typography.lineHeight.compact },
+  termLink: { color: colors.body, paddingVertical: 6, fontSize: typography.size.body, fontWeight: typography.weight.semibold, lineHeight: typography.lineHeight.compact },
   card: {
     backgroundColor: colors.surface,
     borderColor: colors.border,
-    borderWidth: 1,
+    borderWidth: 0.5,
     borderRadius: radius.card,
     padding: spacing.lg
   },
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: colors.primarySoft,
+    backgroundColor: colors.surface,
     alignItems: "center",
     justifyContent: "center"
   },
@@ -232,6 +232,6 @@ const styles = StyleSheet.create({
   modalCard: { maxHeight: "85%", backgroundColor: colors.surface, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, padding: spacing.xl, gap: 14 },
   modalTitle: { color: colors.text, fontSize: typography.size.heading, fontWeight: typography.weight.bold },
   modalBody: { color: colors.body, fontSize: typography.size.reading, lineHeight: 23 },
-  closeButton: { minHeight: 44, justifyContent: "center", backgroundColor: colors.primary, borderRadius: 10, alignItems: "center", paddingVertical: 13 },
+  closeButton: { minHeight: 44, justifyContent: "center", backgroundColor: colors.text, borderRadius: 10, alignItems: "center", paddingVertical: 13 },
   closeButtonText: { color: colors.surface, fontSize: typography.size.body, fontWeight: typography.weight.bold }
 });
