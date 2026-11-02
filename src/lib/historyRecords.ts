@@ -74,16 +74,17 @@ export function judgementResult(item: Pick<JudgementHistoryItem, "choice" | "act
   const label = excluded ? "테스트 기록" : adjustment ? "가격 조정 확인 필요" : example ? "예시" : pending ? pendingResultLabel(item.pendingReason,item.expectedResultDate) : unavailable ? "기사 복습" : legacy ? "당일 흐름 참고" : `실제 ${direction === "UP" ? "상승" : direction === "DOWN" ? "하락" : "중립"}${change}`;
   const reviewText = !pending && (unavailable || legacy) ? item.feedbackReasons?.[0]?.detail : null;
   const feedbackText = excluded ? "채점에서 제외한 테스트 기록이에요." : pending && item.pendingReason && !adjustment ? pendingResultLabel(item.pendingReason,item.expectedResultDate) : adjustment ? (item.unavailableReason || "가격 조정 확인 필요: 종가 등락률이 ±30%를 넘어 채점을 보류했어요.") : reviewText || (invalidTarget ? item.unavailableReason || "이 기사와 채점 종목의 연결을 다시 확인해야 해요. 이전 적중 여부와 피드백은 학습 근거로 사용하지 않아요." : legacy && !unavailable ? "이 기록은 판단한 날의 가격으로 비교돼 다음 거래일 예측의 결과로 해석하기 어려워요. 대상과 비교 종가가 확인된 새 판단에서 설명을 확인해보세요." : unavailable ? "관련 종목이 없어 결과를 비교하지 않았어요" : (item.feedbackText ?? "").replace(/\bUP\b/g, "상승").replace(/\bDOWN\b/g, "하락").replace(/\bNEUTRAL\b/g, "중립").replace(/\bUNKNOWN\b/g, "비교 불가"));
-  return { label, correct, pending, unavailable, legacy, example, feedbackText };
+  return { label, correct, pending, unavailable, legacy, example, feedbackText, excluded };
 }
 
 export function judgementSummary(items: JudgementHistoryItem[]) {
   const results = items.map(judgementResult);
   return {
-    total: items.length,
+    total: results.filter(result=>!result.excluded).length,
+    testRecords: results.filter(result=>result.excluded).length,
     hits: results.filter((result) => result.correct === true).length,
     pending: results.filter((result) => result.pending).length,
-    unavailable: results.filter((result) => result.unavailable).length,
+    unavailable: results.filter((result) => result.unavailable && !result.excluded).length,
     legacy: results.filter((result) => result.legacy && !result.unavailable).length
   };
 }

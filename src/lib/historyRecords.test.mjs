@@ -99,6 +99,6 @@ test('pending labels distinguish the next session, missing prices, QA and unsupp
  assert.equal(judgementResult({...base,pendingReason:'PRICE_UNAVAILABLE'}).label,'시세 확인 중 · 자동으로 다시 시도해요');
  assert.equal(judgementResult({...base,pendingReason:'CALENDAR_UNSUPPORTED'}).label,'휴장일 달력 확인 필요');
  const qa=judgementResult({...base,pendingReason:'EXCLUDED_QA'});assert.equal(qa.label,'테스트 기록');assert.equal(qa.pending,false);assert.equal(qa.correct,null);
- assert.equal(judgementSummary([{...base,pendingReason:'EXCLUDED_QA'}]).pending,0);
+ const summary=judgementSummary([{...base,pendingReason:'EXCLUDED_QA'}]);assert.equal(summary.pending,0);assert.equal(summary.testRecords,1);assert.equal(summary.total,0);assert.equal(summary.unavailable,0);
  assert.equal(judgementResult({...base,pendingReason:'NOT_DUE',expectedResultDate:'2026-11-03'}).label,'11월 3일(화) 15:40 이후 결과');
 });
