@@ -23,7 +23,7 @@ test('evidence candidates quote two distinct article sentences without inventing
 test('home keeps core article ids and never renders copy underneath cards', () => {
  for(const focus of ['news','decision','market','reflection']) {
   let cursor=0; const values=[]; const exports={};
-  const hooks={...react,useState(initial){const id=cursor++;values[id]??=initial;return[values[id],next=>{values[id]=next;}];}};
+  const hooks={...react,useEffect(){},useState(initial){const id=cursor++;values[id]??=initial;return[values[id],next=>{values[id]=next;}];}};
   vm.runInNewContext(ts.transpileModule(fs.readFileSync(new URL('../screens/home/HomeScreen/NewsSection.tsx',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.React}}).outputText,{exports,React:hooks,require:name=>name==='react'?hooks:name==='@tanstack/react-query'?{useQuery:()=>({data:[{id:1},{id:2},{id:3}]})}:name.endsWith('/learningPreferences')?{}:name.endsWith('/watchlist')?{selectHomeNews,selectHomeNewsOverflow}:name.endsWith('/historyRecords')?{kstDate}:name.endsWith('/NewsCard')?{NewsCard:'NewsCard'}:{Pressable:'Pressable',Text:'Text',View:'View',StyleSheet:{create:v=>v}}});
   const tree=nodes(exports.NewsSection({preferences:{focus,painPoint:'overload'},onSelectNews(){}}));
   assert.deepEqual(tree.filter(node=>node.type==='NewsCard').map(node=>node.props.news.id),[1,2,3]);

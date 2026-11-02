@@ -12,15 +12,20 @@ const source = ts.transpileModule(fs.readFileSync(new URL('../screens/home/HomeS
   compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.React }
 }).outputText;
 function mount({ data = articles(1, 2, 3), watchedNews = [], isLoading = false, isError = false, loadMore = async () => [] } = {}) {
-  let values = [];
+  const rootValues = [];
+  let feedValues = [], values = rootValues, timer;
   const requests = [], exports = {};
   let cursor = 0, feedKey, now = new Date('2026-11-02T12:00:00+09:00');
   class Clock extends Date { constructor(...args) { super(...(args.length ? args : [now])); } }
   const React = {
     createElement(type, props, ...children) {
       if (typeof type !== 'function') return { type, props, children };
-      if (feedKey !== props.key) { values = []; cursor = 0; feedKey = props.key; }
-      return type(props);
+      if (feedKey !== props.key) { feedValues = []; feedKey = props.key; }
+      const parentCursor = cursor;
+      values = feedValues; cursor = 0;
+      const result = type(props);
+      values = rootValues; cursor = parentCursor;
+      return result;
     },
     useState(initial) {
       const index = cursor++;
@@ -29,7 +34,17 @@ function mount({ data = articles(1, 2, 3), watchedNews = [], isLoading = false, 
       return [storage[index], next => { storage[index] = typeof next === 'function' ? next(storage[index]) : next; }];
     }
   };
-  vm.runInNewContext(source, { exports, React, Date: Clock, require: name =>
+  React.useEffect = (effect, deps) => {
+    const index = cursor++;
+    const previous = rootValues[index];
+    if (!previous || deps.some((dep, i) => dep !== previous.deps[i])) {
+      previous?.cleanup?.();
+      rootValues[index] = { deps, cleanup: effect() };
+    }
+  };
+  vm.runInNewContext(source, { exports, React, Date: Clock,
+    setTimeout: (callback, delay) => { timer = { callback, due: now.getTime() + delay }; return timer; },
+    clearTimeout: old => { if (timer === old) timer = undefined; }, require: name =>
     name === 'react' ? React :
     name === '@tanstack/react-query' ? { useQuery: () => ({ data, isLoading, isError }) } :
     name.endsWith('/api') ? { getMoreBriefing: async (page, size) => { requests.push([page, size]); return loadMore(page, size); } } :
@@ -38,11 +53,11 @@ function mount({ data = articles(1, 2, 3), watchedNews = [], isLoading = false, 
     name.endsWith('/NewsCard') ? { NewsCard: 'NewsCard' } :
     { View: 'View', Text: 'Text', Pressable: 'Pressable', StyleSheet: { create: value => value } }
   });
-  const render = () => { cursor = 0; return nodes(exports.NewsSection({ watchedNews, onSelectNews() {} })); };
+  const render = () => { values = rootValues; cursor = 0; return nodes(exports.NewsSection({ watchedNews, onSelectNews() {} })); };
   const ids = () => render().filter(node => node.type === 'NewsCard').map(node => node.props.news.id);
   const button = () => render().find(node => node.type === 'Pressable' && nodes(node).some(n => n.type === 'Text' && ['뉴스 더 보기', '다시 시도', '불러오는 중…'].includes(n.children[0])));
   const click = async () => { button().props.onPress(); await new Promise(resolve => setImmediate(resolve)); };
-  return { render, ids, button, click, requests, setData: next => { data = next; }, setDate: next => { now = new Date(next); } };
+  return { render, ids, button, click, requests, setData: next => { data = next; }, setDate: next => { now = new Date(next); if (timer && now.getTime() >= timer.due) timer.callback(); } };
 }
 
 test('home initially shows only the three selectHomeNews articles, including watched news', () => {

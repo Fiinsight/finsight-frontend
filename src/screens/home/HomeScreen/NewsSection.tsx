@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { NewsCard } from "../../../components/NewsCard";
@@ -19,7 +19,16 @@ export function NewsSection({ onSelectNews, watchedNews = [] }: NewsSectionProps
     retry: 0,
     staleTime: 60_000
   });
-  const briefingKey = `${kstDate(new Date())}:${(data ?? []).map(item => item.id).join(",")}`;
+  const [today, setToday] = useState(kstDate(new Date()));
+  useEffect(() => {
+    const now = new Date();
+    const day = kstDate(now);
+    if (day !== today) { setToday(day); return; }
+    const midnight = new Date(`${day}T00:00:00+09:00`).getTime() + 86_400_000;
+    const timer = setTimeout(() => setToday(kstDate(new Date())), midnight - now.getTime());
+    return () => clearTimeout(timer);
+  }, [today]);
+  const briefingKey = `${today}:${(data ?? []).map(item => item.id).join(",")}`;
   return <NewsFeed key={briefingKey} data={data} watchedNews={watchedNews} onSelectNews={onSelectNews} isLoading={isLoading} isError={isError} refetch={refetch} />;
 }
 
