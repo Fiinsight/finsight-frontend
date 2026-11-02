@@ -23,3 +23,12 @@ export function selectHomeNews(core: NewsBrief[], watched: NewsBrief[]): NewsBri
     return true;
   }).slice(0, 3);
 }
+
+export function selectHomeNewsOverflow(core: NewsBrief[], watched: NewsBrief[]): NewsBrief[] {
+  const seen = new Set(selectHomeNews(core, watched).map(item => item.id));
+  return [...core, ...watched].filter(item => {
+    if (seen.has(item.id)) return false;
+    seen.add(item.id);
+    return true;
+  });
+}

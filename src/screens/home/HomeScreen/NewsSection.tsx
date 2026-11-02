@@ -4,7 +4,8 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { NewsCard } from "../../../components/NewsCard";
 import { getMoreBriefing, getTodayBriefing } from "../../../lib/api";
 import type { NewsBrief } from "../../../types/api";
-import { selectHomeNews } from "../../../lib/watchlist";
+import { kstDate } from "../../../lib/historyRecords";
+import { selectHomeNews, selectHomeNewsOverflow } from "../../../lib/watchlist";
 
 interface NewsSectionProps {
   onSelectNews: (newsId: number) => void;
@@ -18,6 +19,17 @@ export function NewsSection({ onSelectNews, watchedNews = [] }: NewsSectionProps
     retry: 0,
     staleTime: 60_000
   });
+  const briefingKey = `${kstDate(new Date())}:${(data ?? []).map(item => item.id).join(",")}`;
+  return <NewsFeed key={briefingKey} data={data} watchedNews={watchedNews} onSelectNews={onSelectNews} isLoading={isLoading} isError={isError} refetch={refetch} />;
+}
+
+// A changed briefing remounts the feed, so an old page request cannot populate it.
+function NewsFeed({ data, watchedNews = [], onSelectNews, isLoading, isError, refetch }: NewsSectionProps & {
+  data?: NewsBrief[];
+  isLoading: boolean;
+  isError: boolean;
+  refetch: () => unknown;
+}) {
   const [olderNews, setOlderNews] = useState<NewsBrief[]>([]);
   const [nextPage, setNextPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
@@ -37,7 +49,7 @@ export function NewsSection({ onSelectNews, watchedNews = [] }: NewsSectionProps
     setMoreError(false);
     try {
       const more = await getMoreBriefing(nextPage, 10);
-      setOlderNews(previous => [...previous, ...more]);
+      setOlderNews(previous => [...previous, ...(nextPage === 0 ? selectHomeNewsOverflow(data ?? [], watchedNews) : []), ...more]);
       setNextPage(page => page + 1);
       setHasMore(more.length === 10);
     } catch {
