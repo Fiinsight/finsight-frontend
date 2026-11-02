@@ -1,0 +1,26 @@
+{
+  "desktop": {
+    "cards": [
+      {
+        "border": "1px",
+        "color": "rgb(208, 213, 221)",
+        "text": "오늘 할 일1/32일 연속 목표 달성✓뉴스 하나 읽기내"
+      }
+    ],
+    "overflow": false,
+    "width": 1440
+  },
+  "mobile": {
+    "cards": 1,
+    "overflow": false,
+    "width": 375
+  },
+  "completed": {
+    "color": "rgb(102, 112, 133)",
+    "decoration": "line-through"
+  },
+  "incomplete": {
+    "color": "rgb(16, 24, 40)",
+    "decoration": "none"
+  }
+}

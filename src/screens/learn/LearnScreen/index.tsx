@@ -138,19 +138,20 @@ export function LearnScreen() {
         <View style={styles.hero}>
           <View style={styles.goalRow}>
             <Text accessibilityRole="header" style={styles.sectionTitle}>오늘 할 일</Text>
-            <Text style={styles.auxiliary}>♧ {goal ? `${goal.streakDays}일 연속 목표 달성` : "연속 기록 확인 중"}</Text>
+            <Text style={styles.taskCount} accessibilityLabel={`오늘 할 일 3개 중 ${completedTasks}개 완료`}>{completedTasks}/3</Text>
           </View>
+          <Text style={styles.auxiliary}>{goal ? `${goal.streakDays}일 연속 목표 달성` : "연속 기록 확인 중"}</Text>
           {checklist.map(item=><View key={item.key} style={styles.checklistItem}>
             <View style={styles.checklistRow} accessibilityLabel={`${item.myGoal?"내 목표 · ":""}${item.label} · ${item.done?"완료":"진행 중"} · ${item.value}`}>
-              <Text style={styles.checkIcon} accessibilityElementsHidden importantForAccessibility="no">{item.done?"✓":"○"}</Text>
-              <View style={styles.checklistLabel}><Text style={styles.body}>{item.label}</Text>{item.myGoal?<Text style={styles.goalBadge}>내 목표</Text>:null}</View>
-              <Text style={styles.checklistValue}>{item.value}</Text>
+              <Text style={[styles.checkIcon,item.done && styles.completedColor]} accessibilityElementsHidden importantForAccessibility="no">{item.done?"✓":"○"}</Text>
+              <View style={styles.checklistLabel}><Text style={[styles.body,item.done && styles.completedText]}>{item.label}</Text>{item.myGoal?<Text style={styles.goalBadge}>내 목표</Text>:null}</View>
+              <Text style={[styles.checklistValue,item.done && styles.completedText]}>{item.value}</Text>
             </View>
             {item.key === "quiz" && progress.data ? <Text style={styles.quizHelper}>{progress.data.today.answeredCount>=5 ? `오늘 정답률 ${accuracy(progress.data.today.accuracy)}` : `퀴즈 ${5-progress.data.today.answeredCount}개 더 풀면 정답률이 보여요`}</Text>:null}
             {item.myGoal && goal?.type === "minutes5" ? <Text style={styles.quizHelper}>활동 3개 = 5분 학습 (퀴즈·메모·판단 기준)</Text>:null}
           </View>)}
           <View style={styles.taskProgress} accessibilityRole="progressbar" accessibilityLabel="오늘 할 일 완료율" accessibilityValue={{min:0,max:3,now:completedTasks,text:`3개 중 ${completedTasks}개 완료`}}><View style={[styles.taskProgressFill,{width:`${completedTasks/3*100}%`}]} /></View>
-          <Text style={styles.auxiliary}>{completedTasks}/3 완료 · 기사 읽기 기록은 이 기기 기준</Text>
+          <Text style={styles.auxiliary}>기사 읽기 기록은 이 기기 기준</Text>
           {progress.isError ? <Pressable accessibilityRole="button" accessibilityLabel="학습 진행도 다시 시도" style={styles.heroRetry} onPress={() => void progress.refetch()}><Text style={styles.auxiliary}>진행도를 불러오지 못했어요 · 다시 시도</Text></Pressable>:null}
           <Pressable accessibilityRole="button" accessibilityLabel={tasksLoading?"오늘 할 일 확인 중":primaryLabel} accessibilityState={{disabled:tasksLoading}} disabled={tasksLoading} onPress={openChecklistTask} style={[styles.primaryButton,tasksLoading&&styles.disabledButton]}>
             <Text style={styles.primaryButtonText}>{tasksLoading?"오늘 할 일 확인 중":primaryLabel}</Text><Text style={styles.primaryButtonText} aria-hidden>→</Text>
@@ -158,10 +159,10 @@ export function LearnScreen() {
           {loaded && preferences.source === "default" ? <Pressable accessibilityRole="button" accessibilityLabel="프로필에서 학습 설정하기" onPress={() => navigation.navigate("ProfileTab", { openLearningSettings: true })}><Text style={styles.auxiliary}>내 목표 설정하기</Text></Pressable>:null}
         </View>
 
-        {preferences.painPoint === "terms" ? <View style={styles.card}>
+        {preferences.painPoint === "terms" ? <View style={styles.section}>
           <Text accessibilityRole="header" style={styles.sectionTitle}>오늘의 용어 3개</Text>
           {ownerId === null ? <Text style={styles.auxiliary}>로그인하면 오늘의 용어를 확인할 수 있어요.</Text> : dailyTerms.isPending ? <View style={[styles.skeleton, styles.termSkeleton]} /> : dailyTerms.isError ? <Pressable accessibilityRole="button" accessibilityLabel="오늘의 용어 다시 시도" onPress={() => void dailyTerms.refetch()}><Text style={styles.link}>다시 시도</Text></Pressable> : dailyTerms.data?.length ? <View style={styles.dailyTermList}>
-            {dailyTerms.data.map(item => <Pressable key={item.term} style={styles.dailyTermItem} accessibilityRole="button" accessibilityLabel={`${item.term} 뜻 보기${item.reason === "지난번에 틀린 개념" || item.reason === "익히는 중인 개념" ? ` · ${item.reason}` : ""}`} onPress={() => setInfo({ title: item.term, description: item.definition, reason: item.reason === "지난번에 틀린 개념" || item.reason === "익히는 중인 개념" ? item.reason : undefined, newsId: item.newsId, newsTitle: item.title })}>
+            {dailyTerms.data.map((item,index) => <Pressable key={item.term} style={[styles.dailyTermItem,index===dailyTerms.data!.length-1 && styles.lastRow]} accessibilityRole="button" accessibilityLabel={`${item.term} 뜻 보기${item.reason === "지난번에 틀린 개념" || item.reason === "익히는 중인 개념" ? ` · ${item.reason}` : ""}`} onPress={() => setInfo({ title: item.term, description: item.definition, reason: item.reason === "지난번에 틀린 개념" || item.reason === "익히는 중인 개념" ? item.reason : undefined, newsId: item.newsId, newsTitle: item.title })}>
               <View style={styles.termHeading}><Text style={styles.termText}>{item.term}</Text>{item.reason === "지난번에 틀린 개념" || item.reason === "익히는 중인 개념" ? <Text style={styles.goalBadge}>{item.reason}</Text>:null}</View>
               <Text style={styles.auxiliary} numberOfLines={2}>{item.definition}</Text>
             </Pressable>)}
@@ -174,17 +175,17 @@ export function LearnScreen() {
         <View style={styles.section}>
           <Text accessibilityRole="header" style={styles.sectionTitle}>풀다 만 퀴즈</Text>
           <Text style={styles.auxiliary}>읽었지만 아직 퀴즈를 풀지 않은 기사예요</Text>
-          {progressPending ? [0, 1].map((key) => <View key={key} style={styles.articleCard} accessibilityLabel="풀다 만 퀴즈 기사 불러오는 중">
+          {progressPending ? [0, 1].map((key) => <View key={key} style={styles.articleRow} accessibilityLabel="풀다 만 퀴즈 기사 불러오는 중">
             <View style={[styles.skeleton, styles.chipSkeleton]} /><View style={[styles.skeleton, styles.titleSkeleton]} /><View style={[styles.skeleton, styles.shortSkeleton]} />
-          </View>) : progress.isError ? <View style={styles.card}><Text style={styles.body}>풀다 만 퀴즈 기사를 확인하지 못했어요.</Text><Pressable accessibilityRole="button" accessibilityLabel="풀다 만 퀴즈 다시 시도" style={styles.retryButton} onPress={() => void progress.refetch()}><Text style={styles.link}>다시 시도</Text></Pressable></View>
+          </View>) : progress.isError ? <View style={styles.section}><Text style={styles.body}>풀다 만 퀴즈 기사를 확인하지 못했어요.</Text><Pressable accessibilityRole="button" accessibilityLabel="풀다 만 퀴즈 다시 시도" style={styles.retryButton} onPress={() => void progress.refetch()}><Text style={styles.link}>다시 시도</Text></Pressable></View>
           : !resumeIds.length ? <Text style={styles.auxiliary}>{resumeLearningEmptyMessage(readingLog, progress.data?.completedNewsIds ?? [])}</Text>
-          : resumeArticles.slice(0, 3).map((article, index) => article.isPending ? <View key={resumeIds[index]} style={styles.articleCard} accessibilityLabel="기사 제목 불러오는 중">
+          : resumeArticles.slice(0, 3).map((article, index) => article.isPending ? <View key={resumeIds[index]} style={styles.articleRow} accessibilityLabel="기사 제목 불러오는 중">
             <View style={[styles.skeleton, styles.chipSkeleton]} /><View style={[styles.skeleton, styles.titleSkeleton]} /><View style={[styles.skeleton, styles.shortSkeleton]} />
-          </View> : article.data?.rawContent.trim() ? <Pressable key={resumeIds[index]} accessibilityRole="button" accessibilityLabel={`${article.data.title} · 퀴즈 이어 풀기`} style={styles.articleCard}
+          </View> : article.data?.rawContent.trim() ? <Pressable key={resumeIds[index]} accessibilityRole="button" accessibilityLabel={`${article.data.title} · 퀴즈 이어 풀기`} style={styles.articleRow}
             onPress={() => navigation.navigate("NewsDetail", { newsId: resumeIds[index], readMode: "level", readingLevel: preferences.level, openQuiz: true })}>
             <View style={styles.articleMeta}><Text style={styles.categoryChip}>{article.data.category}</Text><Text style={styles.remainingBadge}>퀴즈 남음</Text></View>
             <Text style={styles.articleTitle} numberOfLines={2}>{article.data.title}</Text>
-          </Pressable> : <View key={resumeIds[index]} style={styles.articleCard}><Text style={styles.auxiliary}>기사 내용을 확인할 수 없어요.</Text><Pressable accessibilityRole="button" accessibilityLabel="기사 다시 시도" style={styles.retryButton} onPress={() => void article.refetch()}><Text style={styles.link}>다시 시도</Text></Pressable></View>)}
+          </Pressable> : <View key={resumeIds[index]} style={styles.articleRow}><Text style={styles.auxiliary}>기사 내용을 확인할 수 없어요.</Text><Pressable accessibilityRole="button" accessibilityLabel="기사 다시 시도" style={styles.retryButton} onPress={() => void article.refetch()}><Text style={styles.link}>다시 시도</Text></Pressable></View>)}
         </View>
 
         <View style={styles.section} ref={reviewRef} onLayout={scrollToReviews}>
@@ -192,22 +193,25 @@ export function LearnScreen() {
           <Text style={styles.auxiliary}>퀴즈에서 틀렸거나 아직 익숙하지 않은 개념이에요</Text>
           {ownerId === null ? <Text style={styles.auxiliary}>로그인하면 다시 볼 개념을 확인할 수 있어요.</Text> : reviewsLoading ? <View style={styles.termRow}>{[0, 1, 2].map(key => <View key={key} style={[styles.skeleton, styles.termSkeleton]} accessibilityLabel="다시 볼 개념 불러오는 중" />)}</View>
           : reviews.isError ? <><Text style={styles.body}>다시 볼 개념을 확인하지 못했어요.</Text><Pressable accessibilityRole="button" accessibilityLabel="다시 볼 개념 다시 시도" style={styles.retryButton} onPress={() => void reviews.refetch()}><Text style={styles.link}>다시 시도</Text></Pressable></>
-          : reviews.data?.length ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.termRow}>
-            {reviews.data.map(item => <Pressable key={`${item.newsId}-${item.term}`} accessibilityRole="button" accessibilityLabel={`${item.term} 뜻과 다시 풀 기사 보기`} style={styles.termChip} onPress={() => setSelectedReview(item)}><Text style={styles.termText} numberOfLines={1}>{item.term}</Text></Pressable>)}
-          </ScrollView> : <Text style={styles.auxiliary}>지금은 다시 볼 개념이 없어요</Text>}
+          : reviews.data?.length ? <View>
+            {reviews.data.map((item,index) => <Pressable key={`${item.newsId}-${item.term}`} accessibilityRole="button" accessibilityLabel={`${item.term} 뜻과 다시 풀 기사 보기`} style={[styles.reviewRow,index===reviews.data!.length-1 && styles.lastRow]} onPress={() => setSelectedReview(item)}>
+              <Text style={styles.termText}>{item.term}</Text>
+              <Text style={styles.auxiliary} numberOfLines={2}>{item.definition}</Text>
+            </Pressable>)}
+          </View> : <Text style={styles.auxiliary}>지금은 다시 볼 개념이 없어요</Text>}
         </View>
 
         {ownerId !== null && (recommendations.isPending || recommendations.isError || recommendedArticles.length) ? <View style={styles.section}>
           <Text accessibilityRole="header" style={styles.sectionTitle}>{recommendedArticles.some(item=>item.basis==="WATCHLIST") ? "관심종목과 이어 읽기" : "비슷한 기사 더 읽기"}</Text>
           <Text style={styles.auxiliary}>{recommendedArticles.some(item=>item.basis==="WATCHLIST") ? "관심종목 소식과 내가 공부한 주제를 함께 살펴보세요" : "내가 공부한 기사와 비슷한 주제예요"}</Text>
-          {recommendations.isPending ? <View style={[styles.card, { minHeight: 140 }]}><View style={[styles.skeleton, styles.titleSkeleton]} /><View style={[styles.skeleton, styles.shortSkeleton]} /></View>
-            : recommendations.isError ? <View style={styles.card}><Text style={styles.auxiliary}>추천 기사를 확인하지 못했어요.</Text><Pressable accessibilityRole="button" accessibilityLabel="추천 기사 다시 시도" style={styles.retryButton} onPress={() => void recommendations.refetch()}><Text style={styles.link}>다시 시도</Text></Pressable></View>
-            : recommendedArticles.length ? recommendedArticles.slice(0, 3).map(item => <Pressable key={item.newsId} style={styles.card} accessibilityRole="button" accessibilityLabel={`${item.title} 추천 기사 읽기`} onPress={() => navigation.navigate("NewsDetail", { newsId: item.newsId, readMode: "level", readingLevel: preferences.level })}>
+          {recommendations.isPending ? <View style={[styles.section, { minHeight: 140 }]}><View style={[styles.skeleton, styles.titleSkeleton]} /><View style={[styles.skeleton, styles.shortSkeleton]} /></View>
+            : recommendations.isError ? <View style={styles.section}><Text style={styles.auxiliary}>추천 기사를 확인하지 못했어요.</Text><Pressable accessibilityRole="button" accessibilityLabel="추천 기사 다시 시도" style={styles.retryButton} onPress={() => void recommendations.refetch()}><Text style={styles.link}>다시 시도</Text></Pressable></View>
+            : recommendedArticles.length ? recommendedArticles.slice(0, 3).map(item => <Pressable key={item.newsId} style={styles.articleRow} accessibilityRole="button" accessibilityLabel={`${item.title} 추천 기사 읽기`} onPress={() => navigation.navigate("NewsDetail", { newsId: item.newsId, readMode: "level", readingLevel: preferences.level })}>
               <Text style={styles.categoryChip}>{item.category ?? "뉴스"}</Text><Text style={styles.articleTitle} numberOfLines={2}>{item.title}</Text><Text style={styles.body} numberOfLines={2}>{item.summary}</Text><Text style={styles.auxiliary} numberOfLines={2}>{item.reason}</Text>
             </Pressable>) : null}
         </View> : null}
 
-        <View style={styles.card}>
+        <View style={styles.section}>
           <Text accessibilityRole="header" style={styles.sectionTitle}>내 개념 숙련도</Text>
           {progressPending ? <View style={[styles.skeleton, { height: 180 }]} accessibilityLabel="개념 숙련도 불러오는 중" />
             : progress.isError ? <Pressable accessibilityRole="button" accessibilityLabel="개념 숙련도 다시 시도" style={styles.retryButton} onPress={() => void progress.refetch()}><Text style={styles.link}>다시 시도</Text></Pressable>
@@ -218,7 +222,7 @@ export function LearnScreen() {
                 {!group.rows.length ? <Text style={styles.auxiliary}>아직 충분히 풀지 않았어요</Text> : null}
                 {group.rows.map(item => {
                   const value = Math.round(Math.max(0, Math.min(1, item.effectivePKnown)) * 100);
-                  return <View key={item.term} style={{ gap: 6 }}>
+                  return <View key={item.term} style={styles.masteryRow}>
                     <View style={styles.articleMeta}><Text style={[styles.body, { flex: 1 }]} numberOfLines={1}>{item.term}</Text><Text style={styles.auxiliary}>{value}%</Text></View>
                     <View accessibilityRole="progressbar" accessibilityLabel={`${item.term} 추정 숙련도`} accessibilityValue={{ min: 0, max: 100, now: value }} style={styles.masteryTrack}><View style={[styles.masteryFill, { width: `${value}%` }]} /></View>
                   </View>;
@@ -228,7 +232,7 @@ export function LearnScreen() {
           <Text style={styles.auxiliary}>80% 이상·3번 이상 풀면 잘 아는 개념이에요</Text>
         </View>
 
-        {promotionReady === ownerId && ownerId !== null && progress.data?.levelSuggestion && promotionVisible(snoozes, progress.data.levelSuggestion) ? <View style={styles.card}>
+        {promotionReady === ownerId && ownerId !== null && progress.data?.levelSuggestion && promotionVisible(snoozes, progress.data.levelSuggestion) ? <View style={styles.section}>
           <Text accessibilityRole="header" style={styles.sectionTitle}>{progress.data.levelSuggestion === "normal" ? "일반용으로 읽어볼까요?" : "분석용으로 읽어볼까요?"}</Text>
           <Text style={styles.body}>최근 퀴즈에서 개념을 꾸준히 이해하고 있어요. 원할 때 수준을 바꿀 수 있어요.</Text>
           <Pressable accessibilityRole="button" accessibilityLabel="제안된 읽기 수준으로 변경" style={styles.retryButton} disabled={promotion.isPending} onPress={() => promotion.mutate(progress.data!.levelSuggestion!)}><Text style={styles.link}>이 수준으로 읽기</Text></Pressable>
@@ -243,7 +247,7 @@ export function LearnScreen() {
 
         {progress.data?.weakAreas.length ? <View style={styles.section}>
           <Text accessibilityRole="header" style={styles.sectionTitle}>판단 결과가 엇갈린 분야</Text>
-          {progress.data.weakAreas.map((area) => <View key={area.category} style={styles.card}>
+          {progress.data.weakAreas.map((area) => <View key={area.category} style={styles.articleRow}>
             <Text style={styles.articleTitle}>{area.category}</Text><Text style={styles.auxiliary}>최근 30일 표본 {area.sampleSize}건 · 적중 {area.hitCount}건</Text>
             <Text style={styles.body}>주가 방향 결과의 차이이며 개념 이해도를 뜻하지 않아요. 관련 기사에서 당시 근거를 점검해보세요.</Text>
             {(area.recentArticles ?? area.recentNewsIds.map(newsId => ({ newsId, title: `판단 기사 #${newsId}` }))).map(article => <Pressable key={article.newsId} accessibilityRole="button" accessibilityLabel={`${article.title} 다시 읽기`} style={styles.retryButton} onPress={() => navigation.navigate("NewsDetail", { newsId: article.newsId, readMode: "level" })}><Text style={styles.link}>{article.title} →</Text></Pressable>)}
@@ -270,40 +274,44 @@ export function LearnScreen() {
 const styles = StyleSheet.create({
   checklistItem: {gap:4},
   checklistRow: {flexDirection:"row",alignItems:"center",gap:10,minHeight:44},
-  checkIcon: {fontSize:20,color:colors.body,width:22,textAlign:"center"},
+  checkIcon: {fontSize:20,color:colors.text,width:22,textAlign:"center"},
   checklistLabel: {flex:1,minWidth:0,flexDirection:"row",flexWrap:"wrap",alignItems:"center",gap:6},
-  checklistValue: {color:colors.text,fontSize:16,fontWeight:"600"},
-  goalBadge: {color:colors.muted,backgroundColor:colors.surfaceMuted,fontSize:11,paddingHorizontal:6,paddingVertical:3,borderRadius:4},
+  checklistValue: {color:colors.text,fontSize:16,fontWeight:"600",minWidth:40,textAlign:"right"},
+  completedColor: {color:colors.muted},
+  completedText: {color:colors.muted,textDecorationLine:"line-through"},
+  taskCount: {color:colors.primary,fontSize:typography.size.meta,fontWeight:typography.weight.semibold,textAlign:"right"},
+  goalBadge: {color:colors.muted,fontSize:11,paddingHorizontal:6,paddingVertical:3,borderRadius:4},
   quizHelper: {color:colors.muted,fontSize:12,lineHeight:18,paddingLeft:32},
   taskProgress: {height:5,backgroundColor:colors.border,borderRadius:3,overflow:"hidden"},
-  taskProgressFill: {height:5,backgroundColor:colors.muted,borderRadius:3},
+  taskProgressFill: {height:5,backgroundColor:colors.primary,borderRadius:3},
   dailyTermList: {gap:0},
-  dailyTermItem: {minHeight:70,paddingVertical:12,gap:4,borderTopWidth:0.5,borderColor:colors.border},
+  dailyTermItem: {minHeight:70,paddingVertical:12,gap:4,borderBottomWidth:0.5,borderColor:colors.border},
   termHeading: {flexDirection:"row",alignItems:"center",flexWrap:"wrap",gap:8},
   safeArea: { flex: 1, backgroundColor: colors.canvas },
   container: { width:"100%",maxWidth:880,alignSelf:"center",padding: spacing.lg, paddingBottom: 40, gap: spacing.xl },
   section: { gap: spacing.sm },
   sectionTitle: { fontSize: typography.size.subheading, fontWeight: typography.weight.bold, color: colors.text, lineHeight: typography.lineHeight.heading },
-  body: { fontSize: typography.size.reading, lineHeight: typography.lineHeight.body, color: colors.body },
+  body: { fontSize: typography.size.reading, lineHeight: typography.lineHeight.body, color: colors.text },
   auxiliary: { fontSize: typography.size.meta, lineHeight: typography.lineHeight.compact, color: colors.muted },
-  card: { borderRadius: radius.card, padding: spacing.lg, gap: spacing.sm, backgroundColor: colors.surface, borderWidth: 0.5, borderColor: colors.border },
-  hero: { backgroundColor: colors.surface, borderWidth:0.5, borderColor:colors.border, borderRadius: radius.card, padding: spacing.lg, gap: spacing.sm },
+  hero: { backgroundColor: colors.surface, borderWidth:1, borderColor:colors.borderStrong, borderRadius: radius.card, padding: spacing.lg, gap: spacing.sm },
   goalRow: { flexDirection: "row", justifyContent:"space-between", flexWrap:"wrap", alignItems: "center", gap: spacing.xs, minHeight: 26 },
   heroRetry: { minHeight: 44, justifyContent: "center", alignSelf: "flex-start" },
   primaryButton: { minHeight: 48, paddingHorizontal: spacing.md, borderRadius: radius.control, backgroundColor: colors.primary, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   primaryButtonText: { color: colors.surface, fontSize: typography.size.reading, fontWeight: typography.weight.bold, lineHeight: typography.lineHeight.body },
   disabledButton: { opacity: 0.6 },
-  articleCard: { minHeight: 116, borderRadius: radius.card, padding: spacing.lg, gap: spacing.xs, backgroundColor: colors.surface, borderWidth: 0.5, borderColor: colors.border },
+  articleRow: { minHeight: 80, paddingVertical: spacing.md, gap: spacing.xs, borderBottomWidth: 0.5, borderBottomColor: colors.border },
   articleMeta: { flexDirection: "row", gap: spacing.xs, alignItems: "center", justifyContent: "space-between" },
-  categoryChip: { color: colors.body, backgroundColor: colors.surfaceMuted, borderRadius: radius.small, paddingHorizontal: spacing.xs, paddingVertical: spacing.xxs, fontSize: typography.size.caption, lineHeight: 16, flexShrink: 1 },
-  remainingBadge: { color: colors.muted, backgroundColor: colors.surfaceMuted, borderRadius: radius.small, paddingHorizontal: spacing.xs, paddingVertical: spacing.xxs, fontSize: typography.size.caption, lineHeight: 16, fontWeight: typography.weight.bold, flexShrink: 0 },
+  categoryChip: { color: colors.body, borderRadius: radius.small, paddingHorizontal: spacing.xs, paddingVertical: spacing.xxs, fontSize: typography.size.caption, lineHeight: 16, flexShrink: 1 },
+  remainingBadge: { color: colors.muted, borderRadius: radius.small, paddingHorizontal: spacing.xs, paddingVertical: spacing.xxs, fontSize: typography.size.caption, lineHeight: 16, fontWeight: typography.weight.bold, flexShrink: 0 },
   articleTitle: { color: colors.text, fontSize: typography.size.reading, fontWeight: typography.weight.bold, lineHeight: typography.lineHeight.body },
   retryButton: { minHeight: 44, justifyContent: "center", alignSelf: "flex-start" },
   link: { fontSize: typography.size.reading, lineHeight: typography.lineHeight.body, fontWeight: typography.weight.bold, color: colors.body },
   termRow: { flexDirection: "row", gap: 10 },
-  termChip: { minHeight: 44, maxWidth: 260, borderRadius: radius.pill, paddingHorizontal: 18, paddingVertical: 11, backgroundColor: colors.surface, justifyContent: "center" },
+  reviewRow: { minHeight: 64, paddingVertical: spacing.sm, gap: spacing.xxs, borderBottomWidth:0.5,borderBottomColor:colors.border },
+  lastRow: {borderBottomWidth:0},
   termText: { fontSize: typography.size.reading, lineHeight: typography.lineHeight.body, fontWeight: typography.weight.bold, color: colors.body },
   skeleton: { backgroundColor: colors.border, borderRadius: radius.small },
+  masteryRow: {gap:6,paddingVertical:spacing.sm,borderBottomWidth:0.5,borderBottomColor:colors.border},
   masteryTrack: { height: 8, backgroundColor: colors.border, borderRadius: 4, overflow: "hidden" },
   masteryFill: { height: 8, backgroundColor: colors.muted, borderRadius: 4 },
   chipSkeleton: { width: 72, height: 24 },
