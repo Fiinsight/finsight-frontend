@@ -12,7 +12,7 @@ export function unreadJudgements(items: JudgementHistoryItem[], seen: Record<str
     .sort((a,b) => (b.feedbackGeneratedAt ?? b.comparisonDate ?? "").localeCompare(a.feedbackGeneratedAt ?? a.comparisonDate ?? ""));
 }
 export function overdueJudgement(items: JudgementHistoryItem[], now = Date.now()) {
-  return items.filter(item => item.actualDirection === null && item.expectedResultAt && Number.isFinite(Date.parse(item.expectedResultAt)) && Date.parse(item.expectedResultAt) <= now)
+  return items.filter(item => item.actualDirection === null && item.pendingReason !== "EXCLUDED_QA" && item.pendingReason !== "CALENDAR_UNSUPPORTED" && item.expectedResultAt && Number.isFinite(Date.parse(item.expectedResultAt)) && Date.parse(item.expectedResultAt) <= now)
     .sort((a,b) => b.judgedAt.localeCompare(a.judgedAt))[0] ?? null;
 }
 export function resultBannerMessage(item: JudgementHistoryItem, now = new Date()) {

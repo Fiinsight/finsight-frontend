@@ -104,3 +104,10 @@ test('late learning preferences never replace a manually chosen history tab', as
   assert(words.includes(choose?'최근 판단부터 보여드려요. 이전 기록을 더 불러올 수 있어요.':'최근 7일 메모부터 보여드려요.'));
  }
 });
+
+
+test('QA and unsupported calendar rows never start delayed-result polling',()=>{
+ const base={...record,actualDirection:null,expectedResultAt:'2026-10-13T06:40:00Z'};
+ for(const pendingReason of ['EXCLUDED_QA','CALENDAR_UNSUPPORTED'])assert.equal(helpersApi.overdueJudgement([{...base,pendingReason}],Date.parse('2026-10-14T00:00:00Z')),null);
+ assert.equal(helpersApi.overdueJudgement([{...base,pendingReason:'PRICE_UNAVAILABLE'}],Date.parse('2026-10-14T00:00:00Z')).id,1);
+});

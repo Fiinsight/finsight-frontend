@@ -17,7 +17,7 @@ export function JudgementResultsProvider({owner,children}:{owner:number;children
     enabled:active,retry:0,staleTime:60_000,refetchInterval:query=>active && overdueJudgement(query.state.data ?? [])?60_000:false,refetchIntervalInBackground:false});
   useEffect(()=>{
     if(!active)return;
-    const next=(results.data ?? []).filter(item=>!item.actualDirection && item.expectedResultAt)
+    const next=(results.data ?? []).filter(item=>!item.actualDirection && item.pendingReason !== "EXCLUDED_QA" && item.pendingReason !== "CALENDAR_UNSUPPORTED" && item.expectedResultAt)
       .map(item=>Date.parse(item.expectedResultAt!)).filter(time=>Number.isFinite(time)&&time>Date.now()).sort((a,b)=>a-b)[0];
     if(next===undefined)return;
     const timer=setTimeout(()=>{setNow(Date.now());if(Date.now()>=next)void results.refetch();},Math.min(next-Date.now()+50,2_147_000_000));

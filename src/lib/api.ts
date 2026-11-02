@@ -289,6 +289,7 @@ function normalizeHistoryItem(raw: JudgementHistoryItemRaw, index: number): Judg
   const choice = raw.choice ?? "NEUTRAL";
 
   return {
+    pendingReason: ["NOT_DUE","PRICE_UNAVAILABLE","EXCLUDED_QA","CALENDAR_UNSUPPORTED"].includes(raw.pendingReason ?? "") ? raw.pendingReason : null,
     gradingIssue: raw.gradingIssue === "TARGET_MISMATCH" || raw.gradingIssue === "LEGACY_COMPARISON" || raw.gradingIssue === "PRICE_ADJUSTMENT" ? raw.gradingIssue : null,
     indexName: raw.indexName ?? null, indexChangePercent: typeof raw.indexChangePercent === "number" && Number.isFinite(raw.indexChangePercent) ? raw.indexChangePercent : null,
     conceptTerm: raw.conceptTerm ?? null, conceptDefinition: raw.conceptDefinition ?? null, unavailableReason: raw.unavailableReason ?? null,

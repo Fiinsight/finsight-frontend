@@ -91,3 +91,14 @@ test('price adjustment holds hide directional correctness for pending and old ou
   assert.equal(result.correct,null);assert.equal(result.label,'가격 조정 확인 필요');assert.match(result.feedbackText,/가격 조정 확인 필요/);
  }
 });
+
+
+test('pending labels distinguish the next session, missing prices, QA and unsupported calendar',()=>{
+ const base={choice:'UP',actualDirection:null,actualChangePercent:null,expectedResultDate:'2026-11-09'};
+ assert.equal(judgementResult({...base,pendingReason:'NOT_DUE'}).label,'11월 9일(월) 15:40 이후 결과');
+ assert.equal(judgementResult({...base,pendingReason:'PRICE_UNAVAILABLE'}).label,'시세 확인 중 · 자동으로 다시 시도해요');
+ assert.equal(judgementResult({...base,pendingReason:'CALENDAR_UNSUPPORTED'}).label,'휴장일 달력 확인 필요');
+ const qa=judgementResult({...base,pendingReason:'EXCLUDED_QA'});assert.equal(qa.label,'테스트 기록');assert.equal(qa.pending,false);assert.equal(qa.correct,null);
+ assert.equal(judgementSummary([{...base,pendingReason:'EXCLUDED_QA'}]).pending,0);
+ assert.equal(judgementResult({...base,pendingReason:'NOT_DUE',expectedResultDate:'2026-11-03'}).label,'11월 3일(화) 15:40 이후 결과');
+});
