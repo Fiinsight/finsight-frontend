@@ -23,7 +23,7 @@ test('groups are newest first, day filter applies and pending never counts as a 
     {judgedAt:'2026-10-06T04:00:00Z',choice:'UP',actualDirection:'UNKNOWN',actualChangePercent:null}];
   assert.deepEqual(groupRecords(rows,r=>r.judgedAt,'2026-10-06',null).map(g=>g.label),['오늘','어제','지난 기록']);
   assert.equal(groupRecords(rows,r=>r.judgedAt,'2026-10-06','2026-10-05')[0].items.length,1);
-  assert.deepEqual(judgementSummary(rows),{total:4,hits:1,pending:1,unavailable:1,legacy:0});
+  assert.deepEqual(judgementSummary(rows),{total:4,testRecords:0,hits:1,pending:1,unavailable:1,legacy:0});
   assert.deepEqual(groupRecords([],r=>r.createdAt,'2026-10-06',null),[]);
 });
 
@@ -53,7 +53,7 @@ test('old confirmed outcomes without comparison date never count as hits', () =>
   const current = { ...legacy, comparisonDate: '2026-10-07' };
   assert.equal(judgementResult(legacy).legacy, true);
   assert.equal(judgementResult(legacy).correct, null);
-  assert.deepEqual(judgementSummary([legacy, current]), { total: 2, hits: 1, pending: 0, unavailable: 0, legacy: 1 });
+  assert.deepEqual(judgementSummary([legacy, current]), { total: 2, testRecords: 0, hits: 1, pending: 0, unavailable: 0, legacy: 1 });
 });
 
 test('mismatched targets exclude old success and praise from history summaries',()=>{
@@ -90,4 +90,15 @@ test('price adjustment holds hide directional correctness for pending and old ou
   const result=judgementResult({choice:'UP',actualDirection,actualChangePercent:50,comparisonDate:'2026-10-06',gradingIssue:'PRICE_ADJUSTMENT'});
   assert.equal(result.correct,null);assert.equal(result.label,'가격 조정 확인 필요');assert.match(result.feedbackText,/가격 조정 확인 필요/);
  }
+});
+
+
+test('pending labels distinguish the next session, missing prices, QA and unsupported calendar',()=>{
+ const base={choice:'UP',actualDirection:null,actualChangePercent:null,expectedResultDate:'2026-11-09'};
+ assert.equal(judgementResult({...base,pendingReason:'NOT_DUE'}).label,'11월 9일(월) 15:40 이후 결과');
+ assert.equal(judgementResult({...base,pendingReason:'PRICE_UNAVAILABLE'}).label,'시세 확인 중 · 자동으로 다시 시도해요');
+ assert.equal(judgementResult({...base,pendingReason:'CALENDAR_UNSUPPORTED'}).label,'휴장일 달력 확인 필요');
+ const qa=judgementResult({...base,pendingReason:'EXCLUDED_QA'});assert.equal(qa.label,'테스트 기록');assert.equal(qa.pending,false);assert.equal(qa.correct,null);
+ const summary=judgementSummary([{...base,pendingReason:'EXCLUDED_QA'}]);assert.equal(summary.pending,0);assert.equal(summary.testRecords,1);assert.equal(summary.total,0);assert.equal(summary.unavailable,0);
+ assert.equal(judgementResult({...base,pendingReason:'NOT_DUE',expectedResultDate:'2026-11-03'}).label,'11월 3일(화) 15:40 이후 결과');
 });

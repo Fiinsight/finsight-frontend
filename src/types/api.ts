@@ -1,3 +1,4 @@
+export type PendingReason = "NOT_DUE" | "PRICE_UNAVAILABLE" | "EXCLUDED_QA" | "CALENDAR_UNSUPPORTED";
 // Shared types for the FinSight mobile app.
 //
 // The `*Raw` interfaces model what the Spring Boot backend might return.
@@ -169,7 +170,7 @@ export interface JudgementHistoryItemRaw {
   gradingIssue?: "TARGET_MISMATCH" | "LEGACY_COMPARISON" | "PRICE_ADJUSTMENT" | null;
   indexName?: string | null; indexChangePercent?: number | null;
   conceptTerm?: string | null; conceptDefinition?: string | null; unavailableReason?: string | null;
-  relatedSymbol?: string | null; relatedSymbolName?: string | null; expectedResultDate?: string | null; expectedResultAt?: string | null;
+  relatedSymbol?: string | null; relatedSymbolName?: string | null; expectedResultDate?: string | null; expectedResultAt?: string | null; pendingReason?: PendingReason | null;
   headline?: string | null;
   verdict?: FeedbackVerdict | null;
   nextTip?: string | null;
@@ -201,7 +202,7 @@ export interface JudgementHistoryItem {
   gradingIssue?: "TARGET_MISMATCH" | "LEGACY_COMPARISON" | "PRICE_ADJUSTMENT" | null;
   indexName?: string | null; indexChangePercent?: number | null;
   conceptTerm?: string | null; conceptDefinition?: string | null; unavailableReason?: string | null;
-  relatedSymbol?: string | null; relatedSymbolName?: string | null; expectedResultDate?: string | null; expectedResultAt?: string | null;
+  relatedSymbol?: string | null; relatedSymbolName?: string | null; expectedResultDate?: string | null; expectedResultAt?: string | null; pendingReason?: PendingReason | null;
   headline?: string | null;
   verdict?: FeedbackVerdict | null;
   nextTip?: string | null;

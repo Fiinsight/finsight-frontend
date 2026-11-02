@@ -75,8 +75,8 @@ function JudgementDetailContent({item,navigation}:{item:import("../../types/api"
   const choiceName = item.choice === "UP" ? "상승" : item.choice === "DOWN" ? "하락" : "중립";
   const expectedDate = item.expectedResultDate ? resultDateLabel(item.expectedResultDate) : null;
   const delayed = !!item.expectedResultAt && Number.isFinite(Date.parse(item.expectedResultAt)) && Date.parse(item.expectedResultAt) <= Date.now();
-  const waitingHeadline = delayed ? "채점이 지연되고 있어요" : "아직 채점 전이에요";
-  const headline = verdict === "CORRECT" ? `${choiceName} 예측이 맞았어요`
+  const waitingHeadline = item.pendingReason ? result.label : delayed ? "채점이 지연되고 있어요" : "아직 채점 전이에요";
+  const headline = item.pendingReason === "EXCLUDED_QA" ? "테스트 기록" : verdict === "CORRECT" ? `${choiceName} 예측이 맞았어요`
     : verdict === "WRONG" ? `${choiceName} 예측과 달랐어요` : verdict === "PARTIAL" ? `${choiceName} 방향은 같았어요 · 소폭 변동`
     : reviewOnly ? "아직 채점되지 않았어요" : waitingHeadline;
   const tone = verdict === "CORRECT" ? "#ECFDF3" : verdict === "WRONG" ? "#FFF4ED" : "#F2F4F7";
@@ -108,7 +108,7 @@ function JudgementDetailContent({item,navigation}:{item:import("../../types/api"
           </View>
           {verdict ? <Text style={styles.muted}>{`${stockName || symbol || "판단 대상"} · ${judgementDate} → ${item.comparisonDate} 종가 비교`}</Text> : null}
           {verdict === "PARTIAL" ? <Text style={styles.muted}>변동 폭이 1% 이하인 결과예요.</Text> : null}
-          {result.pending ? <Text style={styles.muted}>{expectedDate ? `예정 비교일: ${expectedDate} · 장 마감 종가가 필요해요.` : "다음 거래일의 장 마감 종가가 필요해요."}</Text> : null}
+          {result.pending ? <Text style={styles.muted}>{item.pendingReason ? result.feedbackText : expectedDate ? `예정 비교일: ${expectedDate} · 장 마감 종가가 필요해요.` : "다음 거래일의 장 마감 종가가 필요해요."}</Text> : null}
           {verdict && item.indexChangePercent != null && item.indexName ? <View style={styles.marketFigures} accessibilityRole="summary" accessibilityLabel="종목과 같은 날 시장 등락률 비교">
             <Text style={styles.marketValue}>{stockName || symbol} {percent}</Text>
             <Text style={styles.marketValue}>같은 날 {item.indexName} {item.indexChangePercent >= 0 ? "+" : ""}{item.indexChangePercent.toFixed(2)}%</Text>
