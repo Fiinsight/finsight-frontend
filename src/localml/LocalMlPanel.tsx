@@ -80,6 +80,7 @@ export function LocalMlPanel({
   if (!enabled) return null;
   const rows = data?.results.filter((row) => request.kind !== "news" || Number(row.id) !== excludeNewsId) ?? [];
   const empty = !!data && rows.length === 0;
+  if (empty && !busy && !error) return null;
   return (
     <View style={styles.panel}>
       <Text style={styles.title}>{title}</Text>

@@ -119,3 +119,20 @@ test('market fallback numbers stay hidden and line prices never become fabricate
   payload = { fallback: true, points: [{ date: '2026-10-01', value: 100 }] };
   await assert.rejects(exports.getChartData('TEST'), { name: 'ChartFallbackError' });
 });
+
+
+function panelState(data, error=false, busy=false) {
+ let slot=0;const values=[data,error,busy,0];const react={createElement:(type,props,...children)=>({type,props,children}),useState:()=>[values[slot++],()=>{}],useEffect:()=>{}};const exports={};
+ vm.runInNewContext(ts.transpileModule(readFileSync(new URL('../localml/LocalMlPanel.tsx',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.React,esModuleInterop:true}}).outputText,{exports,require:name=>name==='react'?react:{Text:'Text',View:'View',Pressable:'Pressable',StyleSheet:{create:s=>s}}});
+ return exports.LocalMlPanel({request:{kind:'news',query:'금리'},search:async()=>{},excludeNewsId:1});
+}
+test('empty successful retrieval hides its whole section including an unconfigured index',()=>{
+ for(const status of ['INDEX_NOT_CONFIGURED','RULE_FALLBACK','DATA_UNAVAILABLE'])assert.equal(panelState({status,note:'INDEX_NOT_CONFIGURED',results:[]}),null);
+ assert.equal(panelState({results:[{id:'1',title:'current',evidence:'',score:1}]}),null);
+});
+test('loading and retryable failures stay visible rather than becoming a blank success',()=>{
+ assert.notEqual(panelState(null,false,true),null);assert.notEqual(panelState(null,true,false),null);
+});
+test('a valid similar-news result still renders its section',()=>{
+ assert.notEqual(panelState({status:'RULE_FALLBACK',results:[{id:'2',title:'금리',evidence:'기사 근거',score:1}]}),null);
+});
