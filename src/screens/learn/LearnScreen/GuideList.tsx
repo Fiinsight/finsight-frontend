@@ -178,13 +178,7 @@ export function GuideList({ focus, level }: { focus: LearningFocus; level: Learn
 
 const styles = StyleSheet.create({
   termLink: { color: colors.body, paddingVertical: 6, fontSize: typography.size.body, fontWeight: typography.weight.semibold, lineHeight: typography.lineHeight.compact },
-  card: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderWidth: 0.5,
-    borderRadius: radius.card,
-    padding: spacing.lg
-  },
+  card: { gap:spacing.sm },
   sectionTitle: {
     color: colors.text,
     fontSize: typography.size.subheading,
@@ -199,8 +193,8 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingHorizontal: 0,
     paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.surfaceMuted
+    borderBottomWidth: 0.5,
+    borderBottomColor: colors.border
   },
   rowLast: {
     borderBottomWidth: 0
@@ -209,7 +203,6 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: colors.surface,
     alignItems: "center",
     justifyContent: "center"
   },
