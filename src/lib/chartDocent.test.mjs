@@ -13,11 +13,11 @@ test('strongest point, descending order and minute identity',()=>{
  assert.deepEqual(Array.from(model.movesByDate(moves),x=>x.timestamp),[moves[2].timestamp,moves[1].timestamp,moves[0].timestamp]);
  assert.equal(model.moveDate('2026-10-07T11:05:00','MINUTE'),'2026-10-07T11:05:00');assert.equal(model.moveDate(moves[0].timestamp,'W'),'2026-10-07');
 });
-function harness() {
- let slot=0;const state=[],scrolled=[],navigated=[];const React={createElement:(type,props,...children)=>({type,props,children}),useCallback:f=>f,useEffect(){},useRef:value=>({current:value===null?{scrollTo:value=>scrolled.push(value)}:value}),useState:initial=>{const i=slot++;if(!(i in state))state[i]=initial===true?false:initial;return[state[i],value=>state[i]=value];}};
- const exports={};vm.runInNewContext(ts.transpileModule(readFileSync(new URL('../screens/chart/ChartScreen/index.tsx',import.meta.url),'utf8'),{compilerOptions:options}).outputText,{exports,React,require:name=>name.endsWith('/theme') ? theme : name==='react'?React:name==='react-native'?{SafeAreaView:'SafeAreaView',ScrollView:'ScrollView',Text:'Text',View:'View',TouchableOpacity:'TouchableOpacity',StyleSheet:{create:s=>s}}:name==='../../../lib/chartDocent'?model:name==='@react-navigation/native'?{useFocusEffect(){}}:name==='../../../lib/watchlist'?{initialChartSymbol,lastWatchlistKey}:name==='@tanstack/react-query'?{useQueryClient:()=>({}),useMutation:()=>({isPending:false}),useQuery:({queryKey})=>({data:queryKey[0]==='chart'?{symbol:'005930',period:'D',candles:[],minuteCandles:[],moveInsights:moves,relatedNews:[]}:[]})}:name.startsWith('./')?{[name.slice(2)]:name.slice(2)}:{}});
+function harness(fallback = false) {
+ let slot=0;const state=[],scrolled=[],navigated=[],retried=[];const React={createElement:(type,props,...children)=>({type,props,children}),useCallback:f=>f,useEffect(){},useRef:value=>({current:value===null?{scrollTo:value=>scrolled.push(value)}:value}),useState:initial=>{const i=slot++;if(!(i in state))state[i]=initial===true?false:initial;return[state[i],value=>state[i]=value];}};
+ const exports={};vm.runInNewContext(ts.transpileModule(readFileSync(new URL('../screens/chart/ChartScreen/index.tsx',import.meta.url),'utf8'),{compilerOptions:options}).outputText,{exports,React,require:name=>name.endsWith('/theme') ? theme : name==='react'?React:name==='react-native'?{SafeAreaView:'SafeAreaView',ScrollView:'ScrollView',Text:'Text',View:'View',TouchableOpacity:'TouchableOpacity',StyleSheet:{create:s=>s}}:name==='../../../lib/chartDocent'?model:name==='@react-navigation/native'?{useFocusEffect(){}}:name==='../../../lib/watchlist'?{initialChartSymbol,lastWatchlistKey}:name==='@tanstack/react-query'?{useQueryClient:()=>({}),useMutation:()=>({isPending:false}),useQuery:({queryKey})=>({data:queryKey[0]==='chart'?{symbol:'005930',period:'D',fallback,candles:[],minuteCandles:[],moveInsights:moves,relatedNews:[]}:[],refetch:()=>retried.push(queryKey[0])})}:name.startsWith('./')?{[name.slice(2)]:name.slice(2)}:{}});
  const visit=n=>Array.isArray(n)?n.flatMap(visit):n&&typeof n==='object'?[n,...visit(n.children)]:[];
- return {render(){slot=0;return visit(exports.ChartScreen({route:{params:{symbol:'005930'}},navigation:{navigate:(...args)=>navigated.push(args)}}));},scrolled,navigated};
+ return {render(){slot=0;return visit(exports.ChartScreen({route:{params:{symbol:'005930'}},navigation:{navigate:(...args)=>navigated.push(args)}}));},scrolled,navigated,retried};
 }
 test('entry auto-selects biggest, point list selects and scrolls, previous/next and news link work',()=>{
  const h=harness();let tree=h.render();let panel=tree.find(x=>x.type==='ChartDocentPanel');assert.equal(panel.props.insight,moves[1]);
@@ -34,4 +34,10 @@ test('markers reserve 44×36 targets with selection ring and no initial tooltip'
  const tree=visit(exports.CandlestickChart({candles:[{date:'2026-10-07',open:100,high:110,low:90,close:105}],selectedDate:'2026-10-07',moveMarkers:[{date:'2026-10-07',changePercent:5}]}));
  const marker=tree.find(x=>x.type==='Pressable'&&x.props.accessibilityLabel.includes('급등락'));
  assert.equal(marker.props.style[0].width,44);assert.equal(marker.props.style[0].height,36);assert.equal(marker.props.accessibilityState.selected,true);assert.equal(tree.filter(x=>x.type==='Circle').length,1);assert(!tree.some(x=>x.props?.style?.[0]?.width===130));
+});
+
+test('HTTP 200 fallback chart has a working retry button',()=>{
+ const h=harness(true);const tree=h.render();const button=tree.find(n=>n.type==='TouchableOpacity'&&n.children.some(c=>c?.children?.includes('차트 다시 시도')));
+ assert(button);button.props.onPress();assert.deepEqual(h.retried,['chart']);
+ assert(!harness(false).render().some(n=>n.type==='TouchableOpacity'&&n.children.some(c=>c?.children?.includes('차트 다시 시도'))));
 });

@@ -7,7 +7,7 @@ import { getMarketSummary } from "../../../lib/api";
 
 export function MarketPanel() {
   const isFocused = useIsFocused();
-  const { data, isError, isPending, refetch } = useQuery({
+  const { data, isError, isPending, isFetching, refetch } = useQuery({
     queryKey: ["market-summary"],
     queryFn: getMarketSummary,
     retry: 0,
@@ -18,6 +18,7 @@ export function MarketPanel() {
   });
 
   const market = data;
+  const needsRetry = isError || Boolean(market && [market.kospi, market.exchangeRate, market.baseRate].some(stat => stat.fallback));
 
   return (
     <View style={styles.panel}>
@@ -34,7 +35,7 @@ export function MarketPanel() {
       ) : (
         <Text style={styles.loading}>{isError ? "실제 시장 데이터를 불러오지 못했어요." : "시장 현황을 불러오는 중이에요."}</Text>
       )}
-      {isError ? <Pressable accessibilityRole="button" onPress={() => void refetch()}><Text style={styles.loading}>시장 현황 다시 시도</Text></Pressable> : null}
+      {needsRetry ? <Pressable accessibilityRole="button" disabled={isFetching} onPress={() => void refetch()}><Text style={styles.loading}>{isFetching ? "시장 현황을 다시 불러오는 중…" : "시장 현황 다시 시도"}</Text></Pressable> : null}
     </View>
   );
 }

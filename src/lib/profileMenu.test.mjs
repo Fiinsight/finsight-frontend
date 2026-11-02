@@ -51,7 +51,7 @@ test('logout and deletion warnings appear only in confirmation sheets and requir
   '../../../lib/onboarding': { getDefaultLearningPreferences: () => ({ level: 'beginner' }) },
   '../../../lib/api': { deleteAccount: async () => { deleted++; } }, './SettingsList': { SettingsList: 'SettingsList' }
  });
- const render = () => { cursor = 0; return nodes(screen.ProfileScreen({ session: {}, onLogout() { loggedOut++; } })); };
+ const render = () => { cursor = 0; return nodes(screen.ProfileScreen({ session: {nickname:"사용자", userId:1}, onLogout() { loggedOut++; } })); };
  let tree = render();
  assert(!tree.some(n => n.type === 'Text' && n.children.includes('FinSight v0.1.0')));
  assert(tree.filter(n => n.type === 'Modal').every(n => !n.props.visible));
@@ -80,4 +80,22 @@ test('app waits for Ionicons font loading before rendering icon screens', () => 
  assert(!render().some(n => n.type === 'Root')); assert.equal(fontMap, font);
  error = new Error('font unavailable'); assert(render().some(n => n.props?.accessibilityRole === 'alert'));
  loaded = true; error = null; assert(render().some(n => n.type === 'Root'));
+});
+
+test('expired login notice and authentication form share a full-width native layout', () => {
+ let index = 0;
+ const values = [false, false, true, null, true, true];
+ const app = compile('../../App.tsx', {
+  react: {...React, useEffect() {}, useState: () => [values[index++], () => {}]},
+  'react-native': native,
+  'expo-font': {useFonts: () => [true, null]},
+  '@expo/vector-icons': {Ionicons: {font: {}}},
+  '@tanstack/react-query': {QueryClient: class {}},
+  './src/screens/auth/AuthScreen': {AuthScreen: 'AuthScreen'}
+ });
+ const tree = app.default();
+ assert.equal(tree.type, 'View');
+ assert.equal(tree.props.style.flex, 1);
+ assert.equal(tree.children[0].props.accessibilityRole, 'alert');
+ assert.equal(tree.children[1].type, 'AuthScreen');
 });

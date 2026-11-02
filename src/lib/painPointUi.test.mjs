@@ -1,4 +1,5 @@
-import { withoutWatchlistNews } from './watchlist.ts';
+import { selectHomeNews, selectHomeNewsOverflow } from './watchlist.ts';
+import { kstDate } from './historyRecords.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import fs from 'node:fs';
@@ -6,7 +7,7 @@ import vm from 'node:vm';
 import ts from 'typescript';
 import { evidenceCandidates } from './learningPreferences.ts';
 const nodes = node => Array.isArray(node) ? node.flatMap(nodes) : node && typeof node === 'object' ? [node,...nodes(node.children)] : [];
-const react={ createElement:(type,props,...children)=>({type,props,children}) };
+const react={ createElement:(type,props,...children)=>typeof type==='function'?type(props):({type,props,children}) };
 test('evidence candidates quote two distinct article sentences without inventing facts', () => {
  const candidates=evidenceCandidates('매출은 2% 증가했다. 비용이 늘었다. 매출은 2% 증가했다. 전망은 미정이다.');
  assert.deepEqual(candidates,['매출은 2% 증가했다.','비용이 늘었다.']);
@@ -22,11 +23,11 @@ test('evidence candidates quote two distinct article sentences without inventing
 test('home keeps core article ids and never renders copy underneath cards', () => {
  for(const focus of ['news','decision','market','reflection']) {
   let cursor=0; const values=[]; const exports={};
-  const hooks={...react,useState(initial){const id=cursor++;values[id]??=initial;return[values[id],next=>{values[id]=next;}];}};
-  vm.runInNewContext(ts.transpileModule(fs.readFileSync(new URL('../screens/home/HomeScreen/NewsSection.tsx',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.React}}).outputText,{exports,React:hooks,require:name=>name==='react'?hooks:name==='@tanstack/react-query'?{useQuery:()=>({data:[{id:1},{id:2},{id:3}]})}:name.endsWith('/learningPreferences')?{}:name.endsWith('/watchlist')?{withoutWatchlistNews}:name.endsWith('/NewsCard')?{NewsCard:'NewsCard'}:{Pressable:'Pressable',Text:'Text',View:'View',StyleSheet:{create:v=>v}}});
+  const hooks={...react,useEffect(){},useState(initial){const id=cursor++;values[id]??=initial;return[values[id],next=>{values[id]=next;}];}};
+  vm.runInNewContext(ts.transpileModule(fs.readFileSync(new URL('../screens/home/HomeScreen/NewsSection.tsx',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.React}}).outputText,{exports,React:hooks,require:name=>name==='react'?hooks:name==='@tanstack/react-query'?{useQuery:()=>({data:[{id:1},{id:2},{id:3}]})}:name.endsWith('/learningPreferences')?{}:name.endsWith('/watchlist')?{selectHomeNews,selectHomeNewsOverflow}:name.endsWith('/historyRecords')?{kstDate}:name.endsWith('/NewsCard')?{NewsCard:'NewsCard'}:{Pressable:'Pressable',Text:'Text',View:'View',StyleSheet:{create:v=>v}}});
   const tree=nodes(exports.NewsSection({preferences:{focus,painPoint:'overload'},onSelectNews(){}}));
   assert.deepEqual(tree.filter(node=>node.type==='NewsCard').map(node=>node.props.news.id),[1,2,3]);
   assert(!tree.some(node=>node.type==='Text' && /판단해볼 만한|시장 지표와 함께|지난 판단과 비교|핵심 내용을 하나씩/.test(node.children.join(''))));
-  const toggle=tree.find(node=>node.props?.accessibilityLabel==='추가 뉴스 펼치기'); assert(toggle); assert.equal(toggle.props.accessibilityState.expanded,false);
+  assert.equal(tree.filter(node=>node.type==='Pressable').length,1); assert(tree.some(node=>node.type==='Text' && node.children.includes('뉴스 더 보기'))); assert(!JSON.stringify(tree).includes('개 선별'));
  }
 });

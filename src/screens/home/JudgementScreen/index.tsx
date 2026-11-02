@@ -1,3 +1,5 @@
+import { judgementArticleSummary } from "../../../lib/text";
+import { resultDateLabel } from "../../../lib/judgementResults";
 import { evidenceCandidates } from "../../../lib/learningPreferences";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -28,8 +30,10 @@ export function JudgementScreen({ route, navigation }: Props) {
   const setJudgementChoice = useAppStore((state) => state.setJudgementChoice);
   const setJudgementReason = useAppStore((state) => state.setJudgementReason);
   const clearJudgementDraft = useAppStore((state) => state.clearJudgementDraft);
+  const readingLevel = useAppStore((state) => state.readingLevelByNewsId[newsId]);
+  const [profileLevel,setProfileLevel] = useState("beginner");
   const [recommendEvidence, setRecommendEvidence] = useState(false);
-  useEffect(() => { void getLearningPreferences().then(value => setRecommendEvidence(value.painPoint === "evidence")); }, []);
+  useEffect(() => { void getLearningPreferences().then(value => { setRecommendEvidence(value.painPoint === "evidence"); setProfileLevel(value.level); }); }, []);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const { data, isError, isLoading, refetch } = useQuery({
@@ -40,7 +44,8 @@ export function JudgementScreen({ route, navigation }: Props) {
   });
 
   const target = data?.judgementTarget;
-  const symbol = target?.symbol;
+  const reviewOnly = data?.judgementReviewOnly === true;
+  const symbol = reviewOnly ? null : target?.symbol;
   const marketLabel = symbol === "KOSPI" ? "코스피" : symbol === "KOSDAQ" ? "코스닥" : null;
   const symbolLabel = marketLabel ?? (target?.name && target.name !== symbol ? `${target.name} 주가` : symbol ? `관련 종목(${symbol}) 주가` : "관련 기업이나 시장");
 
@@ -59,7 +64,7 @@ export function JudgementScreen({ route, navigation }: Props) {
       void queryClient.invalidateQueries({ queryKey: ["learning-progress"] });
       void queryClient.invalidateQueries({ queryKey: ["learning-recommendations"] });
       clearJudgementDraft(newsId);
-      navigation.navigate("Feedback", { newsId, ack });
+      navigation.navigate("Feedback", { newsId, judgementId: ack.judgementId });
     } catch (error) {
       // Real market/AI feedback can't exist yet at submit time either way —
       // but if the submission itself failed, the judgement was never saved,
@@ -75,20 +80,21 @@ export function JudgementScreen({ route, navigation }: Props) {
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView contentContainerStyle={styles.container}>
-          <Text style={styles.question}>{symbol ? `이 뉴스가 나온 뒤 다음 거래일 ${symbolLabel}는?` : "이 기사는 판단할 대상이 없어요"}</Text>
+          <Text style={styles.question}>{symbol ? `이 뉴스가 나온 뒤 다음 거래일 ${symbolLabel}의 방향은?` : reviewOnly ? "복습용 기사예요 · 최근 기사에서 판단해보세요" : "이 기사는 판단할 대상이 없어요"}</Text>
           <Text style={styles.subtitle}>{marketLabel ? "뉴스 내용을 바탕으로 지수 방향을 예측해보세요" : "뉴스 내용을 바탕으로 주가 방향을 예측해보세요"}</Text>
 
           {isLoading ? <Text style={styles.errorText}>뉴스를 불러오는 중이에요.</Text> : null}
           {isError || (!isLoading && !data) ? <Text style={styles.errorText}>실제 뉴스를 확인할 수 없어 판단을 저장할 수 없어요. 이전 화면에서 다시 시도해주세요.</Text> : null}
           {isError ? <Pressable accessibilityRole="button" onPress={() => void refetch()}><Text>뉴스 다시 시도</Text></Pressable> : null}
-          <Text style={styles.subtitle}>학습용 서비스이며 투자 권유가 아닙니다.</Text>
-          {data ? <NewsSummaryCard summary={data.summary} /> : null}
+          {data ? <NewsSummaryCard summary={judgementArticleSummary(data,readingLevel ?? profileLevel)} /> : null}
           {history.isError ? <Pressable accessibilityRole="button" onPress={() => void history.refetch()}><Text style={styles.errorText}>기존 판단을 확인하지 못했어요. 다시 시도</Text></Pressable> : null}
           {confirmed ? <Text style={styles.errorText}>이미 결과가 나온 판단이에요</Text> : existing ? <Text style={styles.subtitle}>저장된 판단을 수정할 수 있어요.</Text> : null}
-          <Text style={styles.subtitle}>다음 거래일 종가의 변화가 ±0.5% 이내면 중립으로 비교해요.</Text>
+          <Text style={styles.subtitle}>판단한 날이 거래일이면 당일 종가, 휴일이면 직전 거래일 종가가 기준이에요. 장중 판단도 당일 종가를 써요. 다음 거래일 종가와 비교하며 ±0.5% 이내면 중립이에요.</Text>
+          {data?.judgementBaselineDate && data.judgementComparisonDate ? <Text style={styles.subtitle}>기준 종가: {resultDateLabel(data.judgementBaselineDate)} · 예정 비교일: {resultDateLabel(data.judgementComparisonDate)} 장 마감</Text> : null}
           {symbol ? <DirectionChoices isIndex={!!marketLabel} disabled={confirmed} value={choice} onChange={(next) => { if (!confirmed) { setJudgementReason(newsId, reason); setJudgementChoice(newsId, next); } }} /> : null}
-          {symbol && data ? <ReasonInput recommended={recommendEvidence} candidates={evidenceCandidates(data.summary)} editable={!confirmed} value={reason} onChange={(text) => setJudgementReason(newsId, text)} /> : null}
+          {symbol && data ? <ReasonInput recommended={recommendEvidence} candidates={evidenceCandidates(judgementArticleSummary(data,readingLevel ?? profileLevel))} editable={!confirmed} value={reason} onChange={(text) => setJudgementReason(newsId, text)} /> : null}
 
+          <Text style={styles.subtitle}>학습용 서비스이며 투자 권유가 아닙니다.</Text>
           {submitError ? <Text style={styles.errorText}>{submitError}</Text> : null}
         </ScrollView>
       </KeyboardAvoidingView>

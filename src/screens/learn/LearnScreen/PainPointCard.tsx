@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getTodayBriefing, getNewsDetail } from '../../../lib/api';
 import { evidenceSentences, hasObservedNumber, learningSummary } from '../../../lib/learningActions';
 import type { LearningPainPoint } from '../../../lib/learningPreferences';
-import { colors, radius, spacing, typography } from '../../../theme';
+import { colors, spacing, typography } from '../../../theme';
 
 type Props = { painPoint: LearningPainPoint; ownerId: number | null; focused: boolean; onArticle: (id: number) => void; onHistory: (tab: 'judgements' | 'notes') => void };
 export function PainPointCard({ painPoint, ownerId, focused, onArticle, onHistory }: Props) {
@@ -42,10 +42,10 @@ export function PainPointCard({ painPoint, ownerId, focused, onArticle, onHistor
   </View>;
 }
 const styles = StyleSheet.create({
-  card: { backgroundColor: colors.surface, borderRadius: radius.card, borderWidth: 1, borderColor: colors.border, padding: spacing.lg, gap: spacing.sm },
+  card: { gap: spacing.sm },
   title: { color: colors.text, fontSize: typography.size.reading, fontWeight: typography.weight.bold, lineHeight: typography.lineHeight.body },
   body: { color: colors.body, fontSize: typography.size.reading, lineHeight: typography.lineHeight.body },
-  link: { color: colors.primary, fontSize: typography.size.reading, fontWeight: typography.weight.bold },
+  link: { color: colors.body, fontSize: typography.size.reading, fontWeight: typography.weight.bold },
   button: { minHeight: 44, justifyContent: 'center' },
-  option: { minHeight: 44, padding: spacing.md, backgroundColor: colors.primarySoft, borderRadius: radius.control }
+  option: { borderBottomWidth:0.5,borderBottomColor:colors.border,minHeight:44,paddingVertical:spacing.md }
 });

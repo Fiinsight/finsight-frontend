@@ -1,6 +1,7 @@
 import { resultDateLabel } from "../../../lib/judgementResults";
 import { useEffect, useState } from "react";
-import { getLearningPreferences } from "../../../lib/api";
+import { useQuery } from "@tanstack/react-query";
+import { getJudgementDetail, getLearningPreferences } from "../../../lib/api";
 import { CommonActions } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -23,10 +24,14 @@ const choiceLabel: Record<string, string> = {
 export function FeedbackScreen({ route, navigation }: Props) {
   const [promptMemo, setPromptMemo] = useState(false);
   useEffect(() => { void getLearningPreferences().then(value => setPromptMemo(value.painPoint === "reflection")); }, []);
-  const { ack } = route.params;
-  const resultDate=resultDateLabel(ack.expectedResultDate);
+  const { ack: initial, judgementId } = route.params;
+  const validId = Number.isSafeInteger(Number(judgementId)) && Number(judgementId) > 0;
+  const record = useQuery({ queryKey: ["judgement-detail", Number(judgementId)], queryFn: () => getJudgementDetail(Number(judgementId)), enabled: !initial && validId, retry: 0 });
+  const ack = initial ?? (record.data ? { newsId: record.data.newsId, choice: record.data.choice, message: "", expectedResultDate: record.data.expectedResultDate } : null);
+  const resultDate=resultDateLabel(ack?.expectedResultDate);
   const finish = () => navigation.getParent()?.dispatch(CommonActions.reset({ index: 0, routes: [{ name: "HomeTab", state: { index: 0, routes: [{ name: "Home" }] } }] }));
 
+  if (!ack) return <SafeAreaView style={styles.safeArea}><Text>{record.isLoading && validId ? "기록을 불러오는 중이에요" : "기록을 찾을 수 없어요"}</Text><Pressable onPress={() => navigation.getParent()?.navigate("HistoryTab", { screen: "History" })}><Text>기록 탭으로</Text></Pressable></SafeAreaView>;
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScreenTopBar title="판단 완료" onBack={finish} />
@@ -39,7 +44,6 @@ export function FeedbackScreen({ route, navigation }: Props) {
         <Text style={styles.message}>뉴스를 읽고 남긴 판단은 기록 탭에서 바로 확인할 수 있어요.</Text>
 
         {promptMemo ? <Pressable style={{ minHeight: 44, justifyContent: "center" }} accessibilityRole="button" accessibilityLabel="이 기사에 메모 남기기" onPress={() => navigation.navigate("NewsDetail", { newsId: route.params.newsId, openNotes: true })}><Text style={styles.noticeStrong}>메모 남기기</Text></Pressable> : null}
-        <Text style={styles.message}>학습용 서비스이며 투자 권유가 아닙니다.</Text>
         <View style={styles.noticeCard}>
           <Ionicons name="time-outline" size={18} color="#175CD3" />
           <Text style={styles.noticeText}>

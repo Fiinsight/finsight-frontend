@@ -37,26 +37,7 @@ const steps: Array<{ id: string; title: string; options: Option[] }> = [
       { label: "아직 정하지 않았어요", description: "핀사이트가 함께 찾아볼게요" },
     ],
   },
-  {
-    id: "difficulty",
-    title: "투자 소식을 접할 때\n가장 어려운 점은 무엇인가요?",
-    options: [
-      { label: "용어가 어려워요" },
-      { label: "정보가 너무 많아요" },
-      { label: "판단할 근거가 부족해요" },
-      { label: "기록하고 돌아보기 어려워요" },
-    ],
-  },
-  {
-    id: "goal",
-    title: "오늘 핀사이트에서\n어떤 습관을 시작해볼까요?",
-    options: [
-      { label: "뉴스 하나 읽기" },
-      { label: "기사 메모 남기고 복습하기" },
-      { label: "투자 판단 돌아보기" },
-      { label: "매일 5분 이어가기" },
-    ],
-  },
+
 ];
 
 type Props = { onComplete: (answers: OnboardingAnswer[]) => void; allowSkip?: boolean; saving?: boolean; initialAnswers?: OnboardingAnswer[]; onClose?: () => void; onLogin?: () => void };
@@ -101,8 +82,8 @@ export function OnboardingScreen({ onComplete, allowSkip = true, saving = false,
     });
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <LinearGradient colors={["#071B4A", "#0B3D91", "#1769D1"]} locations={[0, 0.52, 1]} style={styles.background}>
+    <LinearGradient colors={["#071B4A", "#0B3D91", "#1769D1"]} locations={[0, 0.52, 1]} style={styles.background}>
+      <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.topBar}>
             <Text style={styles.brand}>FinSight</Text>
@@ -148,7 +129,7 @@ export function OnboardingScreen({ onComplete, allowSkip = true, saving = false,
           )}
 
           <View style={styles.footer}>
-            {!isWelcome ? <Pressable accessibilityRole="button" accessibilityLabel="이전 질문" disabled={saving || (!allowSkip && step === 1)} onPress={() => setStep((current) => current - 1)} style={styles.skipButton}><Text style={styles.skipText}>이전</Text></Pressable> : null}
+            {!isWelcome && step > 1 ? <Pressable accessibilityRole="button" accessibilityLabel="이전 질문" disabled={saving || (!allowSkip && step === 1)} onPress={() => setStep((current) => current - 1)} style={styles.skipButton}><Text style={styles.skipText}>이전</Text></Pressable> : null}
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={isWelcome ? "시작하기" : isLast ? "저장" : "다음 질문"}
@@ -166,11 +147,11 @@ export function OnboardingScreen({ onComplete, allowSkip = true, saving = false,
             </Pressable> : null}
           </View>
         </ScrollView>
-      </LinearGradient>
-    </SafeAreaView>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#071B4A" }, background: { flex: 1 }, content: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 14, paddingBottom: 16 }, closeButton: { width: 44, height: 44, alignItems: "center", justifyContent: "center" }, topBar: { height: 44, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }, brand: { color: "#FFFFFF", fontFamily: "Avenir Next", fontSize: 18, fontWeight: "700", letterSpacing: -0.4 }, stepText: { color: "rgba(255,255,255,0.75)", fontSize: 11, fontWeight: "700" }, welcomeArea: { flex: 1, justifyContent: "center", paddingBottom: 76 }, welcomeCopy: { width: "100%", paddingHorizontal: 3, alignItems: "center" }, welcomeTitle: { color: "#FFFFFF", fontFamily: "Pretendard", fontSize: 31, lineHeight: 42, fontWeight: "700", letterSpacing: -1.1, textAlign: "center" }, welcomeBody: { color: "rgba(255,255,255,0.78)", fontFamily: "Pretendard", fontSize: 15, lineHeight: 26, fontWeight: "500", letterSpacing: -0.2, textAlign: "center", marginTop: 28 }, questionArea: { flexGrow: 1, paddingTop: 30 }, progressArea: { height: 62, justifyContent: "flex-end", marginBottom: 32 }, progressFill: { position: "absolute", left: 0, bottom: 5, height: 5, backgroundColor: "#FFFFFF", borderRadius: 3 }, progressTrack: { height: 42, position: "relative", justifyContent: "flex-end", overflow: "visible", borderBottomWidth: 5, borderBottomColor: "rgba(255,255,255,0.35)" }, progressMascot: { position: "absolute", bottom: -3, left: 0, width: 46, height: 40, zIndex: 2 }, questionTitle: { color: "#FFFFFF", fontSize: 26, lineHeight: 35, fontWeight: "800", letterSpacing: -0.9, marginBottom: 24 }, options: { gap: 10 }, option: { minHeight: 66, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "rgba(255,255,255,0.65)", borderRadius: 16, paddingHorizontal: 18, flexDirection: "row", alignItems: "center" }, optionActive: { borderColor: "#FFFFFF", backgroundColor: "#DCE8FF", shadowColor: "#0C64C9", shadowOpacity: 0.18, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 2 }, optionCopy: { flex: 1 }, optionLabel: { color: "#25304A", fontSize: 13, fontWeight: "700" }, optionLabelActive: { color: "#294DB6" }, optionDescription: { color: "#475467", fontSize: 11, marginTop: 4 }, check: { width: 24, color: "#D7DDE9", fontSize: 20, fontWeight: "800", textAlign: "center" }, checkActive: { color: "#294DB6" }, footer: { gap: 12, paddingTop: 16 }, primaryButton: { height: 54, borderRadius: 15, borderWidth: 1, borderColor: "#FFFFFF", backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center", shadowColor: "#0C64C9", shadowOpacity: 0.25, shadowRadius: 12, shadowOffset: { width: 0, height: 7 }, elevation: 3 }, primaryButtonDisabled: { borderColor: "rgba(255,255,255,0.32)", backgroundColor: "rgba(255,255,255,0.22)", shadowOpacity: 0, elevation: 0 }, primaryButtonText: { color: "#0B3D91", fontSize: 15, fontWeight: "800" }, primaryButtonTextDisabled: { color: "rgba(255,255,255,0.78)" }, skipButton: { minHeight: 44, justifyContent: "center", alignItems: "center", paddingVertical: 3 }, skipText: { color: "rgba(255,255,255,0.8)", fontSize: 12, fontWeight: "700" },
+  safeArea: { flex: 1 }, background: { flex: 1 }, content: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 14, paddingBottom: 16 }, closeButton: { width: 44, height: 44, alignItems: "center", justifyContent: "center" }, topBar: { height: 44, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }, brand: { color: "#FFFFFF", fontFamily: "Avenir Next", fontSize: 18, fontWeight: "700", letterSpacing: -0.4 }, stepText: { color: "rgba(255,255,255,0.75)", fontSize: 11, fontWeight: "700" }, welcomeArea: { flex: 1, justifyContent: "center", paddingBottom: 76 }, welcomeCopy: { width: "100%", paddingHorizontal: 3, alignItems: "center" }, welcomeTitle: { color: "#FFFFFF", fontFamily: "Pretendard", fontSize: 31, lineHeight: 42, fontWeight: "700", letterSpacing: -1.1, textAlign: "center" }, welcomeBody: { color: "rgba(255,255,255,0.78)", fontFamily: "Pretendard", fontSize: 15, lineHeight: 26, fontWeight: "500", letterSpacing: -0.2, textAlign: "center", marginTop: 28 }, questionArea: { flexGrow: 1, paddingTop: 30 }, progressArea: { height: 62, justifyContent: "flex-end", marginBottom: 32 }, progressFill: { position: "absolute", left: 0, bottom: 5, height: 5, backgroundColor: "#FFFFFF", borderRadius: 3 }, progressTrack: { height: 42, position: "relative", justifyContent: "flex-end", overflow: "visible", borderBottomWidth: 5, borderBottomColor: "rgba(255,255,255,0.35)" }, progressMascot: { position: "absolute", bottom: -3, left: 0, width: 46, height: 40, zIndex: 2 }, questionTitle: { color: "#FFFFFF", fontSize: 26, lineHeight: 35, fontWeight: "800", letterSpacing: -0.9, marginBottom: 24 }, options: { gap: 10 }, option: { minHeight: 66, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "rgba(255,255,255,0.65)", borderRadius: 16, paddingHorizontal: 18, flexDirection: "row", alignItems: "center" }, optionActive: { borderColor: "#FFFFFF", backgroundColor: "#DCE8FF", shadowColor: "#0C64C9", shadowOpacity: 0.18, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 2 }, optionCopy: { flex: 1 }, optionLabel: { color: "#25304A", fontSize: 13, fontWeight: "700" }, optionLabelActive: { color: "#294DB6" }, optionDescription: { color: "#475467", fontSize: 11, marginTop: 4 }, check: { width: 24, color: "#D7DDE9", fontSize: 20, fontWeight: "800", textAlign: "center" }, checkActive: { color: "#294DB6" }, footer: { gap: 12, paddingTop: 16 }, primaryButton: { height: 54, borderRadius: 15, borderWidth: 1, borderColor: "#FFFFFF", backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center", shadowColor: "#0C64C9", shadowOpacity: 0.25, shadowRadius: 12, shadowOffset: { width: 0, height: 7 }, elevation: 3 }, primaryButtonDisabled: { borderColor: "rgba(255,255,255,0.32)", backgroundColor: "rgba(255,255,255,0.22)", shadowOpacity: 0, elevation: 0 }, primaryButtonText: { color: "#0B3D91", fontSize: 15, fontWeight: "800" }, primaryButtonTextDisabled: { color: "rgba(255,255,255,0.78)" }, skipButton: { minHeight: 44, justifyContent: "center", alignItems: "center", paddingVertical: 3 }, skipText: { color: "rgba(255,255,255,0.8)", fontSize: 12, fontWeight: "700" },
 });

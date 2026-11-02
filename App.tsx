@@ -6,13 +6,15 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useFonts } from "expo-font";
 import { useEffect, useState } from "react";
-import { StyleSheet, Text } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { RootNavigator } from "./src/navigation/RootNavigator";
 import { OnboardingScreen } from "./src/screens/onboarding/OnboardingScreen";
 import { AuthScreen } from "./src/screens/auth/AuthScreen";
 import { clearAuthSession, loadAuthSession, saveAuthSession, setAuthFailureHandler, type AuthSession } from "./src/lib/auth";
 import { clearOnboardingProfile, loadOnboardingProfile, saveOnboardingProfile } from "./src/lib/onboarding";
 import { getCurrentUser, syncOnboardingProfile } from "./src/lib/api";
+import { syncReadingProgress } from "./src/lib/readingProgress";
+import { isKakaoWebCallback } from "./src/lib/kakaoCallback";
 import { useAppStore } from "./src/store/useAppStore";
 
 function isAuthFailure(error: unknown) {
@@ -73,7 +75,9 @@ export default function App() {
         } else {
           setSession(storedSession);
         }
-        setOnboardingDoneThisRun(Boolean(onboardingProfile));
+        setOnboardingDoneThisRun(Boolean(onboardingProfile) || isKakaoWebCallback(
+          typeof window !== "undefined" ? window.location?.href : undefined
+        ));
       })
       .catch(() => {
         setSession(null);
@@ -85,6 +89,7 @@ export default function App() {
 
   useEffect(() => {
     if (!session) return;
+    void syncReadingProgress(session.userId).catch(() => { /* Retry when reading data is next requested. */ });
     void syncOnboardingProfile(onboardingDoneThisRun).catch(() => {
       // The local profile remains available and can be retried on the next launch.
     });
@@ -109,7 +114,7 @@ export default function App() {
       <OnboardingScreen
         onLogin={() => { setSignupFirst(false); setOnboardingDoneThisRun(true); }}
         onComplete={(answers) => {
-          setSignupFirst(true);
+          setSignupFirst(false);
           setOnboardingDoneThisRun(true);
           void saveOnboardingProfile(answers);
         }}
@@ -118,19 +123,19 @@ export default function App() {
   }
 
   if (!session) {
-    return <>
+    return <View style={{ flex: 1 }}>
       {authExpired ? <Text accessibilityRole="alert" style={styles.authNotice}>로그인이 만료됐거나 인증이 거절됐어요. 다시 로그인해 주세요.</Text> : null}
       <AuthScreen initialSignup={signupFirst} onAuthenticated={() => void loadAuthSession().then((value) => { setSession(value); setAuthExpired(false); })} />
-    </>;
+    </View>;
   }
 
   return (
     <QueryClientProvider client={queryClient}>
       <NavigationContainer<RootTabParamList> linking={{ prefixes: [], config: { screens: {
-        HomeTab: { screens: { Home: "", NewsDetail: "news/:newsId", Judgement: "news/:newsId/judgement", Feedback: "feedback" } },
-        ChartTab: { screens: { Chart: "chart", NewsDetail: "chart/news/:newsId", Judgement: "chart/news/:newsId/judgement", Feedback: "chart/feedback" } },
-        HistoryTab: { screens: { History: "history", JudgementDetail: "history/detail", NewsDetail: "history/news/:newsId", Judgement: "history/news/:newsId/judgement", Feedback: "history/feedback" } },
-        LearnTab: { screens: { Learn: "learn", NewsDetail: "learn/news/:newsId", Judgement: "learn/news/:newsId/judgement", Feedback: "learn/feedback" } },
+        HomeTab: { screens: { Home: "", NewsDetail: "news/:newsId", Judgement: "news/:newsId/judgement", Feedback: { path: "news/:newsId/judgement/done", parse: { newsId: Number, judgementId: Number } } } },
+        ChartTab: { screens: { Chart: "chart", NewsDetail: "chart/news/:newsId", Judgement: "chart/news/:newsId/judgement", Feedback: { path: "chart/news/:newsId/judgement/done", parse: { newsId: Number, judgementId: Number } } } },
+        HistoryTab: { screens: { History: "history", JudgementDetail: { path: "history/judgements/:judgementId", parse: { judgementId: Number } }, NewsDetail: "history/news/:newsId", Judgement: "history/news/:newsId/judgement", Feedback: { path: "history/news/:newsId/judgement/done", parse: { newsId: Number, judgementId: Number } } } },
+        LearnTab: { screens: { Learn: "learn", NewsDetail: "learn/news/:newsId", Judgement: "learn/news/:newsId/judgement", Feedback: { path: "learn/news/:newsId/judgement/done", parse: { newsId: Number, judgementId: Number } } } },
         ProfileTab: "profile"
       } } }} documentTitle={{ formatter: (options) => `${options?.title ?? "핀사이트"} · 핀사이트` }}>
         <StatusBar style="dark" />

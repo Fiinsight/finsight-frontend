@@ -1,3 +1,4 @@
+import {cachedNewsSearch} from "../lib/relatedNewsCache";
 import { toRelativeTimeKorean } from "../lib/format";
 import React, { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -61,7 +62,7 @@ export function LocalMlPanel({
       };
     }
     setBusy(true);
-    search(JSON.parse(key) as LocalMlQuery)
+    cachedNewsSearch(search,JSON.parse(key) as LocalMlQuery,excludeNewsId,retry>0)
       .then((result) => {
         if (active) setData(result);
       })
@@ -74,11 +75,12 @@ export function LocalMlPanel({
     return () => {
       active = false;
     };
-  }, [key, search, enabled, retry]);
+  }, [key, search, enabled, retry, excludeNewsId]);
 
   if (!enabled) return null;
   const rows = data?.results.filter((row) => request.kind !== "news" || Number(row.id) !== excludeNewsId) ?? [];
   const empty = !!data && rows.length === 0;
+  if (empty && !busy && !error) return null;
   return (
     <View style={styles.panel}>
       <Text style={styles.title}>{title}</Text>

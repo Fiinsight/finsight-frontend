@@ -1,3 +1,5 @@
+import {RequestWaitNotice} from "../../../components/RequestWaitNotice";
+import type { ComponentRef } from "react";
 import { colors, radius, spacing, typography } from "../../../theme";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -118,7 +120,7 @@ export function ChartScreen({ route, navigation }: Props) {
   const chart = data?.symbol === selectedSymbol && data.period === period && (period !== "MINUTE" || data.intervalMinutes === minuteInterval) ? data : undefined;
   const displayCandles = chart && period === "MINUTE" && chart.minuteCandles.length > 0 ? chart.minuteCandles : chart?.candles ?? [];
 
-  const scroll = useRef<ScrollView>(null);
+  const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const docentY = useRef(0);
   const moves = movesByDate(chart?.moveInsights ?? []);
   const selected = moves.find(item => item.timestamp === selectedInsight?.timestamp) ?? strongestMove(moves);
@@ -154,6 +156,7 @@ export function ChartScreen({ route, navigation }: Props) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView ref={scroll} contentContainerStyle={styles.container}>
+        <RequestWaitNotice loading={isFetching} onRetry={() => {void client.cancelQueries({queryKey:["chart"]}).then(()=>refetchChart());}} onCancel={()=>{void client.cancelQueries({queryKey:["chart"]});}} />
         <StockSearchBar value={query} onChange={setQuery} />
         {searchTerm ? (
           <View style={styles.searchResults}>
@@ -174,7 +177,7 @@ export function ChartScreen({ route, navigation }: Props) {
           onToggleWatchlist={()=>toggle.mutate({symbol:selectedSymbol,name:stockName,wasWatched:watched})} />
         {watchlistError ? <Text accessibilityRole="alert" style={{color:"#B42318"}}>{watchlistError}</Text> : null}
         {watchlist.isError ? <TouchableOpacity accessibilityRole="button" style={styles.retryTarget} onPress={()=>void watchlist.refetch()}><Text style={{color:"#B42318"}}>관심종목을 불러오지 못했어요 · 다시 시도</Text></TouchableOpacity> : null}
-        {chartError || stocksError ? <TouchableOpacity accessibilityRole="button" style={styles.retryTarget} onPress={() => { if (chartError) void refetchChart(); if (stocksError) void refetchStocks(); }}><Text style={styles.refreshText}>차트 다시 시도</Text></TouchableOpacity> : null}
+        {chartError || chart?.fallback || stocksError ? <TouchableOpacity accessibilityRole="button" disabled={isFetching} style={styles.retryTarget} onPress={() => { if (chartError || chart?.fallback) void refetchChart(); if (stocksError) void refetchStocks(); }}><Text style={styles.refreshText}>차트 다시 시도</Text></TouchableOpacity> : null}
         <View style={styles.periodRow}>
           <TouchableOpacity accessibilityRole="tab" accessibilityLabel="일봉" accessibilityState={{ selected: period === "D" }} style={[styles.periodTab, period === "D" && styles.periodTabActive]} onPress={() => setPeriod("D")}>
             <Text style={[styles.periodText, period === "D" && styles.periodTextActive]}>일봉</Text>

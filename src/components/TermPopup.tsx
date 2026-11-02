@@ -37,7 +37,7 @@ export function TermPopup({ visible, term, newsId, level = "normal", onClose }: 
             <View style={styles.block}><Text style={styles.blockLabel}>시장 영향</Text><Text style={styles.blockBody}>{data.marketImpact.replace(/\bNEUTRAL\b/g, "중립적 영향").replace(/\bPOSITIVE\b/g, "긍정적 영향").replace(/\bNEGATIVE\b/g, "부정적 영향")}</Text></View>
           </> : null}
 
-          <TouchableOpacity style={styles.closeButton} onPress={onClose} activeOpacity={0.85}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="용어 설명 닫기" style={styles.closeButton} onPress={onClose} activeOpacity={0.85}>
             <Text style={styles.closeButtonText}>닫기</Text>
           </TouchableOpacity>
         </Pressable>

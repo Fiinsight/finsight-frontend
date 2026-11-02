@@ -1,3 +1,4 @@
+import { defaultNickname } from "./nickname";
 import { scheduleJudgementReminder } from "./judgementNotifications";
 import { getDefaultLearningPreferences, goalTypeFor, type GoalType, type LearningPainPoint } from "./learningPreferences";
 import { getJudgementViewLog, getReadingLog } from "./readingProgress";
@@ -54,10 +55,9 @@ export function getApiErrorMessage(error: any, fallback: string): string {
   return fallback;
 }
 
-// Wi-Fi가 바뀌면 맥의 LAN IP도 바뀌어서 .env에 IP를 박아두는 방식은 매번 깨진다.
-// Expo 개발 서버는 자신이 지금 물려 있는 실제 호스트를 hostUri로 넘겨주므로,
-// 그 호스트를 그대로 재사용하면(포트만 8080으로 바꿔서) IP가 바뀌어도 항상 맞다.
+// 배포 주소를 우선하고, 설정이 없으면 Expo 개발 서버의 호스트를 사용한다.
 function resolveApiBaseUrl(): string {
+  if (process.env.EXPO_PUBLIC_API_BASE_URL) return process.env.EXPO_PUBLIC_API_BASE_URL;
   const webHost = typeof window !== "undefined" ? window.location?.hostname : undefined;
   if (webHost) {
     return `http://${webHost}:8080/api`;
@@ -67,12 +67,13 @@ function resolveApiBaseUrl(): string {
   if (host) {
     return `http://${host}:8080/api`;
   }
-  return process.env.EXPO_PUBLIC_API_BASE_URL || "http://localhost:8080/api";
+  return "http://localhost:8080/api";
 }
 
 export const api = axios.create({
   baseURL: resolveApiBaseUrl(),
-  timeout: 8000,
+  // Bound normal requests; liveness guidance handles cold starts.
+  timeout: 60_000,
   // localtunnel shows a browser warning page unless this header is present.
   // Keep it limited to the free development tunnel; production hosts do not need it.
   headers: process.env.EXPO_PUBLIC_API_BASE_URL?.includes(".loca.lt")
@@ -82,7 +83,7 @@ export const api = axios.create({
 
 api.interceptors.request.use(async (config) => {
   const token = getActiveAccessToken() ?? (await loadAuthSession())?.accessToken;
-  if (token) config.headers.set("Authorization", `Bearer ${token}`);
+  if (token && !config.headers.has("Authorization")) config.headers.set("Authorization", `Bearer ${token}`);
   return config;
 });
 
@@ -98,8 +99,8 @@ export interface AuthResponse {
   nickname: string;
 }
 
-export async function signup(email: string, password: string, nickname: string): Promise<AuthResponse> {
-  const { data } = await api.post<AuthResponse>("/auth/signup", { email, password, nickname });
+export async function signup(email: string, password: string): Promise<AuthResponse> {
+  const { data } = await api.post<AuthResponse>("/auth/signup", { email, password, nickname: defaultNickname(email) });
   return data;
 }
 
@@ -116,12 +117,16 @@ export async function getCurrentUser(): Promise<AuthResponse> {
 export async function deleteAccount(): Promise<void> { await api.delete("/auth/me"); }
 
 export async function getKakaoLoginUrl(redirectUri?: string): Promise<string> {
-  const { data } = await api.get<{ authorizationUrl: string }>("/auth/kakao/url", { params: redirectUri ? { redirectUri } : undefined });
+  const { data } = await api.get<{ authorizationUrl: string }>("/auth/kakao/url", { params: redirectUri ? { redirectUri } : undefined, timeout: 30_000 });
   return data.authorizationUrl;
 }
 
+export async function getKakaoConnectionStatus(): Promise<void> {
+  await api.get("/auth/kakao/status", { timeout: 15_000 });
+}
+
 export async function loginWithKakao(code: string): Promise<AuthResponse> {
-  const { data } = await api.post<AuthResponse>("/auth/kakao", { code });
+  const { data } = await api.post<AuthResponse>("/auth/kakao", { code }, { timeout: 45_000 });
   return data;
 }
 
@@ -171,8 +176,8 @@ export async function getLearningPreferences(): Promise<LearningPreferences> {
 // Briefings
 // ---------------------------------------------------------------------------
 
-export async function getTodayBriefing(): Promise<NewsBrief[]> {
-  const { data } = await api.get<NewsBrief[]>("/briefings/today");
+export async function getTodayBriefing(context?: {signal?: AbortSignal}): Promise<NewsBrief[]> {
+  const { data } = await api.get<NewsBrief[]>("/briefings/today", {signal:context?.signal});
   return data;
 }
 
@@ -215,6 +220,8 @@ function normalizeNewsDetail(raw: NewsDetailRaw, fallbackId: number): NewsDetail
     raw.summary ?? (levels.normal ? `${levels.normal.slice(0, 80)}${levels.normal.length > 80 ? "…" : ""}` : raw.importanceReason ?? "");
 
   return {
+    judgementReviewOnly: raw.judgementReviewOnly !== false,
+    judgementBaselineDate: raw.judgementBaselineDate, judgementComparisonDate: raw.judgementComparisonDate,
     judgementTarget: raw.judgementTarget ?? (raw.relatedSymbol ? { symbol: raw.relatedSymbol, name: raw.relatedSymbolName ?? raw.relatedSymbol, unavailableReason: null } : { symbol: null, name: null, unavailableReason: "판단 대상이 정해지지 않은 기사예요" }),
     id: raw.id ?? fallbackId,
     title: raw.title ?? "",
@@ -234,8 +241,8 @@ function normalizeNewsDetail(raw: NewsDetailRaw, fallbackId: number): NewsDetail
   };
 }
 
-export async function getNewsDetail(id: number): Promise<NewsDetail> {
-  const { data } = await api.get<NewsDetailRaw>(`/news/${id}`);
+export async function getNewsDetail(id: number, signal?: AbortSignal): Promise<NewsDetail> {
+  const { data } = await api.get<NewsDetailRaw>(`/news/${id}`, {signal});
   return normalizeNewsDetail(data, id);
 }
 
@@ -282,7 +289,8 @@ function normalizeHistoryItem(raw: JudgementHistoryItemRaw, index: number): Judg
   const choice = raw.choice ?? "NEUTRAL";
 
   return {
-    gradingIssue: raw.gradingIssue === "TARGET_MISMATCH" || raw.gradingIssue === "LEGACY_COMPARISON" ? raw.gradingIssue : null,
+    pendingReason: ["NOT_DUE","PRICE_UNAVAILABLE","EXCLUDED_QA","CALENDAR_UNSUPPORTED"].includes(raw.pendingReason ?? "") ? raw.pendingReason : null,
+    gradingIssue: raw.gradingIssue === "TARGET_MISMATCH" || raw.gradingIssue === "LEGACY_COMPARISON" || raw.gradingIssue === "PRICE_ADJUSTMENT" ? raw.gradingIssue : null,
     indexName: raw.indexName ?? null, indexChangePercent: typeof raw.indexChangePercent === "number" && Number.isFinite(raw.indexChangePercent) ? raw.indexChangePercent : null,
     conceptTerm: raw.conceptTerm ?? null, conceptDefinition: raw.conceptDefinition ?? null, unavailableReason: raw.unavailableReason ?? null,
     relatedSymbol: raw.relatedSymbol ?? null, relatedSymbolName: raw.relatedSymbolName ?? null,
@@ -290,6 +298,7 @@ function normalizeHistoryItem(raw: JudgementHistoryItemRaw, index: number): Judg
     headline: raw.headline ?? null,
     verdict: ["CORRECT", "WRONG", "PARTIAL"].includes(raw.verdict ?? "") ? raw.verdict : null,
     nextTip: raw.nextTip ?? null,
+    feedbackMode: raw.feedbackMode === "RULE" || raw.feedbackMode === "LLM" ? raw.feedbackMode : null,
     feedbackGeneratedAt: raw.feedbackGeneratedAt ?? null,
     feedbackReasons: Array.isArray(raw.reasons) && raw.reasons.length >= 2 && raw.reasons.length <= 3 && raw.reasons.every(reason => typeof reason === "object" && reason !== null && typeof reason.title === "string" && reason.title.trim() && typeof reason.detail === "string" && reason.detail.trim()) ? raw.reasons as import("../types/api").FeedbackReason[] : null,
     reasonText: raw.reasonText ?? "",
@@ -302,7 +311,7 @@ function normalizeHistoryItem(raw: JudgementHistoryItemRaw, index: number): Judg
     comparisonDate: raw.comparisonDate ?? null,
     judgementClose: typeof raw.judgementClose === "number" && Number.isFinite(raw.judgementClose) ? raw.judgementClose : null,
     comparisonClose: typeof raw.comparisonClose === "number" && Number.isFinite(raw.comparisonClose) ? raw.comparisonClose : null,
-    correct: judgementResult({ choice, actualDirection, actualChangePercent, comparisonDate: raw.comparisonDate, gradingIssue: raw.gradingIssue }).correct,
+    correct: judgementResult({ choice, actualDirection, actualChangePercent, feedbackText: raw.feedbackText, comparisonDate: raw.comparisonDate, gradingIssue: raw.gradingIssue }).correct,
     feedbackText: raw.feedbackText ?? "",
     reasons: raw.reasonText ? raw.reasonText.split(/\n+/).map(reason => reason.trim()).filter(Boolean) : Array.isArray(raw.reasons) ? raw.reasons.filter((reason): reason is string => typeof reason === "string" && reason.trim().length > 0) : (raw.reasonText?.split(/\n+/).map((reason) => reason.trim()).filter(Boolean) ?? []),
     judgedAt: raw.judgedAt ?? raw.createdAt ?? ""
@@ -383,7 +392,7 @@ function normalizeMarketStat(
 ): MarketStat {
   const rawValue = raw?.value ?? raw?.currentValue;
   if (!raw || raw.fallback || rawValue == null || String(rawValue).trim() === "" || !Number.isFinite(Number(rawValue))) {
-    return { label, value: "확인할 수 없음", change: "변동 정보 없음", tone: "flat" };
+    return { label, value: "확인할 수 없음", change: "변동 정보 없음", tone: "flat", fallback: true };
   }
   const value = changeFormat === "point" ? `${Number(rawValue).toFixed(2)}%` : String(rawValue);
   const changeNumber = typeof raw.changePercent === "number" ? raw.changePercent : undefined;
@@ -407,8 +416,8 @@ function normalizeMarketStat(
   return { label, value, change, tone };
 }
 
-export async function getMarketSummary(): Promise<MarketSummary> {
-  const { data } = await api.get<MarketSummaryRaw>("/market/summary");
+export async function getMarketSummary(context?: {signal?: AbortSignal}): Promise<MarketSummary> {
+  const { data } = await api.get<MarketSummaryRaw>("/market/summary", {signal:context?.signal});
 
   return {
     kospi: normalizeMarketStat("KOSPI", data.kospi),
@@ -497,7 +506,7 @@ function normalizeChartData(raw: ChartDataRaw, symbol: string): ChartData {
 }
 
 export async function getChartData(symbol: string, period: "D" | "W" | "MINUTE" = "D", interval = 5, signal?: AbortSignal): Promise<ChartData> {
-  const { data } = await api.get<ChartDataRaw>(`/charts/${symbol}`, { params: { period, ...(period === "MINUTE" ? { interval } : {}) }, signal, timeout: period === "MINUTE" ? 90_000 : 180_000 });
+  const { data } = await api.get<ChartDataRaw>(`/charts/${symbol}`, { params: { period, ...(period === "MINUTE" ? { interval } : {}) }, signal, timeout: 60_000 });
   return normalizeChartData(data, symbol);
 }
 
@@ -528,7 +537,7 @@ export interface NewsLesson {
   glossary: Array<{ term: string; definition: string }>;
   question: { term: string; prompt: string; options: string[] } | null;
 }
-export interface LearningAnswer { correct: boolean; definition: string; message: string; termDefinition?: string }
+export interface LearningAnswer { practice?: boolean; correct: boolean; definition: string; message: string; termDefinition?: string }
 export interface LearningReview { newsId: number; title: string; term: string; definition: string; level: ReadingLevel; answeredAt: string }
 export async function getNewsLesson(newsId: number, level: ReadingLevel, term?: string): Promise<NewsLesson> {
   return (await api.get<NewsLesson>(`/learning/news/${newsId}`, { params: { level, ...(term ? { term } : {}) } })).data;
@@ -586,4 +595,18 @@ export async function getLearningRecommendations(): Promise<{items: LearningReco
   const from = kstDate(new Date(Date.now() - 30 * 86400000));
   const ids = [...new Set(Object.entries(log).filter(([day]) => day >= from && day <= today).sort(([a],[b]) => a.localeCompare(b)).flatMap(([,values]) => values))].slice(-200);
   return (await api.get("/learning/recommendations", {params: {readNewsIds: ids.join(",")}})).data;
+}
+
+export async function updateNickname(nickname: string): Promise<string> { return (await api.put<{nickname:string}>("/profile/nickname", {nickname})).data.nickname; }
+
+
+// An explicit token keeps a local import attached to its original account during account switches.
+export async function getServerReadingLog(token: string): Promise<import("./readingProgressModel").DailyReadLog> {
+  return (await api.get("/learning/reads", {headers:{Authorization:`Bearer ${token}`}})).data;
+}
+export async function mergeServerReadingLog(token: string, deviceId: string, days: import("./readingProgressModel").DailyReadLog): Promise<import("./readingProgressModel").DailyReadLog> {
+  return (await api.post("/learning/reads/merge", {deviceId,days}, {headers:{Authorization:`Bearer ${token}`}})).data;
+}
+export async function putServerReading(token: string, newsId: number): Promise<import("./readingProgressModel").DailyReadLog> {
+  return (await api.put(`/learning/reads/${newsId}`, undefined, {headers:{Authorization:`Bearer ${token}`}})).data;
 }

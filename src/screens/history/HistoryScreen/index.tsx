@@ -1,7 +1,7 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { getLearningPreferences, getArticleNotesRange, getJudgementHistoryPage } from "../../../lib/api";
 import { loadAuthSession } from "../../../lib/auth";
@@ -21,7 +21,8 @@ export function HistoryScreen({ navigation, route }: Props) {
   const focused = useIsFocused();
   const [seen, setSeen] = useState<Record<string, string>>({});
   const [tab, setTab] = useState<"judgements" | "notes">(route.params?.initialTab ?? "judgements");
-  useEffect(() => { void getLearningPreferences().then(value => { if (!route.params?.initialTab && value.painPoint === "reflection") setTab("notes"); }); }, [route.params?.initialTab]);
+  const tabChosen = useRef(false);
+  useEffect(() => { let active = true; void getLearningPreferences().then(value => { if (active && !tabChosen.current && !route.params?.initialTab && value.painPoint === "reflection") setTab("notes"); }); return () => { active = false; }; }, [route.params?.initialTab]);
   useEffect(() => { if (route.params?.initialTab) setTab(route.params.initialTab); }, [route.params?.initialTab]);
   const [today, setToday] = useState(() => kstDate(new Date()));
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -70,11 +71,11 @@ export function HistoryScreen({ navigation, route }: Props) {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
         <TabScreenHeader title="기록" subtitle="출석과 투자 판단을 함께 돌아보세요" />
-        <AttendanceCard selectedDate={selectedDate} onSelectDate={(day) => setSelectedDate((current) => current === day ? null : day)} />
+        <AttendanceCard compact selectedDate={selectedDate} onSelectDate={(day) => setSelectedDate((current) => current === day ? null : day)} />
         <View style={styles.tabs} accessibilityRole="tablist">
           {(["judgements", "notes"] as const).map((value) => (
             <Pressable key={value} accessibilityRole="tab" accessibilityState={{ selected: tab === value }}
-              onPress={() => setTab(value)} style={[styles.tab, tab === value && styles.selectedTab]}>
+              onPress={() => { tabChosen.current = true; setTab(value); }} style={[styles.tab, tab === value && styles.selectedTab]}>
               <Text style={[styles.tabText, tab === value && styles.selectedTabText]}>{value === "judgements" ? "판단 기록" : "기사 메모"}</Text>
             </Pressable>
           ))}
@@ -94,9 +95,9 @@ export function HistoryScreen({ navigation, route }: Props) {
           const summary = judgementSummary(group.items);
           return <View key={group.key} style={styles.group}>
             <View style={styles.groupHeader}><Text style={styles.sectionTitle}>{group.label}</Text>
-              <Text style={styles.groupSummary}>{`판단 ${summary.total}건 · 적중 ${summary.total - summary.pending - summary.unavailable - summary.legacy === 0 ? "-" : summary.hits} · 결과 대기 ${summary.pending}${summary.unavailable + summary.legacy ? ` · 기사 복습 ${summary.unavailable + summary.legacy}` : ""}`}</Text>
+              <Text style={styles.groupSummary}>{`판단 ${summary.total}건 · 적중 ${summary.total - summary.pending - summary.unavailable - summary.legacy === 0 ? "-" : summary.hits} · 결과 대기 ${summary.pending}${summary.unavailable + summary.legacy ? ` · 기사 복습 ${summary.unavailable + summary.legacy}` : ""}${summary.testRecords ? ` · 테스트 기록 ${summary.testRecords}` : ""}`}</Text>
             </View>
-            {group.items.map((item) => <HistoryItem key={item.id} item={item} unread={hasUnreadFeedback(item, seen)} onPress={() => navigation.navigate("JudgementDetail", { item })} />)}
+            {group.items.map((item) => <HistoryItem key={item.id} item={item} unread={hasUnreadFeedback(item, seen)} onPress={() => navigation.navigate("JudgementDetail", { judgementId: item.id })} />)}
           </View>;
         }) : noteGroups.map((group) => <View key={group.key} style={styles.group}>
           <View style={styles.groupHeader}><Text style={styles.sectionTitle}>{group.label}</Text><Text style={styles.groupSummary}>메모 {group.items.length}건</Text></View>

@@ -79,7 +79,7 @@ export function ChartCard({ candles, period, minuteInterval, moveInsights = [], 
               <Text style={styles.noteText}>색상은 지나간 가격 움직임을 보여주는 표시예요. 다음 가격이 오를지 내릴지를 보장하는 신호는 아니에요.</Text>
             </View>
 
-            <TouchableOpacity style={styles.closeButton} onPress={() => setShowGuide(false)} activeOpacity={0.85}>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="차트 읽는 법 닫기" style={styles.closeButton} onPress={() => setShowGuide(false)} activeOpacity={0.85}>
               <Text style={styles.closeButtonText}>확인했어요</Text>
             </TouchableOpacity>
           </Pressable>

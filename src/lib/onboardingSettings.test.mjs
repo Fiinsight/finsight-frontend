@@ -23,6 +23,7 @@ test('settings start at question one, restore answers, and end with save', () =>
   const visit = node => Array.isArray(node) ? node.flatMap(visit) : node && typeof node === 'object' ? [node, ...visit(node.children)] : [];
   let nodes = visit(render());
   assert.equal(values[0], 1);
+  assert(!nodes.some(node => node.props?.accessibilityLabel === '이전 질문'));
   const scroll = nodes.find(node => node.type === 'ScrollView');
   assert.equal(scroll.props.contentContainerStyle.flexGrow, 1);
   assert.equal(scroll.props.contentContainerStyle.flex, undefined);
@@ -33,7 +34,7 @@ test('settings start at question one, restore answers, and end with save', () =>
   assert.equal(selected[0].props.accessibilityLabel, '직접 투자하고 있어요');
   nodes.find(node => node.props?.accessibilityLabel === '학습 설정 닫기').props.onPress();
   assert(closed);
-  values[0] = 5;
+  values[0] = 3;
   nodes = visit(render());
   assert(nodes.some(node => node.type === 'Text' && node.children.includes('저장')));
   assert(!nodes.some(node => node.type === 'Text' && node.children.includes('시작하기')));

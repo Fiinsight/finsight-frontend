@@ -9,7 +9,7 @@ const compile=file=>ts.transpileModule(fs.readFileSync(new URL(file,import.meta.
 function helpers(){const exports={};vm.runInNewContext(compile('./judgementResults.ts'),{exports,require:()=>history,Date,Intl});return exports;}
 const helpersApi=helpers();
 const record={id:1,newsId:10,newsTitle:'원문 기사',choice:'UP',reasonText:'원문 수치를 비교했어요',actualDirection:'UP',actualChangePercent:1.2,comparisonDate:'2026-10-13',feedbackGeneratedAt:'2026-10-13T07:00:00Z',feedbackText:'결과',reasons:[],correct:true,judgedAt:'2026-10-12T05:00:00Z',relatedSymbolName:'삼성전자'};
-const React={createElement:(type,props,...children)=>({type,props,children}),useState:value=>[typeof value==="function"?value():value,()=>{}],useCallback:f=>f,useEffect(){}};
+const React={createElement:(type,props,...children)=>({type,props,children}),useState:value=>[typeof value==="function"?value():value,()=>{}],useCallback:f=>f,useEffect(){},useRef:value=>({current:value})};
 const nodes=n=>Array.isArray(n)?n.flatMap(nodes):n&&typeof n==='object'?[n,...nodes(n.children)]:[];
 const native={View:'View',Text:'Text',SafeAreaView:'SafeAreaView',ScrollView:'ScrollView',Pressable:'Pressable',TouchableOpacity:'TouchableOpacity',StyleSheet:{create:s=>s}};
 test('unseen results exclude seen, pending, legacy and unavailable records',()=>{
@@ -32,7 +32,7 @@ test('home shows an unseen result or delayed notice and opens the actual history
  let value={unseen:[record],pending:null,refresh(){}};const navigation=[];const exports={};
  vm.runInNewContext(compile('../screens/home/HomeScreen/index.tsx'),{exports,React,require:name=>name.endsWith('/theme') ? theme : name==='react'?React:name==='react-native'?native:name==='@react-navigation/native'?{useFocusEffect(){}}:name==='@tanstack/react-query'?{useQuery:()=>({data:[],isPending:false})}:name.endsWith('/JudgementResultsProvider')?{useJudgementResults:()=>value}:name.endsWith('/JudgementResultBanner')?{JudgementResultBanner:'Banner'}:name.endsWith('/learningPreferences')?{getDefaultLearningPreferences:()=>({})}:{HomeHeader:'HomeHeader',MarketPanel:'MarketPanel',NewsSection:'NewsSection'}});
  const render=()=>nodes(exports.HomeScreen({navigation:{getParent:()=>({navigate:(...args)=>navigation.push(args)})}}));
- let banner=render().find(n=>n.type==='Banner');assert(banner);assert.equal(banner.props.pending,false);banner.props.onPress();assert.equal(navigation[0][0],'HistoryTab');assert.equal(navigation[0][1].params.item.id,1);
+ let banner=render().find(n=>n.type==='Banner');assert(banner);assert.equal(banner.props.pending,false);banner.props.onPress();assert.equal(navigation[0][0],'HistoryTab');assert.equal(navigation[0][1].params.judgementId,1);
  value={...value,unseen:[],pending:record};banner=render().find(n=>n.type==='Banner');assert.equal(banner.props.pending,true);
  value={...value,pending:null};assert(!render().some(n=>n.type==='Banner'));
 });
@@ -85,4 +85,29 @@ test('denied notification permission leaves the setting off and the serial queue
  assert.equal(await exports.judgementNotificationsEnabled(8),false);
  granted=true;await exports.setJudgementNotificationsEnabled(8,true);assert.equal(await exports.judgementNotificationsEnabled(8),true);
  await assert.rejects(exports.scheduleJudgementReminder(8,{newsId:1,expectedResultDate:'bad'}));
+});
+
+test('late learning preferences never replace a manually chosen history tab', async () => {
+ for (const choose of [false, true]) {
+  const values = [], effects = [], chosen = {current:false}; let slot = 0, resolvePreferences;
+  const hooks = {...React, useRef:()=>chosen, useEffect:fn=>effects.push(fn), useState:initial=>{
+   const i=slot++; if(!(i in values)) values[i]=typeof initial==='function'?initial():initial;
+   return [values[i],next=>{values[i]=next;}];
+  }};
+  const exports={};
+  vm.runInNewContext(compile('../screens/history/HistoryScreen/index.tsx'),{exports,React:hooks,require:name=>name.endsWith('/theme')?theme:name==='react'?hooks:name==='react-native'?native:name==='@react-navigation/native'?{useFocusEffect(){},useIsFocused:()=>true}:name==='@tanstack/react-query'?{useInfiniteQuery:()=>({data:{pages:[]},isError:false,isLoading:false})}:name.endsWith('/historyRecords')?history:name.endsWith('/api')?{getLearningPreferences:()=>new Promise(resolve=>{resolvePreferences=resolve;})}:{AttendanceCard:'AttendanceCard',TabScreenHeader:'Header',HistoryItem:'HistoryItem'}});
+  const render=()=>{slot=0;return nodes(exports.HistoryScreen({route:{params:{}},navigation:{}}));};
+  const tree=render(); effects.slice().forEach(effect=>effect());
+  if(choose) tree.find(node=>node.type==='Pressable'&&nodes(node).some(child=>child.type==='Text'&&child.children.includes('판단 기록'))).props.onPress();
+  resolvePreferences({painPoint:'reflection'}); await new Promise(setImmediate);
+  const words=render().filter(node=>node.type==='Text').flatMap(node=>node.children).join(' ');
+  assert(words.includes(choose?'최근 판단부터 보여드려요. 이전 기록을 더 불러올 수 있어요.':'최근 7일 메모부터 보여드려요.'));
+ }
+});
+
+
+test('QA and unsupported calendar rows never start delayed-result polling',()=>{
+ const base={...record,actualDirection:null,expectedResultAt:'2026-10-13T06:40:00Z'};
+ for(const pendingReason of ['EXCLUDED_QA','CALENDAR_UNSUPPORTED'])assert.equal(helpersApi.overdueJudgement([{...base,pendingReason}],Date.parse('2026-10-14T00:00:00Z')),null);
+ assert.equal(helpersApi.overdueJudgement([{...base,pendingReason:'PRICE_UNAVAILABLE'}],Date.parse('2026-10-14T00:00:00Z')).id,1);
 });

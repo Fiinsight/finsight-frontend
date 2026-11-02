@@ -1,3 +1,4 @@
+import { reshuffleQuizOptions } from './quizOptions.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
@@ -7,21 +8,22 @@ import ts from 'typescript';
 function render(correct, mode = 'EXCERPT', hasQuestion = true) {
   const create = (type, props) => ({ type, props, children: props?.children });
   const Value = class { setValue() {} };
-  let reset = false, reviewOpened = false;
+  let reset = false, reviewOpened = false, refreshed = false;
+  let stateSlot = 0;
   const exports = {};
   const source = readFileSync(new URL('../screens/home/NewsDetailScreen/LearningPanel.tsx', import.meta.url), 'utf8');
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText, {
     exports, require: name => name === 'react/jsx-runtime' ? { jsx: create, jsxs: create, Fragment: 'Fragment' }
-      : name === 'react' ? { useRef: value => ({ current: value }), useState: () => [1, () => {}] }
+      : name.endsWith('/quizOptions') ? {reshuffleQuizOptions} : name === 'react' ? { useRef: value => ({ current: value }), useState: initial => [stateSlot++ === 0 ? 1 : initial, () => {}] }
       : name === 'react-native' ? { Animated: { Value, View: 'AnimatedView' }, Pressable: 'Pressable', Text: 'Text', View: 'View', StyleSheet: { create: s => s } }
       : name === '@tanstack/react-query' ? {
-        useQueryClient: () => ({}), useQuery: () => ({ data: { mode, glossary: [], summary: '', question: hasQuestion ? { term: '금리', prompt: '질문', options: ['정답', '오답', '다른 오답'] } : null } }),
+        useQueryClient: () => ({}), useQuery: () => ({ refetch: () => { refreshed = true; }, isFetching: false, data: { mode, glossary: [], summary: '', question: hasQuestion ? { term: '금리', prompt: '질문', options: ['정답', '오답', '다른 오답'] } : null } }),
         useMutation: () => ({ data: { correct, definition: correct ? '오답' : '정답', message: '이 개념의 숙련도 추정에 반영했어요', termDefinition: '돈을 빌릴 때 내는 이자의 비율이에요' }, reset: () => { reset = true; } })
       } : {}
   });
   const tree = exports.LearningPanel({ newsId: 1, level: 'normal', onTermPress() {}, onReviewPress() { reviewOpened = true; } });
   const visit = node => Array.isArray(node) ? node.flatMap(visit) : node && typeof node === 'object' ? [node, ...visit(node.children)] : [];
-  return { nodes: visit(tree), reset: () => reset, reviewOpened: () => reviewOpened };
+  return { nodes: visit(tree), reset: () => reset, reviewOpened: () => reviewOpened, refreshed: () => refreshed };
 }
 
 test('quiz locks answered options and marks chosen right/wrong plus the correct option', () => {
@@ -51,7 +53,7 @@ test('excerpt disclosure is visible only for excerpts', () => {
   const labels = mode => render(true, mode).nodes.filter(node => node.type === 'Text').flatMap(node => node.children ?? []);
   assert(labels('EXCERPT').includes('원문에서 핵심 문장을 골라 보여드려요'));
   assert(!labels('REWRITTEN').includes('원문에서 핵심 문장을 골라 보여드려요'));
-  assert(labels('REWRITTEN').includes('핵심 사실과 비교 기준을 확인해보세요.'));
+  assert(labels('REWRITTEN').includes('AI가 수준에 맞게 다시 썼어요'));
 });
 
 test('an article without an eligible concept explains the absent quiz', () => {
@@ -59,3 +61,12 @@ test('an article without an eligible concept explains the absent quiz', () => {
   assert(labels.includes('이 기사는 퀴즈로 낼 개념이 없어요'));
   assert(!labels.includes('오늘의 퀴즈'));
 });
+
+ test('an unavailable reading aid can be retried without hiding the quiz', () => {
+  const screen = render(true, 'UNAVAILABLE');
+  const retry = screen.nodes.find(n => n.props?.accessibilityLabel === '읽기 설명 다시 불러오기');
+  assert(retry);
+  retry.props.onPress();
+  assert(screen.refreshed());
+  assert(screen.nodes.some(n => n.type === 'Text' && n.children === '오늘의 퀴즈'));
+ });

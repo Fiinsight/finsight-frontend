@@ -16,12 +16,24 @@ import { markFeedbackSeen } from "../../lib/feedbackSeen";
 type Props = NativeStackScreenProps<HistoryStackParamList, "JudgementDetail">;
 
 export function JudgementDetailScreen({ route, navigation }: Props) {
-  const focused = useIsFocused();
   const initial = route.params.item;
-  const detailQuery = useQuery({ queryKey: ["judgement-detail", initial.id], queryFn: ({ signal }) => getJudgementDetail(initial.id, signal),
-    enabled: Number.isSafeInteger(initial.id) && initial.id > 0, retry: 0, staleTime: 60_000,
-    refetchInterval: query => focused && !(query.state.data?.actualDirection ?? initial.actualDirection) ? 60_000 : false });
-  const item = Number.isSafeInteger(detailQuery.data?.id) && detailQuery.data?.id === initial.id ? detailQuery.data : initial;
+  const rawId = route.params.judgementId ?? initial?.id;
+  const id = Number(rawId);
+  const valid = /^[1-9]\d*$/.test(String(rawId)) && Number.isSafeInteger(id);
+  const focused = useIsFocused();
+  const detailQuery = useQuery({ queryKey: ["judgement-detail", id], queryFn: ({ signal }) => getJudgementDetail(id, signal),
+    enabled: valid, retry: 0, staleTime: 60_000,
+    refetchInterval: query => focused && !query.state.data?.actualDirection ? 60_000 : false });
+  const item = detailQuery.data?.id === id ? detailQuery.data : initial?.id === id ? initial : undefined;
+  if (!valid || detailQuery.isError || !item) return <SafeAreaView style={styles.safeArea}>
+    <Text>{valid && detailQuery.isLoading ? "기록을 불러오는 중이에요" : "기록을 찾을 수 없어요"}</Text>
+    <TouchableOpacity accessibilityRole="button" onPress={() => navigation.navigate("History")}><Text>기록 탭으로</Text></TouchableOpacity>
+  </SafeAreaView>;
+  return <JudgementDetailContent item={item} navigation={navigation} />;
+}
+
+function JudgementDetailContent({item,navigation}:{item:import("../../types/api").JudgementHistoryItem;navigation:Props["navigation"]}) {
+  const focused = useIsFocused();
   const client = useQueryClient();
   useEffect(() => {
     if (focused) void recordJudgementView(item.id).then(() => client.invalidateQueries({ queryKey: ["learning-progress"] }));
@@ -63,8 +75,8 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
   const choiceName = item.choice === "UP" ? "상승" : item.choice === "DOWN" ? "하락" : "중립";
   const expectedDate = item.expectedResultDate ? resultDateLabel(item.expectedResultDate) : null;
   const delayed = !!item.expectedResultAt && Number.isFinite(Date.parse(item.expectedResultAt)) && Date.parse(item.expectedResultAt) <= Date.now();
-  const waitingHeadline = delayed ? "채점이 지연되고 있어요" : "아직 채점 전이에요";
-  const headline = verdict === "CORRECT" ? `${choiceName} 예측이 맞았어요`
+  const waitingHeadline = item.pendingReason ? result.label : delayed ? "채점이 지연되고 있어요" : "아직 채점 전이에요";
+  const headline = item.pendingReason === "EXCLUDED_QA" ? "테스트 기록" : verdict === "CORRECT" ? `${choiceName} 예측이 맞았어요`
     : verdict === "WRONG" ? `${choiceName} 예측과 달랐어요` : verdict === "PARTIAL" ? `${choiceName} 방향은 같았어요 · 소폭 변동`
     : reviewOnly ? "아직 채점되지 않았어요" : waitingHeadline;
   const tone = verdict === "CORRECT" ? "#ECFDF3" : verdict === "WRONG" ? "#FFF4ED" : "#F2F4F7";
@@ -81,7 +93,8 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
-        <ScreenTopBar title="판단 기록" onBack={() => navigation.goBack()} />
+        {result.example ? <Text style={styles.muted}>예시 · 실제 적중 통계에서 제외해요</Text> : null}
+      <ScreenTopBar title="판단 기록" onBack={() => navigation.goBack()} />
 
         <Text style={styles.eyebrow}>판단 기록 상세</Text>
         <Text style={styles.title}>{item.newsTitle}</Text>
@@ -95,15 +108,16 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
           </View>
           {verdict ? <Text style={styles.muted}>{`${stockName || symbol || "판단 대상"} · ${judgementDate} → ${item.comparisonDate} 종가 비교`}</Text> : null}
           {verdict === "PARTIAL" ? <Text style={styles.muted}>변동 폭이 1% 이하인 결과예요.</Text> : null}
-          {result.pending ? <Text style={styles.muted}>{expectedDate ? `예정 비교일: ${expectedDate} · 장 마감 종가가 필요해요.` : "다음 거래일의 장 마감 종가가 필요해요."}</Text> : null}
+          {result.pending ? <Text style={styles.muted}>{item.pendingReason ? result.feedbackText : expectedDate ? `예정 비교일: ${expectedDate} · 장 마감 종가가 필요해요.` : "다음 거래일의 장 마감 종가가 필요해요."}</Text> : null}
           {verdict && item.indexChangePercent != null && item.indexName ? <View style={styles.marketFigures} accessibilityRole="summary" accessibilityLabel="종목과 같은 날 시장 등락률 비교">
             <Text style={styles.marketValue}>{stockName || symbol} {percent}</Text>
             <Text style={styles.marketValue}>같은 날 {item.indexName} {item.indexChangePercent >= 0 ? "+" : ""}{item.indexChangePercent.toFixed(2)}%</Text>
           </View> : null}
+          {item.gradingIssue === "PRICE_ADJUSTMENT" ? <Text style={styles.muted}>{item.unavailableReason || "가격 조정 확인 필요"}</Text> : null}
           {reviewOnly ? <Text style={styles.muted}>{item.unavailableReason || (result.legacy ? "당일 가격으로 비교한 기록이라 다음 거래일 적중 통계에는 포함하지 않아요." : "비교할 가격이 없어 적중 여부 대신 기사 내용으로 복습해요.")}</Text> : null}
         </View>
-        {detailQuery.isError ? <TouchableOpacity accessibilityRole="button" accessibilityLabel="판단 결과 다시 시도" onPress={() => void detailQuery.refetch()}><Text style={styles.back}>최신 결과 다시 시도</Text></TouchableOpacity> : null}
         <View style={styles.card}>
+          {!result.pending ? <Text style={styles.muted}>{item.feedbackMode === "LLM" ? "AI가 기사와 판단 근거를 바탕으로 설명했어요" : item.feedbackMode === "RULE" ? "기사와 가격을 바탕으로 규칙에 따라 설명해요" : "이 기록의 설명 생성 방식은 확인되지 않았어요"}</Text> : null}
           <Text style={styles.sectionTitle}>내 근거 점검</Text>
           {item.reasons.length > 0 ? item.reasons.map((reason, index) => (
             <View key={`${reason}-${index}`} style={styles.reasonRow}>

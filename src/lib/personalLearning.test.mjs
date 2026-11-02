@@ -1,3 +1,4 @@
+import { reshuffleQuizOptions } from './quizOptions.ts';
 import * as theme from '../theme/index.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -16,9 +17,9 @@ const visit = (node) => Array.isArray(node) ? node.flatMap(visit) : node && type
 
 test('reading panel shows provenance and sends the selected answer to server grading', async () => {
   let mutation, submitted; const invalidated=[];
-  const react = { createElement: (type, props, ...children) => ({ type, props, children }), useState: () => [0, () => {}], useRef: value => ({ current: value }) };
+  const react = { createElement: (type, props, ...children) => ({ type, props, children }), useState: value => [value, () => {}], useRef: value => ({ current: value }) };
   const exports = compile('../screens/home/NewsDetailScreen/LearningPanel.tsx', { React: react, require: (name) =>
-    name.endsWith('/theme') ? theme : name === 'react' ? react : name === '@tanstack/react-query' ? {
+    name.endsWith('/theme') ? theme : name.endsWith('/quizOptions') ? {reshuffleQuizOptions} : name === 'react' ? react : name === '@tanstack/react-query' ? {
       useQuery: () => ({ data: { mode: 'EXCERPT', summary: '12.5% 증가했다.', glossary: [], question: { term: '환율', prompt: '정의는?', options: ['정의1', '정의2'] } } }),
       useQueryClient: () => ({ invalidateQueries: (value) => { invalidated.push(value.queryKey[0]); } }),
       useMutation: (options) => { mutation = options; return { mutate: (index) => { submitted = index; }, data: { correct: false, definition: '통화 교환 비율', message: '복습 저장' } }; }
@@ -76,7 +77,7 @@ test('learning focus callbacks run without invoking hooks inside an effect', () 
 });
 
 test('profile updates reading level only after successful server persistence', async () => {
-  const values = ['analyst', null, 0, false, false, null, true, false, ''];
+  const values = ['사용자','사용자',false,'analyst', null, 0, false, false, null, true, false, ''];
   let cursor = 0, fail = true, requested;
   const react = { createElement: (type, props, ...children) => ({ type, props, children }), useEffect() {}, useState: (initial) => {
     const index = cursor++;
@@ -92,18 +93,18 @@ test('profile updates reading level only after successful server persistence', a
     if (name.endsWith('/api')) return { setDefaultReadingLevel: async (level) => { requested = level; if (fail) throw new Error('offline'); } };
     return {};
   } });
-  const render = () => { cursor = 0; return visit(screen.ProfileScreen({ session: {}, onLogout() {} })); };
+  const render = () => { cursor = 0; return visit(screen.ProfileScreen({ session: {nickname:"사용자", userId:1}, onLogout() {} })); };
   render().find((node) => node.type === 'Pressable' && visit(node.children).filter((n) => n.type === 'Text').flatMap((n) => n.children).join(' ').includes('초보자용')).props.onPress();
   await new Promise(setImmediate);
   assert.equal(requested, 'beginner');
-  assert.equal(values[0], 'analyst');
-  assert.match(values[8], /저장하지 못했습니다/);
+  assert.equal(values[3], 'analyst');
+  assert.match(values[11], /저장하지 못했습니다/);
   fail = false;
   render().find((node) => node.type === 'Pressable' && visit(node.children).filter((n) => n.type === 'Text').flatMap((n) => n.children).join(' ').includes('초보자용')).props.onPress();
   await new Promise(setImmediate);
-  assert.equal(values[0], 'beginner');
-  assert.equal(values[6], false);
-  assert.match(values[8], /저장했어요/);
+  assert.equal(values[3], 'beginner');
+  assert.equal(values[9], false);
+  assert.match(values[11], /저장했어요/);
 });
 
 test('recommendation request forwards only this device owner recent reading IDs', async () => {

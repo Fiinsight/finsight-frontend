@@ -1,53 +1,67 @@
-import { getDefaultLearningPreferences, type LearningPreferences } from "../../../lib/learningPreferences";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { NewsCard } from "../../../components/NewsCard";
 import { getMoreBriefing, getTodayBriefing } from "../../../lib/api";
 import type { NewsBrief } from "../../../types/api";
-import { withoutWatchlistNews } from "../../../lib/watchlist";
+import { kstDate } from "../../../lib/historyRecords";
+import { selectHomeNews, selectHomeNewsOverflow } from "../../../lib/watchlist";
 
 interface NewsSectionProps {
-  preferences?: LearningPreferences;
   onSelectNews: (newsId: number) => void;
-  excludedIds?: number[];
+  watchedNews?: NewsBrief[];
 }
 
-export function NewsSection({ onSelectNews, preferences = getDefaultLearningPreferences(), excludedIds=[] }: NewsSectionProps) {
+export function NewsSection({ onSelectNews, watchedNews = [] }: NewsSectionProps) {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["today-briefing"],
     queryFn: getTodayBriefing,
     retry: 0,
     staleTime: 60_000
   });
+  const [today, setToday] = useState(kstDate(new Date()));
+  useEffect(() => {
+    const now = new Date();
+    const day = kstDate(now);
+    if (day !== today) { setToday(day); return; }
+    const midnight = new Date(`${day}T00:00:00+09:00`).getTime() + 86_400_000;
+    const timer = setTimeout(() => setToday(kstDate(new Date())), midnight - now.getTime());
+    return () => clearTimeout(timer);
+  }, [today]);
+  const briefingKey = `${today}:${(data ?? []).map(item => item.id).join(",")}`;
+  return <NewsFeed key={briefingKey} data={data} watchedNews={watchedNews} onSelectNews={onSelectNews} isLoading={isLoading} isError={isError} refetch={refetch} />;
+}
 
-  const [expanded, setExpanded] = useState(false);
+// A changed briefing remounts the feed, so an old page request cannot populate it.
+function NewsFeed({ data, watchedNews = [], onSelectNews, isLoading, isError, refetch }: NewsSectionProps & {
+  data?: NewsBrief[];
+  isLoading: boolean;
+  isError: boolean;
+  refetch: () => unknown;
+}) {
   const [olderNews, setOlderNews] = useState<NewsBrief[]>([]);
   const [nextPage, setNextPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
-  const [moreError, setMoreError] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-
-  const news = withoutWatchlistNews(data ?? [],excludedIds);
-  // Never present demo copy as if it were live market news. An empty state is
-  // more honest and makes a failed collection/API connection visible.
-  const isRealData = !!data;
+  const [moreError, setMoreError] = useState(false);
+  const seen = new Set<number>();
+  const news = [...selectHomeNews(data ?? [], watchedNews), ...olderNews].filter(item => {
+    if (seen.has(item.id)) return false;
+    seen.add(item.id);
+    return true;
+  });
+  const canLoadMore = !isLoading && !isError && !!data?.length && hasMore;
 
   const handleLoadMore = async () => {
-    if (!isRealData || loadingMore || !hasMore) return;
+    if (!canLoadMore || loadingMore) return;
     setLoadingMore(true);
     setMoreError(false);
+    if (nextPage === 0) setOlderNews(selectHomeNewsOverflow(data ?? [], watchedNews));
     try {
-      const more = await getMoreBriefing(nextPage);
-      if (more.length === 0) {
-        setHasMore(false);
-      } else {
-        setOlderNews((prev) => [...prev, ...more]);
-        setNextPage((p) => p + 1);
-        if (more.length < 10) {
-          setHasMore(false);
-        }
-      }
+      const more = await getMoreBriefing(nextPage, 10);
+      setOlderNews(previous => [...previous, ...more]);
+      setNextPage(page => page + 1);
+      setHasMore(more.length === 10);
     } catch {
       setMoreError(true);
     } finally {
@@ -59,31 +73,26 @@ export function NewsSection({ onSelectNews, preferences = getDefaultLearningPref
     <View style={styles.group}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>오늘의 핵심 뉴스</Text>
-        <Text style={styles.muted}>{isLoading ? "불러오는 중" : isError ? "연결 확인 필요" : `${news.length}개 선별`}</Text>
+        {isLoading ? <Text style={styles.muted}>불러오는 중</Text> : null}
       </View>
-
-      {news.length > 0 ? news.map((item) => (
-        <NewsCard key={item.id} news={item} onPress={() => onSelectNews(item.id)} />
-      )) : (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyTitle}>{isError ? "뉴스를 불러오지 못했어요" : data?.length ? "다른 핵심 뉴스는 아직 없어요" : "오늘의 뉴스를 준비하고 있어요"}</Text>
-          {isError ? <Pressable accessibilityRole="button" onPress={() => void refetch()} style={styles.moreButton}><Text style={styles.moreButtonText}>다시 시도</Text></Pressable> : null}
-          <Text style={styles.emptyBody}>{isError ? "연결을 확인하고 다시 시도해 주세요." : data?.length ? "관심종목 뉴스는 위 섹션에서 확인할 수 있어요." : "잠시 후 실제 수집된 뉴스가 이곳에 표시됩니다."}</Text>
-        </View>
-      )}
-
-      {(!preferences || preferences.painPoint !== "overload" || expanded) && withoutWatchlistNews(olderNews,excludedIds).map((item) => (
-        <NewsCard key={item.id} news={item} onPress={() => onSelectNews(item.id)} />
-      ))}
-
-      {moreError ? <Text accessibilityRole="alert" style={styles.emptyBody}>추가 뉴스를 불러오지 못했어요. 이미 불러온 뉴스는 유지합니다.</Text> : null}
-      {isRealData && preferences.painPoint === "overload" ? <Pressable accessibilityRole="button" accessibilityLabel={expanded ? "추가 뉴스 접기" : "추가 뉴스 펼치기"} accessibilityState={{ expanded }} style={styles.moreButton} onPress={() => {
-        setExpanded(!expanded); if (!expanded && !olderNews.length && hasMore) void handleLoadMore();
-      }}><Text style={styles.moreButtonText}>{expanded ? "접기" : "더 보기"}</Text></Pressable> : null}
-      {isRealData && hasMore && (preferences.painPoint !== "overload" || expanded && olderNews.length > 0 || moreError) ? (
-        <Pressable accessibilityRole="button" accessibilityLabel="추가 뉴스 불러오기" style={styles.moreButton} onPress={() => void handleLoadMore()} disabled={loadingMore}>
-          {loadingMore ? <ActivityIndicator size="small" color="#175CD3" /> : <Text style={styles.moreButtonText}>{moreError ? "다시 불러오기" : "더 많은 뉴스 보기"}</Text>}
+      {news.map(item => <NewsCard key={item.id} news={item} onPress={() => onSelectNews(item.id)} />)}
+      {canLoadMore ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ disabled: loadingMore, busy: loadingMore }}
+          disabled={loadingMore}
+          onPress={() => void handleLoadMore()}
+          style={styles.moreButton}
+        >
+          <Text style={styles.moreButtonText}>{loadingMore ? "불러오는 중…" : moreError ? "다시 시도" : "뉴스 더 보기"}</Text>
         </Pressable>
+      ) : null}
+      {isError ? <Pressable accessibilityRole="button" onPress={() => void refetch()} style={styles.moreButton}><Text style={styles.moreButtonText}>뉴스 다시 시도</Text></Pressable> : null}
+      {!news.length && !isLoading ? (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyTitle}>{isError ? "뉴스를 불러오지 못했어요" : "오늘의 뉴스를 준비하고 있어요"}</Text>
+          <Text style={styles.emptyBody}>{isError ? "연결을 확인하고 다시 시도해 주세요." : "잠시 후 실제 수집된 뉴스가 이곳에 표시됩니다."}</Text>
+        </View>
       ) : null}
     </View>
   );

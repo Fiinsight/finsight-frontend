@@ -1,3 +1,4 @@
+export type PendingReason = "NOT_DUE" | "PRICE_UNAVAILABLE" | "EXCLUDED_QA" | "CALENDAR_UNSUPPORTED";
 // Shared types for the FinSight mobile app.
 //
 // The `*Raw` interfaces model what the Spring Boot backend might return.
@@ -24,7 +25,7 @@ export interface NewsBrief {
   title: string;
   summary: string;
   importanceReason: string;
-  relatedSymbol: string;
+  relatedSymbol: string | null;
   category: string;
   sentimentHint: Sentiment;
   publishedAt?: string | null;
@@ -40,6 +41,9 @@ export interface JudgementTarget { symbol: string | null; name: string | null; u
 
 export interface NewsDetailRaw {
   judgementTarget?: JudgementTarget;
+  judgementReviewOnly?: boolean;
+  judgementBaselineDate?: string;
+  judgementComparisonDate?: string;
   id?: number;
   title?: string;
   category?: string;
@@ -76,6 +80,9 @@ export interface NewsDetailRaw {
 
 export interface NewsDetail {
   judgementTarget?: JudgementTarget;
+  judgementReviewOnly?: boolean;
+  judgementBaselineDate?: string;
+  judgementComparisonDate?: string;
   id: number;
   title: string;
   category: string;
@@ -160,13 +167,14 @@ export interface JudgementAck {
 export type FeedbackVerdict = "CORRECT" | "WRONG" | "PARTIAL";
 export interface FeedbackReason { title: string; detail: string; }
 export interface JudgementHistoryItemRaw {
-  gradingIssue?: "TARGET_MISMATCH" | "LEGACY_COMPARISON" | null;
+  gradingIssue?: "TARGET_MISMATCH" | "LEGACY_COMPARISON" | "PRICE_ADJUSTMENT" | null;
   indexName?: string | null; indexChangePercent?: number | null;
   conceptTerm?: string | null; conceptDefinition?: string | null; unavailableReason?: string | null;
-  relatedSymbol?: string | null; relatedSymbolName?: string | null; expectedResultDate?: string | null; expectedResultAt?: string | null;
+  relatedSymbol?: string | null; relatedSymbolName?: string | null; expectedResultDate?: string | null; expectedResultAt?: string | null; pendingReason?: PendingReason | null;
   headline?: string | null;
   verdict?: FeedbackVerdict | null;
   nextTip?: string | null;
+  feedbackMode?: "RULE" | "LLM" | null;
   feedbackGeneratedAt?: string | null;
   id?: number;
   // Actual finsight-backend JudgementHistoryResponse uses `judgementId`.
@@ -191,13 +199,14 @@ export interface JudgementHistoryItemRaw {
 }
 
 export interface JudgementHistoryItem {
-  gradingIssue?: "TARGET_MISMATCH" | "LEGACY_COMPARISON" | null;
+  gradingIssue?: "TARGET_MISMATCH" | "LEGACY_COMPARISON" | "PRICE_ADJUSTMENT" | null;
   indexName?: string | null; indexChangePercent?: number | null;
   conceptTerm?: string | null; conceptDefinition?: string | null; unavailableReason?: string | null;
-  relatedSymbol?: string | null; relatedSymbolName?: string | null; expectedResultDate?: string | null; expectedResultAt?: string | null;
+  relatedSymbol?: string | null; relatedSymbolName?: string | null; expectedResultDate?: string | null; expectedResultAt?: string | null; pendingReason?: PendingReason | null;
   headline?: string | null;
   verdict?: FeedbackVerdict | null;
   nextTip?: string | null;
+  feedbackMode?: "RULE" | "LLM" | null;
   feedbackGeneratedAt?: string | null;
   feedbackReasons?: FeedbackReason[] | null;
   reasonText?: string;
@@ -238,6 +247,7 @@ export interface ArticleNote {
 // ---------------------------------------------------------------------------
 
 export interface MarketStat {
+  fallback?: boolean;
   label: string;
   value: string;
   change: string;

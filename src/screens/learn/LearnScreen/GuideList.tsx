@@ -147,7 +147,7 @@ export function GuideList({ focus, level }: { focus: LearningFocus; level: Learn
           onPress={() => { setSelectedGuide(guide); setSelectedTerm(null); }}
         >
           <View style={styles.iconCircle}>
-            <Ionicons name={guide.icon} size={18} color={colors.primary} />
+            <Ionicons name={guide.icon} size={18} color={colors.body} />
           </View>
           <View style={styles.textGroup}>
             <Text style={styles.title}>{guide.title}</Text>
@@ -177,14 +177,8 @@ export function GuideList({ focus, level }: { focus: LearningFocus; level: Learn
 }
 
 const styles = StyleSheet.create({
-  termLink: { color: colors.primary, paddingVertical: 6, fontSize: typography.size.body, fontWeight: typography.weight.semibold, lineHeight: typography.lineHeight.compact },
-  card: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radius.card,
-    padding: spacing.lg
-  },
+  termLink: { color: colors.body, paddingVertical: 6, fontSize: 15, fontWeight: typography.weight.semibold, lineHeight: typography.lineHeight.compact },
+  card: { gap:spacing.sm },
   sectionTitle: {
     color: colors.text,
     fontSize: typography.size.subheading,
@@ -199,8 +193,8 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingHorizontal: 0,
     paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.surfaceMuted
+    borderBottomWidth: 0.5,
+    borderBottomColor: colors.border
   },
   rowLast: {
     borderBottomWidth: 0
@@ -209,7 +203,6 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: colors.primarySoft,
     alignItems: "center",
     justifyContent: "center"
   },
@@ -225,13 +218,13 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     color: colors.muted,
-    fontSize: typography.size.meta,
+    fontSize: 15,
     lineHeight: typography.lineHeight.compact
   },
   modalBackdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: colors.overlay },
   modalCard: { maxHeight: "85%", backgroundColor: colors.surface, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, padding: spacing.xl, gap: 14 },
   modalTitle: { color: colors.text, fontSize: typography.size.heading, fontWeight: typography.weight.bold },
   modalBody: { color: colors.body, fontSize: typography.size.reading, lineHeight: 23 },
-  closeButton: { minHeight: 44, justifyContent: "center", backgroundColor: colors.primary, borderRadius: 10, alignItems: "center", paddingVertical: 13 },
-  closeButtonText: { color: colors.surface, fontSize: typography.size.body, fontWeight: typography.weight.bold }
+  closeButton: { minHeight: 44, justifyContent: "center", backgroundColor: colors.text, borderRadius: 10, alignItems: "center", paddingVertical: 13 },
+  closeButtonText: { color: colors.surface, fontSize: 15, fontWeight: typography.weight.bold }
 });

@@ -1,4 +1,4 @@
-import { colors, radius, spacing, typography } from "../../../theme";
+import { colors, spacing, typography } from "../../../theme";
 import { useState } from "react";
 import { localDateKey } from "../../../lib/readingProgressModel";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
@@ -81,8 +81,8 @@ const styles = StyleSheet.create({
   sectionTitle: { color: colors.text, fontSize: typography.size.subheading, fontWeight: typography.weight.bold },
   tipRow: { minHeight: 88, flexDirection: "row", alignItems: "flex-end", gap: spacing.xs },
   mascot: { width: 58, height: 70 },
-  speechBubble: { flex: 1, backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: radius.card, padding: spacing.lg },
-  tipLabel: { color: "#027A48", fontSize: typography.size.caption, fontWeight: typography.weight.bold, marginBottom: 5 },
+  speechBubble: { flex: 1, paddingVertical: spacing.sm },
+  tipLabel: { color: colors.muted, fontSize: 15, fontWeight: typography.weight.bold, marginBottom: 5 },
   tipText: { color: colors.body, fontSize: typography.size.reading, lineHeight: typography.lineHeight.body },
-  exampleText: { color: colors.muted, fontSize: typography.size.meta, lineHeight: typography.lineHeight.compact, marginTop: 5 }
+  exampleText: { color: colors.muted, fontSize: 15, lineHeight: typography.lineHeight.compact, marginTop: 5 }
 });
