@@ -25,7 +25,7 @@ export interface NewsBrief {
   title: string;
   summary: string;
   importanceReason: string;
-  relatedSymbol: string;
+  relatedSymbol: string | null;
   category: string;
   sentimentHint: Sentiment;
   publishedAt?: string | null;

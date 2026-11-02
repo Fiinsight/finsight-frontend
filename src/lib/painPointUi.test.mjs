@@ -27,6 +27,6 @@ test('home keeps core article ids and never renders copy underneath cards', () =
   const tree=nodes(exports.NewsSection({preferences:{focus,painPoint:'overload'},onSelectNews(){}}));
   assert.deepEqual(tree.filter(node=>node.type==='NewsCard').map(node=>node.props.news.id),[1,2,3]);
   assert(!tree.some(node=>node.type==='Text' && /판단해볼 만한|시장 지표와 함께|지난 판단과 비교|핵심 내용을 하나씩/.test(node.children.join(''))));
-  assert(!tree.some(node=>node.type==='Pressable')); assert(!JSON.stringify(tree).includes('개 선별'));
+  assert.equal(tree.filter(node=>node.type==='Pressable').length,1); assert(tree.some(node=>node.type==='Text' && node.children.includes('뉴스 더 보기'))); assert(!JSON.stringify(tree).includes('개 선별'));
  }
 });
