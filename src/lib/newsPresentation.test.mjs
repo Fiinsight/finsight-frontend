@@ -23,7 +23,7 @@ test('publisher credit and safe remote images have explicit no-image fallbacks',
  assert.equal(publisherName('한국경제 | 뉴스 | 경제'),'한국경제');
  assert.equal(newsImageUrl('https://cdn.publisher.test/photo.jpg'),'https://cdn.publisher.test/photo.jpg');
  for(const value of ['data:image/png;base64,abc','file:///tmp/a','http://localhost/a','http://127.0.0.1/a','http://172.16.1.1/a','https://user:pass@publisher.test/a'])assert.equal(newsImageUrl(value),null);
- const card=fs.readFileSync(new URL('../components/NewsCard.tsx',import.meta.url),'utf8');assert.match(card,/사진 ·/);assert.match(card,/onError=/);assert.match(card,/categoryColor/);
+ const card=fs.readFileSync(new URL('../components/NewsCard.tsx',import.meta.url),'utf8');assert.match(card,/사진 ·/);assert.match(card,/onError=/);assert.match(card,/categoryColor/);assert.match(card,/Ionicons name=/);assert.match(card,/Linking.openURL\(sourceUrl\)/);assert.match(card,/event.stopPropagation/);
 });
 
 test('card point avoids repeating the quoted fact and keeps its article-specific check',()=>{
