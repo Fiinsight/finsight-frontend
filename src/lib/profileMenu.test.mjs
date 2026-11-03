@@ -46,7 +46,7 @@ test('logout and deletion warnings appear only in confirmation sheets and requir
  const values = [];
  const hooks = { ...React, useEffect() {}, useState(initial) { const id = cursor++; values[id] ??= initial; return [values[id], value => { values[id] = value; }]; } };
  const screen = compile('../screens/profile/ProfileScreen/index.tsx', {
-  react: hooks, 'react-native': native, '@tanstack/react-query': { useQueryClient: () => ({}) },
+  react: hooks, 'react-native': native, 'react-native-safe-area-context':{SafeAreaProvider:'SafeAreaProvider'}, '@tanstack/react-query': { useQueryClient: () => ({}) },
   '@react-navigation/native': { useNavigation: () => ({}), useRoute: () => ({ params: {} }) },
   '../../../lib/onboarding': { getDefaultLearningPreferences: () => ({ level: 'beginner' }) },
   '../../../lib/api': { deleteAccount: async () => { deleted++; } }, './SettingsList': { SettingsList: 'SettingsList' }
@@ -71,12 +71,12 @@ test('app waits for Ionicons font loading before rendering icon screens', () => 
  const hooks = { ...React, useEffect() {}, useState: initial => { const values = [false, false, false, { userId: 1 }, false, true]; return [values[index++] ?? initial, () => {}]; } };
  const font = { ionicons: 'bundled-ionicons.ttf' };
  const app = compile('../../App.tsx', {
-  react: hooks, 'react-native': native, 'expo-linear-gradient': { LinearGradient: 'Gradient' },
+  react: hooks, 'react-native': native, 'react-native-safe-area-context':{SafeAreaProvider:'SafeAreaProvider'}, 'expo-linear-gradient': { LinearGradient: 'Gradient' },
   '@expo/vector-icons': { Ionicons: { font } }, 'expo-font': { useFonts(map) { fontMap = map; return [loaded, error]; } },
   '@tanstack/react-query': { QueryClient: class {}, QueryClientProvider: 'Provider' },
   '@react-navigation/native': { NavigationContainer: 'Navigation' }, './src/navigation/RootNavigator': { RootNavigator: 'Root' }
  });
- const render = () => { index = 0; return nodes(app.default()); };
+ const render = () => { index = 0; const root=app.default();assert.equal(root.type,"SafeAreaProvider");return nodes(root.children[0].type(root.children[0].props)); };
  assert(!render().some(n => n.type === 'Root')); assert.equal(fontMap, font);
  error = new Error('font unavailable'); assert(render().some(n => n.props?.accessibilityRole === 'alert'));
  loaded = true; error = null; assert(render().some(n => n.type === 'Root'));
@@ -88,12 +88,13 @@ test('expired login notice and authentication form share a full-width native lay
  const app = compile('../../App.tsx', {
   react: {...React, useEffect() {}, useState: () => [values[index++], () => {}]},
   'react-native': native,
+  'react-native-safe-area-context':{SafeAreaProvider:'SafeAreaProvider'},
   'expo-font': {useFonts: () => [true, null]},
   '@expo/vector-icons': {Ionicons: {font: {}}},
   '@tanstack/react-query': {QueryClient: class {}},
   './src/screens/auth/AuthScreen': {AuthScreen: 'AuthScreen'}
  });
- const tree = app.default();
+ const root=app.default();assert.equal(root.type,"SafeAreaProvider");const tree=root.children[0].type(root.children[0].props);
  assert.equal(tree.type, 'View');
  assert.equal(tree.props.style.flex, 1);
  assert.equal(tree.children[0].props.accessibilityRole, 'alert');

@@ -1,3 +1,4 @@
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { JudgementResultsProvider, useJudgementResults } from "../components/JudgementResultsProvider";
 import { HistoryResultDot } from "../components/JudgementResultBanner";
 import type { ReactNode } from "react";
@@ -42,6 +43,7 @@ export function RootNavigator(props: { session: AuthSession; onLogout: () => voi
 }
 function RootTabs({ session, onLogout }: { session: AuthSession; onLogout: () => void }) {
   const { unseen }=useJudgementResults();
+  const insets = useSafeAreaInsets();
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -51,6 +53,9 @@ function RootTabs({ session, onLogout }: { session: AuthSession; onLogout: () =>
         tabBarActiveTintColor: "#202124",
         tabBarInactiveTintColor: "#667085",
         tabBarStyle: {
+          height: 56 + insets.bottom,
+          paddingBottom: Math.max(insets.bottom, 8),
+          paddingTop: 8,
           backgroundColor: "#FFFFFF",
           borderTopColor: "#E5E7EB",
           borderTopWidth: 1,
