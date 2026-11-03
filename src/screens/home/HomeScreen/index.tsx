@@ -1,3 +1,4 @@
+import { markFeedbackSeen } from "../../../lib/feedbackSeen";
 import { colors, spacing } from "../../../theme";
 import { useJudgementResults } from "../../../components/JudgementResultsProvider";
 import { JudgementResultBanner } from "../../../components/JudgementResultBanner";
@@ -16,9 +17,8 @@ import { NewsSection } from "./NewsSection";
 type Props = NativeStackScreenProps<HomeStackParamList, "Home">;
 
 export function HomeScreen({ navigation }: Props) {
-  const {unseen,pending,refresh}=useJudgementResults();
+  const {homeResult:result,refresh}=useJudgementResults();
   useFocusEffect(useCallback(()=>{refresh();},[refresh]));
-  const result=unseen[0] ?? pending;
   const watchlist=useQuery({queryKey:["watchlist"],queryFn:getWatchlist,retry:0});
   const watchedNews=useQuery({queryKey:["watchlist-news",watchlist.data?.map(item=>item.symbol).join(",")],queryFn:getWatchlistNews,enabled:!!watchlist.data?.length,retry:0});
   const watchlistFailed=watchlist.isError || watchedNews.isError;
@@ -30,7 +30,7 @@ export function HomeScreen({ navigation }: Props) {
         contentContainerStyle={styles.container}
       >
         <HomeHeader />
-        {result ? <JudgementResultBanner item={result} pending={!unseen.length} onPress={() => navigation.getParent()?.navigate("HistoryTab", {screen:"JudgementDetail",params:{judgementId:result.id}})} /> : null}
+        {result ? <JudgementResultBanner item={result} pending={result.actualDirection === null} onPress={() => { void markFeedbackSeen(result); navigation.getParent()?.navigate("HistoryTab", {screen:"JudgementDetail",params:{judgementId:result.id}}); }} /> : null}
         <MarketPanel />
         <NewsSection watchedNews={watchedItems} onSelectNews={(newsId) => navigation.navigate("NewsDetail", { newsId })} />
       </ScrollView>

@@ -29,12 +29,12 @@ test('banner uses real verdict and dates, delayed results never say they have ar
  assert.equal(helpersApi.resultDateLabel('2026-02-30'),null);
 });
 test('home shows an unseen result or delayed notice and opens the actual history detail',()=>{
- let value={unseen:[record],pending:null,refresh(){}};const navigation=[];const exports={};
- vm.runInNewContext(compile('../screens/home/HomeScreen/index.tsx'),{exports,React,require:name=>name.endsWith('/theme') ? theme : name==='react'?React:name==='react-native'?native:name==='@react-navigation/native'?{useFocusEffect(){}}:name==='@tanstack/react-query'?{useQuery:()=>({data:[],isPending:false})}:name.endsWith('/JudgementResultsProvider')?{useJudgementResults:()=>value}:name.endsWith('/JudgementResultBanner')?{JudgementResultBanner:'Banner'}:name.endsWith('/learningPreferences')?{getDefaultLearningPreferences:()=>({})}:{HomeHeader:'HomeHeader',MarketPanel:'MarketPanel',NewsSection:'NewsSection'}});
+ let value={homeResult:record,unseen:[record],pending:null,refresh(){}};const navigation=[];const exports={};
+ vm.runInNewContext(compile('../screens/home/HomeScreen/index.tsx'),{exports,React,require:name=>name.endsWith('/theme') ? theme : name==='react'?React:name==='react-native'?native:name==='@react-navigation/native'?{useFocusEffect(){}}:name==='@tanstack/react-query'?{useQuery:()=>({data:[],isPending:false})}:name.endsWith('/JudgementResultsProvider')?{useJudgementResults:()=>value}:name.endsWith('/JudgementResultBanner')?{JudgementResultBanner:'Banner'}:name.endsWith('/feedbackSeen')?{markFeedbackSeen:async()=>{}}:name.endsWith('/learningPreferences')?{getDefaultLearningPreferences:()=>({})}:{HomeHeader:'HomeHeader',MarketPanel:'MarketPanel',NewsSection:'NewsSection'}});
  const render=()=>nodes(exports.HomeScreen({navigation:{getParent:()=>({navigate:(...args)=>navigation.push(args)})}}));
  let banner=render().find(n=>n.type==='Banner');assert(banner);assert.equal(banner.props.pending,false);banner.props.onPress();assert.equal(navigation[0][0],'HistoryTab');assert.equal(navigation[0][1].params.judgementId,1);
- value={...value,unseen:[],pending:record};banner=render().find(n=>n.type==='Banner');assert.equal(banner.props.pending,true);
- value={...value,pending:null};assert(!render().some(n=>n.type==='Banner'));
+ value={...value,homeResult:{...record,actualDirection:null},unseen:[],pending:record};banner=render().find(n=>n.type==='Banner');assert.equal(banner.props.pending,true);
+ value={...value,homeResult:null,pending:null};assert(!render().some(n=>n.type==='Banner'));
 });
 test('root history dot only exists while there are unseen results',()=>{
  let value={unseen:[record]};const exports={};
@@ -110,4 +110,17 @@ test('QA and unsupported calendar rows never start delayed-result polling',()=>{
  const base={...record,actualDirection:null,expectedResultAt:'2026-10-13T06:40:00Z'};
  for(const pendingReason of ['EXCLUDED_QA','CALENDAR_UNSUPPORTED'])assert.equal(helpersApi.overdueJudgement([{...base,pendingReason}],Date.parse('2026-10-14T00:00:00Z')),null);
  assert.equal(helpersApi.overdueJudgement([{...base,pendingReason:'PRICE_UNAVAILABLE'}],Date.parse('2026-10-14T00:00:00Z')).id,1);
+});
+
+ test('home excludes old comparison dates, already opened results and future feedback',()=>{
+ const now=Date.parse('2026-11-03T03:00:00Z');
+ const recent={...record,comparisonDate:'2026-11-02',feedbackGeneratedAt:'2026-11-02T07:00:00Z'};
+ assert.equal(helpersApi.homeJudgementResult([recent],{},now).id,1);
+ assert.equal(helpersApi.homeJudgementResult([recent],{'1':'older-version'},now),null);
+ assert.equal(helpersApi.homeJudgementResult([{...record,feedbackGeneratedAt:recent.feedbackGeneratedAt}],{},now),null);
+ assert.equal(helpersApi.homeJudgementResult([{...recent,feedbackGeneratedAt:'2026-11-04T07:00:00Z'}],{},now),null);
+});
+test('neutral-neutral banner ignores legacy PARTIAL verdict text',()=>{
+ const item={...record,choice:'NEUTRAL',actualDirection:'NEUTRAL',actualChangePercent:.2,verdict:'PARTIAL',headline:'방향은 맞았지만 변동이 작았어요'};
+ assert(!helpersApi.resultBannerMessage(item).includes('변동이 작았어요'));
 });

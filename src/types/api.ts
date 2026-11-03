@@ -21,6 +21,7 @@ export interface WatchlistItem { symbol: string; name: string; addedAt: string; 
 // ---------------------------------------------------------------------------
 
 export interface NewsBrief {
+  imageUrl?: string | null;
   id: number;
   title: string;
   summary: string;
