@@ -35,7 +35,7 @@ export function LearningPanel({ newsId, level, quizTerm, onTermPress, onReviewPr
       <Text style={styles.muted}>{data.mode === "EXCERPT" ? "원문에서 핵심 문장을 골라 보여드려요" : data.mode === "REWRITTEN" ? "AI가 수준에 맞게 다시 썼어요" : "수준별 설명을 확인할 수 없습니다."}</Text>
       {data.mode === "UNAVAILABLE" ? <Pressable accessibilityRole="button" accessibilityLabel="읽기 설명 다시 불러오기" disabled={lesson.isFetching} onPress={() => void lesson.refetch()}><Text style={styles.link}>{lesson.isFetching ? "설명을 다시 불러오는 중이에요." : "다시 시도"}</Text></Pressable> : null}
       <Text style={styles.guide}>{data.readingGuide}</Text>
-      <ArticleBody text={data.summary.replace(/\s*\(fallback\)/gi, "")} terms={data.glossary.map((g) => g.term)} onTermPress={onTermPress} />
+      <ArticleBody showLabels={level === "normal"} text={data.summary.replace(/\s*\(fallback\)/gi, "")} terms={data.glossary.map((g) => g.term)} onTermPress={onTermPress} />
       <Text style={styles.heading}>알아둘 용어</Text>
       <Text style={styles.muted}>아래는 일반 용어 설명이며 기사에 추가된 사실이 아닙니다.</Text>
       {data.glossary.length ? data.glossary.map((g) => <View key={g.term}><Text style={styles.term}>{g.term}</Text><Text style={styles.body}>{g.definition}</Text></View>) : <Text>이 기사에서 학습할 용어를 확인할 수 없습니다.</Text>}

@@ -15,6 +15,18 @@ export function overdueJudgement(items: JudgementHistoryItem[], now = Date.now()
   return items.filter(item => item.actualDirection === null && item.pendingReason !== "EXCLUDED_QA" && item.pendingReason !== "CALENDAR_UNSUPPORTED" && item.expectedResultAt && Number.isFinite(Date.parse(item.expectedResultAt)) && Date.parse(item.expectedResultAt) <= now)
     .sort((a,b) => b.judgedAt.localeCompare(a.judgedAt))[0] ?? null;
 }
+export function homeJudgementResult(items: JudgementHistoryItem[], seen: Record<string,string>, now = Date.now()) {
+  const since = now - 7 * 86_400_000;
+  const today = kstDate(new Date(now));
+  const result = unreadJudgements(items, seen).find(item => {
+    const at = Date.parse(item.feedbackGeneratedAt || `${item.comparisonDate}T15:40:00+09:00`);
+    return !seen[String(item.id)] && Number.isFinite(at) && at >= since && at <= now
+      && !!item.comparisonDate && item.comparisonDate >= kstDate(new Date(since)) && item.comparisonDate <= today;
+  });
+  if (result) return result;
+  const pending = overdueJudgement(items, now);
+  return pending && Date.parse(pending.judgedAt) >= since && !seen[String(pending.id)] ? pending : null;
+}
 export function resultBannerMessage(item: JudgementHistoryItem, now = new Date()) {
   const day=kstDate(new Date(item.judgedAt));
   const yesterday=kstDate(new Date(now.getTime()-86_400_000));

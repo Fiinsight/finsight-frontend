@@ -1,5 +1,7 @@
-import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useState } from "react";
+import { Image, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { toRelativeTimeKorean } from "../lib/format";
+import { categoryColor, cleanNewsCardText, newsCardPoint, newsCardSummary, newsImageUrl, publisherName } from "../lib/newsPresentation";
 import type { NewsBrief } from "../types/api";
 
 interface NewsCardProps {
@@ -8,6 +10,9 @@ interface NewsCardProps {
 }
 
 export function NewsCard({ news, onPress }: NewsCardProps) {
+  const imageUrl = newsImageUrl(news.imageUrl);
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const source = publisherName(news.source);
   return (
     <TouchableOpacity
       style={styles.newsCard}
@@ -21,16 +26,32 @@ export function NewsCard({ news, onPress }: NewsCardProps) {
     >
       <View style={styles.cardTop}>
         <Text style={styles.symbol}>{news.category}</Text>
-        <Text style={styles.date}>{news.publishedAt ? toRelativeTimeKorean(news.publishedAt) : "발행시간 확인할 수 없음"}</Text>
+        <Text style={styles.date}>{source} · {news.publishedAt ? toRelativeTimeKorean(news.publishedAt) : "발행시간 확인할 수 없음"}</Text>
       </View>
-      <Text style={styles.newsTitle} numberOfLines={2}>{news.title}</Text>
-      <Text style={styles.summary} numberOfLines={2}>{news.summary}</Text>
-      {news.importanceReason ? <Text style={styles.reason} numberOfLines={2}>투자 포인트: {news.importanceReason}</Text> : null}
+      <View style={styles.articleRow}>
+        <View style={styles.copy}>
+          <Text style={styles.newsTitle} numberOfLines={2}>{cleanNewsCardText(news.title)}</Text>
+          <Text style={styles.summary} numberOfLines={2}>{newsCardSummary(news.summary)}</Text>
+        </View>
+        <View style={[styles.thumbnail, {backgroundColor: categoryColor(news.category)}]}>
+          {imageUrl && failedUrl !== imageUrl ? <>
+            <Image source={{uri:imageUrl}} style={styles.image} accessibilityLabel={`${source} 기사 사진`} onError={() => setFailedUrl(imageUrl)} />
+            <Text style={styles.imageCredit} numberOfLines={1}>사진 · {source}</Text>
+          </> : <Text style={styles.placeholder}>{news.category}</Text>}
+        </View>
+      </View>
+      {news.importanceReason ? <Text style={styles.reason} numberOfLines={2}>투자 포인트: {newsCardPoint(news.importanceReason)}</Text> : null}
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
+  articleRow: {flexDirection:"row",gap:12,alignItems:"flex-start"},
+  copy: {flex:1,minWidth:0,gap:8},
+  thumbnail: {width:76,height:76,borderRadius:8,overflow:"hidden",justifyContent:"center",alignItems:"center"},
+  image: {width:"100%",height:"100%"},
+  imageCredit: {position:"absolute",bottom:0,left:0,right:0,backgroundColor:"rgba(0,0,0,.72)",color:"#FFFFFF",fontSize:10,padding:3},
+  placeholder: {fontSize:12,fontWeight:"700",color:"#475467",textAlign:"center",padding:6},
   date: { color: "#667085", fontSize: 12 },
   newsCard: {
     backgroundColor: "#FFFFFF",
@@ -57,6 +78,8 @@ const styles = StyleSheet.create({
     lineHeight: 25
   },
   summary: {
+    maxHeight:42,
+    overflow:"hidden",
     color: "#475467",
     fontSize: 14,
     lineHeight: 21

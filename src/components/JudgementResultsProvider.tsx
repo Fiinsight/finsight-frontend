@@ -3,11 +3,11 @@ import { AppState } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { getJudgementHistory } from "../lib/api";
 import { getSeenFeedback, subscribeFeedbackSeen } from "../lib/feedbackSeen";
-import { unreadJudgements, overdueJudgement } from "../lib/judgementResults";
+import { unreadJudgements, overdueJudgement, homeJudgementResult } from "../lib/judgementResults";
 import { cancelJudgementReminder } from "../lib/judgementNotifications";
 import type { JudgementHistoryItem } from "../types/api";
-interface Results { unseen:JudgementHistoryItem[]; pending:JudgementHistoryItem|null; refresh:()=>void }
-const ResultsContext=createContext<Results>({unseen:[],pending:null,refresh(){}});
+interface Results { homeResult:JudgementHistoryItem|null; unseen:JudgementHistoryItem[]; pending:JudgementHistoryItem|null; refresh:()=>void }
+const ResultsContext=createContext<Results>({homeResult:null,unseen:[],pending:null,refresh(){}});
 export const useJudgementResults=()=>useContext(ResultsContext);
 export function JudgementResultsProvider({owner,children}:{owner:number;children:ReactNode}) {
   const [now,setNow]=useState(Date.now());
@@ -23,7 +23,7 @@ export function JudgementResultsProvider({owner,children}:{owner:number;children
     const timer=setTimeout(()=>{setNow(Date.now());if(Date.now()>=next)void results.refetch();},Math.min(next-Date.now()+50,2_147_000_000));
     return()=>clearTimeout(timer);
   },[active,results.data,now]);
-  const refresh=useCallback(()=>{if(active && Date.now()-results.dataUpdatedAt>=60_000) void results.refetch();},[active,results.dataUpdatedAt,results.refetch]);
+  const refresh=useCallback(()=>{setNow(Date.now());if(active && Date.now()-results.dataUpdatedAt>=60_000) void results.refetch();},[active,results.dataUpdatedAt,results.refetch]);
   useEffect(()=>{const listener=AppState.addEventListener("change",state=>setActive(state==="active"));return()=>listener.remove();},[]);
   useEffect(()=>{
     let alive=true,version=0;setSeen(null);
@@ -36,5 +36,5 @@ export function JudgementResultsProvider({owner,children}:{owner:number;children
     if(seen===null)return;
     for(const item of results.data ?? []) if(seen[String(item.id)] && !unseen.some(row=>row.id===item.id)) void cancelJudgementReminder(owner,item.newsId).catch(()=>{});
   },[seen,unseen,results.data,owner]);
-  return <ResultsContext.Provider value={{unseen,pending:overdueJudgement(results.data ?? []),refresh}}>{children}</ResultsContext.Provider>;
+  return <ResultsContext.Provider value={{homeResult:seen===null?null:homeJudgementResult(results.data ?? [],seen,now),unseen,pending:overdueJudgement(results.data ?? []),refresh}}>{children}</ResultsContext.Provider>;
 }
