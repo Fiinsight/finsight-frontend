@@ -1,9 +1,10 @@
+import { DemoModal } from "../../../components/DemoModal";
 import { learningChecklist, conceptReviewKey } from "../../../lib/learningChecklist";
 import { termDefinitionPreview } from "../../../lib/termDefinitionPreview";
 import type { ComponentRef } from "react";
 import { colors, radius, spacing, typography } from "../../../theme";
 import { useCallback, useRef, useState } from "react";
-import { SafeAreaView, ScrollView, StyleSheet, Text, Pressable, View, Modal } from "react-native";
+import { SafeAreaView, ScrollView, StyleSheet, Text, Pressable, View } from "react-native";
 import { useMutation, useQuery, useQueries, useQueryClient } from "@tanstack/react-query";
 import type { CompositeNavigationProp, RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -248,7 +249,7 @@ export function LearnScreen() {
         </View> : null}
       </ScrollView>
 
-      <Modal visible={!!info || !!selectedReview} transparent animationType="slide" onRequestClose={closeSheet}>
+      <DemoModal visible={!!info || !!selectedReview} transparent animationType="slide" onRequestClose={closeSheet}>
         <View style={styles.backdrop}>
           <Pressable accessibilityRole="button" accessibilityLabel="학습 안내 창 닫기" style={styles.dismissArea} onPress={closeSheet} />
           <View style={styles.sheet} accessibilityViewIsModal>
@@ -260,7 +261,7 @@ export function LearnScreen() {
             {selectedReview ? <><Text style={styles.auxiliary} numberOfLines={2}>{selectedReview.title}</Text><Pressable accessibilityRole="button" accessibilityLabel={`${selectedReview.term} 이 개념이 나온 기사 다시 풀기`} style={styles.sheetAction} onPress={() => { const item = selectedReview; closeSheet(); navigation.navigate("NewsDetail", { newsId: item.newsId, readMode: "level", readingLevel: item.level, openQuiz: true, quizTerm: item.term }); }}><Text style={styles.sheetActionText}>이 개념이 나온 기사 다시 풀기</Text></Pressable></> : null}
           </View>
         </View>
-      </Modal>
+      </DemoModal>
     </SafeAreaView>
   );
 }

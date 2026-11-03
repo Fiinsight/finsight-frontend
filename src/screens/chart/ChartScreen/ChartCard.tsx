@@ -1,6 +1,7 @@
+import { DemoModal } from "../../../components/DemoModal";
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
-import { Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useMemo, useState } from "react";
+import { Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { CandlestickChart } from "../../../components/CandlestickChart";
 import type { ChartCandle, MoveInsight } from "../../../types/api";
 
@@ -17,6 +18,7 @@ interface ChartCardProps {
 
 export function ChartCard({ candles, period, minuteInterval, moveInsights = [], selectedDate, onCandlePress }: ChartCardProps) {
   const [showGuide, setShowGuide] = useState(false);
+  const moveMarkers = useMemo(() => moveInsights.map((item) => ({ date: period === "MINUTE" ? item.timestamp : item.timestamp.slice(0, 10), changePercent: item.changePercent, title: item.newsTitle, color: item.explanation?.startsWith("뉴스 수집(") ? "#98A2B3" : undefined })), [moveInsights, period]);
   const periodLabel = period === "D" ? "하루" : period === "W" ? "일주일" : `${minuteInterval ?? 5}분`;
 
   return (
@@ -25,7 +27,7 @@ export function ChartCard({ candles, period, minuteInterval, moveInsights = [], 
         candles={candles}
         selectedDate={selectedDate}
         height={240}
-        moveMarkers={moveInsights.map((item) => ({ date: period === "MINUTE" ? item.timestamp : item.timestamp.slice(0, 10), changePercent: item.changePercent, title: item.newsTitle, color: item.explanation?.startsWith("뉴스 수집(") ? "#98A2B3" : undefined }))}
+        moveMarkers={moveMarkers}
         onCandlePress={onCandlePress}
         showTimeLabels={period === "MINUTE"}
       />
@@ -34,7 +36,7 @@ export function ChartCard({ candles, period, minuteInterval, moveInsights = [], 
         <Ionicons name="information-circle-outline" size={20} color="#175CD3" />
       </TouchableOpacity>
 
-      <Modal visible={showGuide} transparent animationType="slide" onRequestClose={() => setShowGuide(false)}>
+      <DemoModal visible={showGuide} transparent animationType="slide" onRequestClose={() => setShowGuide(false)}>
         <Pressable style={styles.backdrop} onPress={() => setShowGuide(false)}>
           <Pressable style={styles.sheet} onPress={(event) => event.stopPropagation()}>
             <View style={styles.handle} />
@@ -84,7 +86,7 @@ export function ChartCard({ candles, period, minuteInterval, moveInsights = [], 
             </TouchableOpacity>
           </Pressable>
         </Pressable>
-      </Modal>
+      </DemoModal>
     </View>
   );
 }

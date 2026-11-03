@@ -10,10 +10,10 @@ const nodes=n=>Array.isArray(n)?n.flatMap(nodes):n&&typeof n==='object'?[n,...no
 const texts=tree=>tree.filter(n=>n.type==='Text').map(n=>n.children.flat().join(''));
 const reasons=[{title:'기사 근거',detail:'기사에서는 비용 증가를 알렸어요.'},{title:'판단 근거',detail:'남긴 근거의 비교 시점을 확인해보세요.'},{title:'실제 시장',detail:'카카오 종가는 -1.76% 움직였어요.'}];
 const base={id:10,newsId:153,newsTitle:'기업 실적 기사',choice:'DOWN',actualDirection:'DOWN',actualChangePercent:-1.76,comparisonDate:'2026-10-07',judgementClose:100,comparisonClose:98.24,feedbackText:'카카오 2026-10-07 종가 기준 -1.76%.',feedbackReasons:reasons,reasonText:'비용 증가를 예상했어요.',reasons:['비용 증가를 예상했어요.'],nextTip:'다음에도 비교 시점을 확인해보세요.',judgedAt:'2026-10-06T01:00:00Z',feedbackGeneratedAt:'2026-10-07T07:00:00Z',verdict:'CORRECT'};
-function render(item=base,latest,queryError=false,routeId=item?.id) {
+function render(item=base,latest,queryError=false,routeId=item?.id,canBack=false) {
  const navigation=[],exports={};
  vm.runInNewContext(compile('../screens/history/JudgementDetailScreen.tsx'),{exports,React,require:name=>name==='react'?React:name==='react-native'?{View:'View',Text:'Text',SafeAreaView:'SafeAreaView',ScrollView:'ScrollView',TouchableOpacity:'TouchableOpacity',StyleSheet:{create:s=>s}}:name==='../../lib/historyRecords'?history:name==='@react-navigation/native'?{useIsFocused:()=>true}:name==='@tanstack/react-query'?{useQueryClient:()=>({invalidateQueries(){}}),useQuery:({queryKey})=>({isError: queryKey[0]==='judgement-detail' && queryError, data:queryKey[0]==='judgement-detail'?latest:queryKey[0]==='news-detail'?{relatedSymbol:'035720',relatedSymbolName:'카카오'}:queryKey[0]==='chart'?{points:[{date:'2026-10-06',value:100},{date:'2026-10-07',value:item?.comparisonClose??100}]}:[]})}:{MiniLineChart:'MiniLineChart',ScreenTopBar:'ScreenTopBar'}});
- const tree=nodes(exports.JudgementDetailScreen({route:{params:{judgementId:routeId,item}},navigation:{navigate:(...args)=>navigation.push(args),goBack(){}}}));return{tree,navigation};
+ const tree=nodes(exports.JudgementDetailScreen({route:{params:{judgementId:routeId,item}},navigation:{navigate:(...args)=>navigation.push(args),canGoBack:()=>canBack,goBack:()=>navigation.push(["BACK"])}}));return{tree,navigation};
 }
 const snapshotFile=new URL('./fixtures/judgement-feedback.json',import.meta.url);
 // Rule output mirrored from finsight-ai/tests/fixtures/feedback_context.json.
@@ -186,4 +186,14 @@ test('history feedback defaults to two lines and review explanation starts colla
  const exports={},hooks={...React,useState:v=>[v,()=>{}]};vm.runInNewContext(compile('../screens/history/HistoryScreen/HistoryItem.tsx'),{exports,React,require:name=>name==='react'?hooks:name==='react-native'?{View:'View',Text:'Text',Pressable:'Pressable',StyleSheet:{create:s=>s}}:name.endsWith('/historyRecords')?history:{toRelativeTimeKorean:()=>''}});
  const tree=nodes(exports.HistoryItem({item:base,onPress(){}}));assert(tree.some(n=>n.type==='Text'&&n.props.numberOfLines===2&&n.children.includes(base.feedbackText)));
  const review=nodes(exports.HistoryItem({item:{...base,actualDirection:'UNKNOWN'},compactReview:true,onPress(){}}));assert(!texts(review).includes(base.feedbackText));assert(review.some(n=>n.props?.accessibilityState?.expanded===false));
+});
+
+test('history top bar stays outside scroll in content, loading and error states with safe direct URL back navigation',()=>{
+ for(const args of [[base],[null,undefined,false,10],[null,undefined,true,10],[null,undefined,false,0]]) {
+  const {tree,navigation}=render(...args);const bar=tree.find(n=>n.type==='ScreenTopBar');assert(bar);
+  const scroll=tree.find(n=>n.type==='ScrollView');if(scroll)assert(!nodes(scroll).includes(bar));
+  assert.equal(tree[0].children.find(n=>n?.type==='ScreenTopBar'),bar);
+  bar.props.onBack();assert.equal(navigation[0][0],'History');
+ }
+ const pushed=render(base,undefined,false,base.id,true);pushed.tree.find(n=>n.type==='ScreenTopBar').props.onBack();assert.deepEqual(pushed.navigation,[['BACK']]);
 });

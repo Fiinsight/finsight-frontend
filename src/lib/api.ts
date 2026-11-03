@@ -209,7 +209,7 @@ function normalizeNewsDetail(raw: NewsDetailRaw, fallbackId: number): NewsDetail
   };
 
   const keyTerms =
-    raw.keyTerms && raw.keyTerms.length > 0
+    Array.isArray(raw.keyTerms)
       ? raw.keyTerms
       : KEY_TERM_DICTIONARY.filter((term) => rawContent.includes(term) || levels.normal.includes(term));
 
@@ -229,12 +229,14 @@ function normalizeNewsDetail(raw: NewsDetailRaw, fallbackId: number): NewsDetail
     publishedAt: raw.publishedAt ?? "",
     summary: derivedSummary,
     rawContent,
+    fullContentEnabled: raw.fullContentEnabled === true,
     importanceReason: raw.importanceReason ?? "",
     importanceReasons,
     relatedSymbol: raw.relatedSymbol ?? "",
     relatedSymbolName: raw.relatedSymbolName ?? raw.symbolName ?? raw.relatedSymbol ?? "",
     sentimentHint: raw.sentimentHint ?? "NEUTRAL",
     keyTerms,
+    keyTermsByLevel: raw.keyTermsByLevel,
     levels,
     url: raw.url ?? "",
     source: raw.source ?? ""
@@ -503,6 +505,16 @@ function normalizeChartData(raw: ChartDataRaw, symbol: string): ChartData {
     relatedNews: relatedNewsRaw.map(normalizeChartNews),
     docent
   };
+}
+
+export async function getChartCandles(symbol: string, period: "D" | "W" | "MINUTE" = "D", interval = 5, signal?: AbortSignal): Promise<ChartData> {
+  const { data } = await api.get<ChartDataRaw>(`/charts/${symbol}/candles`, { params: { period, ...(period === "MINUTE" ? { interval } : {}) }, signal, timeout: 60_000 });
+  return normalizeChartData(data, symbol);
+}
+
+export async function getChartInsights(symbol: string, period: "D" | "W" | "MINUTE" = "D", interval = 5, signal?: AbortSignal): Promise<ChartData> {
+  const { data } = await api.get<ChartDataRaw>(`/charts/${symbol}/insights`, { params: { period, ...(period === "MINUTE" ? { interval } : {}) }, signal, timeout: 60_000 });
+  return normalizeChartData(data, symbol);
 }
 
 export async function getChartData(symbol: string, period: "D" | "W" | "MINUTE" = "D", interval = 5, signal?: AbortSignal): Promise<ChartData> {

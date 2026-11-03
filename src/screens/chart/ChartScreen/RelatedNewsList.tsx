@@ -6,13 +6,17 @@ import type { ChartRelatedNews } from "../../../types/api";
 interface RelatedNewsListProps {
   items: ChartRelatedNews[];
   expandMarket?: boolean;
+  loading?: boolean;
+  error?: boolean;
+  onLearn?: () => void;
   onPress: (item: ChartRelatedNews) => void;
 }
 
-export function RelatedNewsList({ items, onPress, expandMarket = false }: RelatedNewsListProps) {
+export function RelatedNewsList({ items, onPress, expandMarket = false, loading = false, error = false, onLearn }: RelatedNewsListProps) {
   const [count, setCount] = useState(10);
   const [marketOpen, setMarketOpen] = useState(expandMarket);
-  const direct = items.filter((item) => item.relationType !== "MARKET" && item.relationType !== "REFERENCE");
+  const direct = items.filter((item) => item.relationType !== "MARKET" && item.relationType !== "REFERENCE" && item.relationType !== "SECTOR");
+  const sector = items.filter(item => item.relationType === "SECTOR");
   const references = items.filter(item => item.relationType === "REFERENCE");
   const market = items.filter((item) => item.relationType === "MARKET");
   const rows = (news: ChartRelatedNews[]) => news.slice(0, count).map((item, index) => (
@@ -23,20 +27,26 @@ export function RelatedNewsList({ items, onPress, expandMarket = false }: Relate
   ));
   return <View style={styles.group}>
     <Text style={styles.title}>관련 뉴스</Text>
-    {items.length === 0 ? <Text style={styles.meta}>이 시점에 수집된 관련 뉴스가 없어요</Text> : null}
+    {items.length === 0 ? <View style={styles.group}>
+      <Text style={styles.meta}>{loading ? "관련 기사를 불러오는 중이에요" : error ? "관련 기사를 불러오지 못했어요" : "이 기간에 수집된 관련 기사가 없어요"}</Text>
+      {!loading && onLearn ? <TouchableOpacity accessibilityRole="button" style={styles.nextAction} onPress={onLearn}><Text style={styles.link}>학습 가이드에서 차트 읽기 연습하기</Text></TouchableOpacity> : null}
+    </View> : null}
+    {direct.length ? <Text style={styles.title}>종목 직접 관련</Text> : null}
     {rows(direct)}
-    {market.length ? <TouchableOpacity accessibilityRole="button" accessibilityState={{expanded: marketOpen}} onPress={() => setMarketOpen(!marketOpen)}><Text style={styles.title}>{`시장 뉴스 ${market.length}건 ${marketOpen ? "접기" : "펼치기"}`}</Text></TouchableOpacity> : null}
+    {sector.length ? <View style={styles.group}><Text style={styles.title}>업종 관련</Text><Text style={styles.meta}>같은 업종의 소식이며 이 종목을 직접 다룬 기사는 아니에요.</Text>{rows(sector)}</View> : null}
+    {market.length ? <TouchableOpacity accessibilityRole="button" accessibilityState={{expanded: marketOpen}} onPress={() => setMarketOpen(!marketOpen)}><Text style={styles.title}>{`시장 전체 흐름 ${market.length}건 ${marketOpen ? "접기" : "펼치기"}`}</Text></TouchableOpacity> : null}
     {marketOpen ? rows(market) : null}
     {references.length ? <View style={styles.group}>
       <Text style={styles.title}>장 마감 후 참고 기사</Text>
       <Text style={styles.meta}>움직임 이후에 나온 기사예요. 원인 후보와 구분해서 읽어주세요.</Text>
       {rows(references)}
     </View> : null}
-    {direct.length > count || references.length > count || (marketOpen && market.length > count) ? <TouchableOpacity accessibilityRole="button" onPress={() => setCount(count + 10)}><Text style={styles.link}>뉴스 더 보기</Text></TouchableOpacity> : null}
+    {direct.length > count || sector.length > count || references.length > count || (marketOpen && market.length > count) ? <TouchableOpacity accessibilityRole="button" onPress={() => setCount(count + 10)}><Text style={styles.link}>뉴스 더 보기</Text></TouchableOpacity> : null}
   </View>;
 }
 
 const styles = StyleSheet.create({
+  nextAction: { minHeight: 44, justifyContent: "center" },
   link: { color: "#175CD3", fontSize: 14, fontWeight: "600", paddingVertical: 8 },
   group: {
     gap: 10
