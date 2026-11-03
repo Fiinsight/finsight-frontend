@@ -244,7 +244,7 @@ export function ChartScreen({ route, navigation }: Props) {
             hasPrevious={selectedPosition < moves.length - 1} hasNext={selectedPosition > 0}
             onPrevious={() => selectMove(moves[selectedPosition + 1])} onNext={() => selectMove(moves[selectedPosition - 1])} />
         </View> : null}
-        {current && chart ? <RelatedNewsList key={`${selectedSymbol}:${period}:${selected?.timestamp ?? "all"}`} expandMarket={Boolean(selected)} items={selected ? selected.candidateNews : chart.relatedNews} onPress={handleRelatedNewsPress} /> : null}
+        {current && chart ? <RelatedNewsList key={`${selectedSymbol}:${period}:${selected?.timestamp ?? "all"}`} expandMarket={Boolean(selected)} loading={insights.isFetching} error={insights.isError} onLearn={() => navigation.getParent()?.navigate("LearnTab")} items={selected ? selected.candidateNews : chart.relatedNews} onPress={handleRelatedNewsPress} /> : null}
         {current && chart && chart.moveInsights.length > 0 ? (
           <View style={styles.insightCard}>
             <Text style={styles.insightTitle}>급등락 시점과 관련 뉴스</Text>

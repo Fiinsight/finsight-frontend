@@ -302,7 +302,7 @@ export interface ChartPoint {
 }
 
 export interface ChartRelatedNewsRaw {
-  relationType?: "DIRECT" | "MARKET" | "REFERENCE";
+  relationType?: "DIRECT" | "SECTOR" | "MARKET" | "REFERENCE";
   id?: number;
   newsId?: number;
   title?: string;
@@ -313,7 +313,7 @@ export interface ChartRelatedNewsRaw {
 }
 
 export interface ChartRelatedNews {
-  relationType?: "DIRECT" | "MARKET" | "REFERENCE";
+  relationType?: "DIRECT" | "SECTOR" | "MARKET" | "REFERENCE";
   id: number | null;
   title: string;
   source: string;
@@ -398,7 +398,7 @@ export interface MoveInsight {
 }
 
 export interface ChartDocent {
-  relation: "DIRECT" | "MARKET" | "NONE";
+  relation: "DIRECT" | "SECTOR" | "MARKET" | "NONE";
   possibleReason: string;
   marketImpact: string;
   mode: "RULE" | "LLM";
