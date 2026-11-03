@@ -1,5 +1,6 @@
+import { setDemoTouches, useDemoTouches } from "../../../lib/demoTouches";
 import { Ionicons } from "@expo/vector-icons";
-import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Platform, Switch, Pressable, StyleSheet, Text, View } from "react-native";
 import type { LearningLevel } from "../../../lib/onboarding";
 
 interface SettingsRow {
@@ -14,6 +15,7 @@ export function SettingsList({ level, onLogout, onEditLevel, onEditLearning, onT
   level: LearningLevel; onLogout: () => void; onDeleteAccount: () => void;
   onEditLevel: () => void; onEditLearning: () => void; onTerms: () => void; onPrivacy: () => void;
 }) {
+  const { enabled, error } = useDemoTouches();
   const levelLabel = level === "analyst" ? "분석용" : level === "normal" ? "일반용" : "초보자용";
   const rows: SettingsRow[] = [
     { icon: "options-outline", label: "학습 설정", onPress: onEditLearning },
@@ -26,6 +28,12 @@ export function SettingsList({ level, onLogout, onEditLevel, onEditLearning, onT
     { icon: "person-remove-outline", label: "회원 탈퇴", onPress: onDeleteAccount }
   ];
   return <View style={styles.list}>
+    <View style={styles.row}>
+      <Ionicons name="finger-print-outline" size={22} color="#667085" accessible={false} />
+      <Text style={styles.label}>발표용 터치 표시</Text>
+      <Switch accessibilityLabel="발표용 터치 표시" value={enabled} onValueChange={value => { void setDemoTouches(value); }} />
+    </View>
+    {error ? <Text accessibilityRole="alert">{error}</Text> : null}
     {rows.map(row => <Pressable key={row.label} accessibilityRole={row.onPress ? "button" : undefined}
       accessibilityLabel={row.value ? `${row.label}, ${row.value}` : row.label}
       accessibilityState={{ disabled: !row.onPress }} disabled={!row.onPress} onPress={row.onPress} style={styles.row}>

@@ -1,7 +1,8 @@
+import { DemoModal } from "../../../components/DemoModal";
 import { colors, radius, spacing, typography } from "../../../theme";
 import { TermPopup } from "../../../components/TermPopup";
 import { Ionicons } from "@expo/vector-icons";
-import { Modal, Pressable, StyleSheet, Text, TouchableOpacity, View, ScrollView } from "react-native";
+import { Pressable, StyleSheet, Text, TouchableOpacity, View, ScrollView } from "react-native";
 import { useState } from "react";
 import type { LearningFocus, LearningLevel } from "../../../lib/onboarding";
 
@@ -156,7 +157,7 @@ export function GuideList({ focus, level }: { focus: LearningFocus; level: Learn
           <Ionicons name="chevron-forward" size={18} color={colors.muted} />
         </TouchableOpacity>
       ))}
-      <Modal visible={selectedGuide !== null} transparent animationType="slide" onRequestClose={() => setSelectedGuide(null)}>
+      <DemoModal visible={selectedGuide !== null} transparent animationType="slide" onRequestClose={() => setSelectedGuide(null)}>
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}><ScrollView contentContainerStyle={{ gap: 14 }}>
             <Text style={styles.modalTitle}>{selectedGuide?.title}</Text>
@@ -171,7 +172,7 @@ export function GuideList({ focus, level }: { focus: LearningFocus; level: Learn
             </Pressable></ScrollView>
           </View>
         </View>
-      </Modal>
+      </DemoModal>
     </View>
   );
 }

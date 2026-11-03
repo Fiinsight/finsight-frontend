@@ -1,5 +1,5 @@
+import { DemoModal } from "../../components/DemoModal";
 import { LegalScreen } from "../legal/LegalScreen";
-import { Modal } from "react-native";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, AppState, Keyboard, Platform, Pressable, StyleSheet, Text, TextInput, View, ScrollView } from "react-native";
 import * as Linking from "expo-linking";
@@ -183,7 +183,7 @@ export function AuthScreen({ onAuthenticated, initialSignup = false }: Props) {
         {isSignup ? <View style={styles.legalLinks}><Pressable accessibilityRole="link" accessibilityLabel="이용약관 보기" style={styles.linkButton} onPress={() => setLegal("terms")}><Text style={styles.link}>이용약관</Text></Pressable><Pressable accessibilityRole="link" accessibilityLabel="개인정보처리방침 보기" style={styles.linkButton} onPress={() => setLegal("privacy")}><Text style={styles.link}>개인정보처리방침</Text></Pressable></View> : null}
       </View>
       </ScrollView>
-      <Modal visible={legal !== null} animationType="slide" onRequestClose={() => setLegal(null)}><LegalScreen kind={legal ?? "terms"} onBack={() => setLegal(null)} /></Modal>
+      <DemoModal visible={legal !== null} animationType="slide" onRequestClose={() => setLegal(null)}><LegalScreen kind={legal ?? "terms"} onBack={() => setLegal(null)} /></DemoModal>
     </LinearGradient>
   );
 }

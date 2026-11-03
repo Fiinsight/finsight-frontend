@@ -1,5 +1,6 @@
+import { DemoModal } from "./DemoModal";
 import { useQuery } from "@tanstack/react-query";
-import { Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { explainTerm } from "../lib/api";
 
 interface TermPopupProps {
@@ -24,7 +25,7 @@ export function TermPopup({ visible, term, newsId, level = "normal", onClose }: 
   }
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <DemoModal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
         <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
           <View style={styles.handle} />
@@ -42,7 +43,7 @@ export function TermPopup({ visible, term, newsId, level = "normal", onClose }: 
           </TouchableOpacity>
         </Pressable>
       </Pressable>
-    </Modal>
+    </DemoModal>
   );
 }
 

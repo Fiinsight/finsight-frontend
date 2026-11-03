@@ -1,3 +1,4 @@
+import { TouchIndicatorOverlay } from "./src/components/TouchIndicatorOverlay";
 import type { RootTabParamList } from "./src/navigation/types";
 import { NavigationContainer } from "@react-navigation/native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -26,6 +27,10 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 60_000 } }
 });
 export default function App() {
+  return <TouchIndicatorOverlay><AppContent /></TouchIndicatorOverlay>;
+}
+
+function AppContent() {
   const [fontsLoaded, fontError] = useFonts(Ionicons.font);
   const [signupFirst, setSignupFirst] = useState(false);
   const [showIntro, setShowIntro] = useState(true);
