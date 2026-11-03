@@ -1,5 +1,5 @@
 import {RequestWaitNotice} from "../../../components/RequestWaitNotice";
-import { sourceExcerpt } from "../../../lib/text";
+import { cleanArticleText, sourceExcerpt } from "../../../lib/text";
 import type { ComponentRef } from "react";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
@@ -96,9 +96,10 @@ export function NewsDetailScreen({ route, navigation }: Props) {
   }
 
   const detail: NewsDetail = data;
-  const hasContent = !!detail.rawContent.trim();
+  const cleanedRaw = cleanArticleText(detail.rawContent);
+  const hasContent = !!cleanedRaw.trim();
   const importanceReason = detail.importanceReasons?.[readingLevel]?.trim() || detail.importanceReason;
-  const rawExcerpt = detail.fullContentEnabled ? detail.rawContent : sourceExcerpt(detail.rawContent);
+  const rawExcerpt = detail.fullContentEnabled ? cleanedRaw : sourceExcerpt(cleanedRaw);
 
   return (
     <SafeAreaView style={styles.safeArea}>
