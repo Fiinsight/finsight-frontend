@@ -1,6 +1,7 @@
+import { DemoModal } from "../../../components/DemoModal";
 import { Ionicons } from "@expo/vector-icons";
 import { useMemo, useState } from "react";
-import { Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { CandlestickChart } from "../../../components/CandlestickChart";
 import type { ChartCandle, MoveInsight } from "../../../types/api";
 
@@ -35,7 +36,7 @@ export function ChartCard({ candles, period, minuteInterval, moveInsights = [], 
         <Ionicons name="information-circle-outline" size={20} color="#175CD3" />
       </TouchableOpacity>
 
-      <Modal visible={showGuide} transparent animationType="slide" onRequestClose={() => setShowGuide(false)}>
+      <DemoModal visible={showGuide} transparent animationType="slide" onRequestClose={() => setShowGuide(false)}>
         <Pressable style={styles.backdrop} onPress={() => setShowGuide(false)}>
           <Pressable style={styles.sheet} onPress={(event) => event.stopPropagation()}>
             <View style={styles.handle} />
@@ -85,7 +86,7 @@ export function ChartCard({ candles, period, minuteInterval, moveInsights = [], 
             </TouchableOpacity>
           </Pressable>
         </Pressable>
-      </Modal>
+      </DemoModal>
     </View>
   );
 }

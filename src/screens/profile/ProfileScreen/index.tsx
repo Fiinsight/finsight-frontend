@@ -1,7 +1,8 @@
+import { DemoModal } from "../../../components/DemoModal";
 import { judgementNotificationsEnabled, setJudgementNotificationsEnabled } from "../../../lib/judgementNotifications";
 import { useQueryClient } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
-import { Platform, SafeAreaView, ScrollView, StyleSheet, View, Text, Pressable, Modal, Switch, TextInput } from "react-native";
+import { Platform, SafeAreaView, ScrollView, StyleSheet, View, Text, Pressable, Switch, TextInput } from "react-native";
 import { saveAuthSession, type AuthSession } from "../../../lib/auth";
 import { getDefaultLearningPreferences, type LearningLevel } from "../../../lib/onboarding";
 import { getLearningPreferences, setDefaultReadingLevel, saveLearningSettings, getOnboardingAnswers, deleteAccount, updateNickname } from "../../../lib/api";
@@ -92,7 +93,7 @@ export function ProfileScreen({ session, onLogout }: { session: AuthSession; onL
           onTerms={() => setLegal("terms")} onPrivacy={() => setLegal("privacy")} />
         {message ? <Text accessibilityRole="alert">{message}</Text> : null}
       </ScrollView>
-      <Modal visible={nicknameOpen} transparent animationType="slide" onRequestClose={() => {if(!saving)setNicknameOpen(false);}}>
+      <DemoModal visible={nicknameOpen} transparent animationType="slide" onRequestClose={() => {if(!saving)setNicknameOpen(false);}}>
         <View style={styles.sheetBackdrop}><View style={styles.sheet} accessibilityViewIsModal>
           <Text style={styles.sheetTitle}>닉네임 수정</Text>
           <TextInput accessibilityLabel="새 닉네임" value={nicknameDraft} onChangeText={setNicknameDraft} maxLength={30} editable={!saving} style={styles.levelRow} />
@@ -100,8 +101,8 @@ export function ProfileScreen({ session, onLogout }: { session: AuthSession; onL
           <Pressable accessibilityRole="button" disabled={saving} onPress={() => setNicknameOpen(false)} style={styles.levelRow}><Text>취소</Text></Pressable>
           {message?<Text accessibilityRole="alert">{message}</Text>:null}
         </View></View>
-      </Modal>
-      <Modal visible={logoutConfirm || deleteStep > 0} transparent animationType="slide" onRequestClose={() => { if (!saving) { setLogoutConfirm(false); setDeleteStep(0); } }}>
+      </DemoModal>
+      <DemoModal visible={logoutConfirm || deleteStep > 0} transparent animationType="slide" onRequestClose={() => { if (!saving) { setLogoutConfirm(false); setDeleteStep(0); } }}>
         <View style={styles.sheetBackdrop}>
           <Pressable style={styles.sheetDismiss} accessibilityRole="button" accessibilityLabel="계정 확인 닫기" disabled={saving} onPress={() => { setLogoutConfirm(false); setDeleteStep(0); }} />
           <View style={styles.sheet} accessibilityViewIsModal>
@@ -116,8 +117,8 @@ export function ProfileScreen({ session, onLogout }: { session: AuthSession; onL
             {message ? <Text accessibilityRole="alert">{message}</Text> : null}
           </View>
         </View>
-      </Modal>
-      <Modal visible={notificationsOpen} transparent animationType="slide" onRequestClose={() => setNotificationsOpen(false)}>
+      </DemoModal>
+      <DemoModal visible={notificationsOpen} transparent animationType="slide" onRequestClose={() => setNotificationsOpen(false)}>
         <View style={styles.sheetBackdrop}>
           <Pressable style={styles.sheetDismiss} accessibilityRole="button" accessibilityLabel="알림 설정 닫기" onPress={() => setNotificationsOpen(false)} />
           <View style={styles.sheet} accessibilityViewIsModal>
@@ -130,8 +131,8 @@ export function ProfileScreen({ session, onLogout }: { session: AuthSession; onL
             <Pressable accessibilityRole="button" accessibilityLabel="알림 설정 완료" style={styles.levelRow} onPress={() => setNotificationsOpen(false)}><Text style={styles.levelText}>완료</Text></Pressable>
           </View>
         </View>
-      </Modal>
-      <Modal visible={editing} transparent animationType="slide" onRequestClose={() => { if (!saving) setEditing(false); }}>
+      </DemoModal>
+      <DemoModal visible={editing} transparent animationType="slide" onRequestClose={() => { if (!saving) setEditing(false); }}>
         <View style={styles.sheetBackdrop}>
           <Pressable style={styles.sheetDismiss} accessibilityRole="button" accessibilityLabel="읽기 수준 선택 닫기" onPress={() => { if (!saving) setEditing(false); }} />
           <View style={styles.sheet} accessibilityViewIsModal>
@@ -145,16 +146,16 @@ export function ProfileScreen({ session, onLogout }: { session: AuthSession; onL
             <Pressable accessibilityRole="button" accessibilityLabel="읽기 수준 선택 취소" disabled={saving} style={styles.levelRow} onPress={() => setEditing(false)}><Text style={styles.sheetDescription}>{saving ? "저장 중…" : "취소"}</Text></Pressable>
           </View>
         </View>
-      </Modal>
-      <Modal visible={settingsOpen} animationType="slide" onRequestClose={() => { if (!saving) setSettingsOpen(false); }}>
+      </DemoModal>
+      <DemoModal visible={settingsOpen} animationType="slide" onRequestClose={() => { if (!saving) setSettingsOpen(false); }}>
         <View style={{ flex: 1, backgroundColor: "#071B4A" }}>
           {message ? <Text accessibilityRole="alert" style={{ color: "#FFFFFF", padding: 16 }}>{message}</Text> : null}
           {settingsAnswers ? <OnboardingScreen initialAnswers={settingsAnswers} allowSkip={false} saving={saving} onClose={() => setSettingsOpen(false)} onComplete={(answers) => void saveSettings(answers)} /> : <Pressable accessibilityRole="button" accessibilityLabel="학습 설정 닫기" onPress={() => setSettingsOpen(false)}><View style={{ padding: 20, alignItems: "flex-end" }}><Ionicons name="close" size={24} color="#FFFFFF" /></View></Pressable>}
         </View>
-      </Modal>
-      <Modal visible={legal !== null} animationType="slide" onRequestClose={() => setLegal(null)}>
+      </DemoModal>
+      <DemoModal visible={legal !== null} animationType="slide" onRequestClose={() => setLegal(null)}>
         <LegalScreen kind={legal ?? "terms"} onBack={() => setLegal(null)} />
-      </Modal>
+      </DemoModal>
     </SafeAreaView>
   );
 }
