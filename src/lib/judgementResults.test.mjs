@@ -101,7 +101,10 @@ test('late learning preferences never replace a manually chosen history tab', as
   if(choose) tree.find(node=>node.type==='Pressable'&&nodes(node).some(child=>child.type==='Text'&&child.children.includes('판단 기록'))).props.onPress();
   resolvePreferences({painPoint:'reflection'}); await new Promise(setImmediate);
   const words=render().filter(node=>node.type==='Text').flatMap(node=>node.children).join(' ');
-  assert(words.includes(choose?'최근 판단부터 보여드려요. 이전 기록을 더 불러올 수 있어요.':'최근 7일 메모부터 보여드려요.'));
+  const tabs=render().filter(n=>n.props?.accessibilityRole==='tab');
+  const selected=tabs.find(n=>n.props.accessibilityState.selected);
+  assert(nodes(selected).some(n=>n.type==='Text'&&n.children.includes(choose?'판단 기록':'기사 메모')));
+  assert(!words.includes('최근 판단부터 보여드려요'));
  }
 });
 

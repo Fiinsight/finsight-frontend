@@ -1,3 +1,4 @@
+import { DeleteNoteConfirmation } from "../../../components/DeleteNoteConfirmation";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -109,15 +110,7 @@ export function ArticleNotesPanel({ newsId, sourceUrl }: { newsId: number; sourc
               <>
                 <Text style={styles.noteContent}>{note.content}</Text>
                 {confirmDeleteId === note.id ? (
-                  <View style={styles.actions}>
-                    <Text style={styles.muted}>이 메모를 삭제할까요?</Text>
-                    <Pressable accessibilityRole="button" accessibilityLabel="메모 삭제 취소" onPress={() => setConfirmDeleteId(null)} style={styles.secondaryButton}>
-                      <Text style={styles.secondaryText}>취소</Text>
-                    </Pressable>
-                    <Pressable accessibilityRole="button" accessibilityLabel="메모 삭제 확인" onPress={() => deleteMutation.mutate(note.id)} style={styles.deleteButton}>
-                      <Text style={styles.deleteText}>{deleteMutation.isPending ? "삭제 중" : "삭제"}</Text>
-                    </Pressable>
-                  </View>
+                  <DeleteNoteConfirmation pending={deleteMutation.isPending} onCancel={() => setConfirmDeleteId(null)} onConfirm={() => deleteMutation.mutate(note.id)} />
                 ) : (
                   <View style={styles.actions}>
                     <Pressable accessibilityRole="button" accessibilityLabel="메모 수정" onPress={() => { setEditingId(note.id); setEditingContent(note.content); }} style={styles.secondaryButton}>

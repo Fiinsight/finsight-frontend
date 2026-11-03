@@ -111,3 +111,19 @@ test('neutral predictions inside the neutral band are correct, not partial, with
   assert.equal(judgementSummary([item]).hits,1);
  }
 });
+
+test('history sections hide empty groups, preserve pending dates and separate review',async()=>{
+ const {historySections}=await import('./historyRecords.ts');
+ const base={id:1,newsId:3,newsTitle:'기사',judgedAt:'2026-11-01T09:00:00Z',choice:'NEUTRAL',actualDirection:'NEUTRAL',actualChangePercent:0,comparisonDate:'2026-11-02'};
+ const pending={...base,id:2,actualDirection:null,pendingReason:'NOT_DUE',expectedResultDate:'2026-11-04'};
+ const review={...base,id:3,actualDirection:'UNKNOWN'};
+ const groups=historySections([review,pending,base]);assert.deepEqual(groups.map(g=>g.label),['결과 도착','결과 대기','기사 복습']);
+ assert.match(judgementResult(pending).label,/11월 4일.*15:40/);
+ assert.equal(historySections([base])[0].items.length,1);assert.equal(historySections([base]).length,1);assert.equal(historySections([base],'2026-11-03').length,0);
+});
+test('legacy partial text follows current neutral and directional grading',()=>{
+ const row={choice:'NEUTRAL',actualDirection:'NEUTRAL',actualChangePercent:.1,comparisonDate:'2026-11-03',feedbackText:'방향은 맞았지만 변동이 작아 우연일 수 있어요'};
+ assert.match(judgementResult(row).feedbackText,/중립 예측이 맞았어요/);
+ assert.match(judgementResult({...row,choice:'UP',actualDirection:'UP',actualChangePercent:.8}).feedbackText,/부분 정답/);
+ assert(!judgementResult({...row,choice:'UP',actualDirection:'UP',actualChangePercent:2}).feedbackText.includes('우연'));
+});

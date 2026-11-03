@@ -2,14 +2,14 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 import { getLearningPreferences, getArticleNotesRange, getJudgementHistoryPage } from "../../../lib/api";
 import { loadAuthSession } from "../../../lib/auth";
-import { groupRecords, judgementSummary, kstDate, recentRange } from "../../../lib/historyRecords";
-import { toRelativeTimeKorean } from "../../../lib/format";
+import { groupRecords, historySections, kstDate, recentRange } from "../../../lib/historyRecords";
 import type { HistoryStackParamList } from "../../../navigation/types";
 import { AttendanceCard } from "../../../components/AttendanceCard";
 import { TabScreenHeader } from "../../../components/TabScreenHeader";
+import { HistoryNoteCard } from "./HistoryNoteCard";
 import { HistoryItem } from "./HistoryItem";
 
 import { getSeenFeedback } from "../../../lib/feedbackSeen";
@@ -62,10 +62,10 @@ export function HistoryScreen({ navigation, route }: Props) {
   }, [ownerId, tab, historyQuery.refetch]));
   const history = [...new Map((historyQuery.data?.pages.flatMap((page) => page.items) ?? []).map((item) => [item.id, item])).values()];
   const notes = [...new Map((notesQuery.data?.pages.flatMap((page) => page.items) ?? []).map((item) => [item.id, item])).values()];
-  const historyGroups = groupRecords(history, (item) => item.judgedAt, today, selectedDate);
+  const sections = historySections(history, selectedDate);
   const noteGroups = groupRecords(notes, (item) => item.createdAt, today, selectedDate);
   const activeQuery = tab === "judgements" ? historyQuery : notesQuery;
-  const groups = tab === "judgements" ? historyGroups : noteGroups;
+  const groups = tab === "judgements" ? sections : noteGroups;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -80,7 +80,6 @@ export function HistoryScreen({ navigation, route }: Props) {
             </Pressable>
           ))}
         </View>
-        <Text style={styles.sectionSubtitle}>{selectedDate ? `${selectedDate} 기록만 표시합니다. 선택한 요일을 다시 누르면 해제돼요.` : (tab === "judgements" ? "최근 판단부터 보여드려요. 이전 기록을 더 불러올 수 있어요." : "최근 7일 메모부터 보여드려요.")}</Text>
         {selectedDate ? <Pressable accessibilityRole="button" onPress={() => setSelectedDate(null)}><Text style={styles.reviewLink}>날짜 필터 해제</Text></Pressable> : null}
         {ownerId === null ? <Text style={styles.errorText}>로그인 정보를 확인할 수 없습니다.</Text> : ownerId === undefined || activeQuery.isLoading ? <Text style={styles.emptyText}>기록을 불러오는 중이에요.</Text> : null}
         {activeQuery.isError ? <View style={styles.emptyCard}>
@@ -91,21 +90,12 @@ export function HistoryScreen({ navigation, route }: Props) {
           <Text style={styles.emptyTitle}>{tab === "judgements" ? "이 기간에는 판단 기록이 없어요" : "이 기간에는 기사 메모가 없어요"}</Text>
           <Text style={styles.emptyText}>{tab === "judgements" ? "뉴스를 읽고 남긴 판단이 여기에 표시돼요." : "기사에서 기억하고 싶은 내용을 메모해보세요."}</Text>
         </View> : null}
-        {tab === "judgements" ? historyGroups.map((group) => {
-          const summary = judgementSummary(group.items);
-          return <View key={group.key} style={styles.group}>
-            <View style={styles.groupHeader}><Text style={styles.sectionTitle}>{group.label}</Text>
-              <Text style={styles.groupSummary}>{`판단 ${summary.total}건 · 적중 ${summary.total - summary.pending - summary.unavailable - summary.legacy === 0 ? "-" : summary.hits} · 결과 대기 ${summary.pending}${summary.unavailable + summary.legacy ? ` · 기사 복습 ${summary.unavailable + summary.legacy}` : ""}${summary.testRecords ? ` · 테스트 기록 ${summary.testRecords}` : ""}`}</Text>
-            </View>
-            {group.items.map((item) => <HistoryItem key={item.id} item={item} unread={hasUnreadFeedback(item, seen)} onPress={() => navigation.navigate("JudgementDetail", { judgementId: item.id })} />)}
-          </View>;
-        }) : noteGroups.map((group) => <View key={group.key} style={styles.group}>
-          <View style={styles.groupHeader}><Text style={styles.sectionTitle}>{group.label}</Text><Text style={styles.groupSummary}>메모 {group.items.length}건</Text></View>
-          {group.items.map((note) => <TouchableOpacity key={note.id} accessibilityRole="button" style={styles.noteCard} activeOpacity={0.85} onPress={() => navigation.navigate("NewsDetail", { newsId: note.newsId })}>
-            <View style={styles.noteHeader}><Text style={styles.noteSource} numberOfLines={1}>{note.source || "뉴스"}</Text><Text style={styles.noteDate}>{toRelativeTimeKorean(note.createdAt)}</Text></View>
-            <Text style={styles.noteTitle} numberOfLines={2}>{note.newsTitle}</Text><Text style={styles.noteContent} numberOfLines={4}>{note.content}</Text>
-            <Text style={styles.reviewLink}>기사 다시 읽기</Text>
-          </TouchableOpacity>)}
+        {tab === "judgements" ? sections.map(section => <View key={section.key} style={styles.group}>
+          <Text style={styles.sectionTitle}>{section.label} ({section.items.length})</Text>
+          {section.items.map(item => <HistoryItem key={item.id} item={item} compactReview={section.key === "review"} unread={hasUnreadFeedback(item, seen)} onPress={() => navigation.navigate("JudgementDetail", { judgementId: item.id })} />)}
+        </View>) : noteGroups.map(group => <View key={group.key} style={styles.group}>
+          <Text style={styles.sectionTitle}>{group.label}</Text>
+          {group.items.map(note => <HistoryNoteCard key={note.id} note={note} onArticle={() => navigation.navigate("NewsDetail", {newsId:note.newsId})} />)}
         </View>)}
         {!selectedDate && activeQuery.hasNextPage && !activeQuery.isError ? <Pressable accessibilityRole="button" disabled={activeQuery.isFetching} style={styles.moreButton} onPress={() => void activeQuery.fetchNextPage()}>
           <Text style={styles.reviewLink}>{activeQuery.isFetchingNextPage ? "이전 기록을 불러오는 중…" : "이전 기록 더 보기"}</Text>
@@ -122,15 +112,13 @@ const styles = StyleSheet.create({
   tabText: { color: "#475467", fontSize: 15, fontWeight: "700" },
   selectedTabText: { color: "#175CD3" },
   group: { gap: 10, marginTop: 10 },
-  groupHeader: { gap: 5 },
-  groupSummary: { color: "#475467", fontSize: 12, lineHeight: 19 },
   moreButton: { padding: 16, alignItems: "center", borderRadius: 10, borderWidth: 1, borderColor: "#D0D5DD" },
   safeArea: {
     flex: 1,
     backgroundColor: "#F8FAFC"
   },
   container: {
-    padding: 20,
+    width:"100%", maxWidth:880, alignSelf:"center", padding: 20,
     paddingBottom: 40,
     gap: 12
   },
@@ -140,13 +128,6 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     marginTop: 8
   },
-  sectionSubtitle: { color: "#667085", fontSize: 13, lineHeight: 19, marginTop: 0 },
-  noteCard: { backgroundColor: "#FFFFFF", borderColor: "#D0D5DD", borderWidth: 1, borderRadius: 14, padding: 16, gap: 9 },
-  noteHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8 },
-  noteSource: { color: "#175CD3", fontSize: 12, fontWeight: "700", flex: 1 },
-  noteDate: { color: "#667085", fontSize: 11 },
-  noteTitle: { color: "#101828", fontSize: 15, lineHeight: 21, fontWeight: "800" },
-  noteContent: { color: "#475467", fontSize: 14, lineHeight: 21 },
   reviewLink: { alignSelf: "flex-start", color: "#175CD3", fontSize: 14, fontWeight: "600", lineHeight: 20, marginTop: 2 },
   emptyCard: { backgroundColor: "#EEF4FF", borderRadius: 14, padding: 18, gap: 6 },
   emptyTitle: { color: "#182B59", fontSize: 15, fontWeight: "800" },
