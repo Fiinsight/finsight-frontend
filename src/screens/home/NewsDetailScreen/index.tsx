@@ -6,7 +6,8 @@ import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { useIsFocused } from "@react-navigation/native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Linking, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
+import { LevelTabs } from "../../../components/LevelTabs";
 import { BottomActionBar } from "../../../components/BottomActionBar";
 import { TermPopup } from "../../../components/TermPopup";
 import { getLearningPreferences, getNewsDetail } from "../../../lib/api";
@@ -38,7 +39,7 @@ export function NewsDetailScreen({ route, navigation }: Props) {
   };
   const { newsId } = route.params;
   const isFocused = useIsFocused();
-  const [bodyTab, setBodyTab] = useState<BodyTab>(route.params.readMode ?? "level");
+  const [bodyTab, setBodyTab] = useState<BodyTab>(route.params.readMode ?? "raw");
   useEffect(() => { if (route.params.readMode) setBodyTab(route.params.readMode); }, [newsId, route.params.readMode]);
   const [showTerms, setShowTerms] = useState(true);
   const [selectedTerm, setSelectedTerm] = useState<string | null>(null);
@@ -55,7 +56,7 @@ export function NewsDetailScreen({ route, navigation }: Props) {
       if (!active) return;
       setPreferredLevel(preferences.level);
       setShowTerms(preferences.painPoint === "terms");
-      if (!route.params.readMode) setBodyTab("level");
+      if (!route.params.readMode) setBodyTab(preferences.painPoint === "overload" ? "level" : "raw");
       setPreferencesReady(true);
     });
     return () => { active = false; };
@@ -106,18 +107,15 @@ export function NewsDetailScreen({ route, navigation }: Props) {
       <ScrollView ref={scroll} contentContainerStyle={styles.container}>
         <Text style={styles.title}>{detail.title}</Text>
 
-        {!hasContent ? <Text>원문 링크에서 확인하세요.</Text> : null}
-
-        {hasContent && bodyTab === "level" ? <Pressable accessibilityRole="button" accessibilityLabel={`읽기 수준 변경, 현재 ${readingLevel}`} style={styles.levelChip}
-          onPress={() => { const levels: ReadingLevel[] = ["beginner","normal","analyst"]; const level = levels[(levels.indexOf(readingLevel)+1)%levels.length]; setReadingLevel(newsId,level); navigation.setParams({readingLevel:level}); }}>
-          <Text>읽기 수준 · {{beginner:"초보자",normal:"일반",analyst:"분석"}[readingLevel]} ⌄</Text>
-        </Pressable> : null}
+        <SourceLinkRow source={detail.source} url={detail.url} />
+        {hasContent ? <BodyTabs value={bodyTab} onChange={setBodyTab} /> : <Text>원문 링크에서 확인하세요.</Text>}
+        {hasContent && bodyTab === "level" ? <LevelTabs value={readingLevel} onChange={(level: ReadingLevel) => { setReadingLevel(newsId,level); navigation.setParams({readingLevel:level}); }} /> : null}
 
         {hasContent ? (bodyTab === "raw" ? <View style={styles.bodyCard}>
           <Pressable style={styles.touchTarget} accessibilityRole="switch" accessibilityState={{ checked: showTerms }} accessibilityLabel="용어 밑줄 표시" onPress={() => setShowTerms(!showTerms)}><Text style={styles.backText}>용어 밑줄 {showTerms ? "켜짐" : "꺼짐"}</Text></Pressable>
           <Text>기사 일부를 발췌했어요. 전문은 출처 사이트에서 확인하세요.</Text>
           <ArticleBody text={rawExcerpt} terms={showTerms ? detail.keyTerms : []} onTermPress={setSelectedTerm} />
-          <SourceLinkRow source={detail.source} url={detail.url} />
+          {detail.url ? <Pressable accessibilityRole="link" accessibilityLabel="원문 전체 보기" style={styles.touchTarget} onPress={() => void Linking.openURL(detail.url)}><Text style={styles.backText}>원문 전체 보기 →</Text></Pressable> : null}
         </View> : <View onLayout={event => { quizLayout.current.panel = event.nativeEvent.layout.y; scrollToQuiz(); }}><LearningPanel key={`${newsId}-${readingLevel}-${route.params.quizTerm ?? ""}`} newsId={newsId} level={readingLevel} quizTerm={route.params.quizTerm} onTermPress={setSelectedTerm}
           onQuizLayout={y => { quizLayout.current.quiz = y; scrollToQuiz(); }}
           onReviewPress={() => navigation.getParent<BottomTabNavigationProp<RootTabParamList>>()?.navigate("LearnTab", { screen: "Learn", params: { section: "reviews" } })} /></View>) : null}
@@ -133,7 +131,7 @@ export function NewsDetailScreen({ route, navigation }: Props) {
         ) : null}
 
         {hasContent && importanceReason ? <ImportanceReasonCard reason={importanceReason} /> : null}
-        {bodyTab !== "raw" ? <SourceLinkRow source={detail.source} url={detail.url} /> : null}
+        <SourceLinkRow source={detail.source} url={detail.url} />
         {hasContent ? <View onLayout={(event) => { if (route.params.openNotes) scroll.current?.scrollTo({ y: event.nativeEvent.layout.y, animated: true }); }}><ArticleNotesPanel newsId={newsId} sourceUrl={detail.url} /></View> : null}
       </ScrollView>
 
@@ -144,8 +142,19 @@ export function NewsDetailScreen({ route, navigation }: Props) {
   );
 }
 
+// Kept in this screen so the restored wording does not change other callers of BodyTabs.
+function BodyTabs({value,onChange}:{value:BodyTab;onChange:(tab:BodyTab)=>void}) {
+  return <View style={styles.bodyTabs} accessibilityRole="tablist">
+    {([{key:"raw",label:"원문"},{key:"level",label:"내 수준에 맞게 읽기"}] as const).map(tab=><Pressable key={tab.key} accessibilityRole="tab" accessibilityState={{selected:value===tab.key}} onPress={()=>onChange(tab.key)} style={[styles.bodyTab,value===tab.key&&styles.bodyTabSelected]}><Text style={[styles.bodyTabText,value===tab.key&&styles.bodyTabTextSelected]}>{tab.label}</Text></Pressable>)}
+  </View>;
+}
+
 const styles = StyleSheet.create({
-  levelChip: { alignSelf:"flex-start", minHeight:44, justifyContent:"center", paddingHorizontal:14, backgroundColor:"#EEF4FF", borderRadius:22 },
+  bodyTabs: {flexDirection:"row",backgroundColor:"#F2F4F7",borderRadius:8,padding:4,gap:4},
+  bodyTab: {flex:1,minHeight:44,justifyContent:"center",alignItems:"center",borderRadius:6,paddingVertical:10},
+  bodyTabSelected: {backgroundColor:"#FFFFFF"},
+  bodyTabText: {fontSize:14,fontWeight:"700",color:"#667085"},
+  bodyTabTextSelected: {color:"#101828"},
   safeArea: {
     flex: 1,
     backgroundColor: "#F8FAFC"
