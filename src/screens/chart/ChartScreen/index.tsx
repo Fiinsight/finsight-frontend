@@ -3,10 +3,10 @@ import type { ComponentRef } from "react";
 import { colors, radius, spacing, typography } from "../../../theme";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { addWatchlist, getApiErrorMessage, getChartData, getPopularStocks, getWatchlist, removeWatchlist, searchStocks } from "../../../lib/api";
+import { addWatchlist, getApiErrorMessage, getChartCandles, getChartInsights, getPopularStocks, getWatchlist, removeWatchlist, searchStocks } from "../../../lib/api";
 import { loadAuthSession } from "../../../lib/auth";
 import { storageGetItem, storageSetItem } from "../../../lib/storage";
 import { initialChartSymbol, lastWatchlistKey } from "../../../lib/watchlist";
@@ -108,7 +108,7 @@ export function ChartScreen({ route, navigation }: Props) {
 
   const { data, isError: chartError, isFetching, refetch: refetchChart } = useQuery({
     queryKey: period === "MINUTE" ? ["chart", selectedSymbol, period, minuteInterval] : ["chart", selectedSymbol, period],
-    queryFn: ({ signal }) => getChartData(selectedSymbol, period, minuteInterval, signal),
+    queryFn: ({ signal }) => getChartCandles(selectedSymbol, period, minuteInterval, signal),
     enabled: Boolean(selectedSymbol) && !entering,
     retry: 0,
     staleTime: 60_000,
@@ -117,18 +117,39 @@ export function ChartScreen({ route, navigation }: Props) {
     placeholderData: keepPreviousData
   });
 
-  const chart = data?.symbol === selectedSymbol && data.period === period && (period !== "MINUTE" || data.intervalMinutes === minuteInterval) ? data : undefined;
-  const displayCandles = chart && period === "MINUTE" && chart.minuteCandles.length > 0 ? chart.minuteCandles : chart?.candles ?? [];
+  const current = data?.symbol === selectedSymbol && data.period === period && (period !== "MINUTE" || data.intervalMinutes === minuteInterval);
+  const insights = useQuery({
+    queryKey: ["chart-insights", selectedSymbol, period, period === "MINUTE" ? minuteInterval : 0],
+    queryFn: ({ signal }) => getChartInsights(selectedSymbol, period, minuteInterval, signal),
+    enabled: Boolean(current && !data?.fallback),
+    retry: 0,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false
+  });
+  // Keep prior candles visible while switching; never attach another stock's insights.
+  const chart = data && current && insights.data?.symbol === selectedSymbol ? { ...data, moveInsights: insights.data.moveInsights, relatedNews: insights.data.relatedNews, docent: insights.data.docent } : data;
+  useEffect(() => {
+    if (!popularStocksData) return;
+    let cancelled = false;
+    void (async () => {
+      for (const stock of popularStocksData.slice(0, 3)) {
+        if (cancelled) break;
+        await client.prefetchQuery({ queryKey: ["chart", stock.symbol, "D"], queryFn: ({ signal }) => getChartCandles(stock.symbol, "D", 5, signal), staleTime: 60_000 });
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [client, popularStocksData]);
+  const displayCandles = chart && chart.period === "MINUTE" && chart.minuteCandles.length > 0 ? chart.minuteCandles : chart?.candles ?? [];
 
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const docentY = useRef(0);
-  const moves = movesByDate(chart?.moveInsights ?? []);
+  const moves = useMemo(() => movesByDate(chart?.moveInsights ?? []), [chart?.moveInsights]);
   const selected = moves.find(item => item.timestamp === selectedInsight?.timestamp) ?? strongestMove(moves);
   const selectedPosition = moves.findIndex(item => item.timestamp === selected?.timestamp);
-  const selectMove = (insight: MoveInsight) => {
+  const selectMove = useCallback((insight: MoveInsight) => {
     setSelectedInsight(insight);
     scroll.current?.scrollTo({ y: docentY.current, animated: true });
-  };
+  }, []);
 
   const handleRelatedNewsPress = (item: ChartRelatedNews) => {
     if (item.id !== null && item.id !== undefined) {
@@ -136,10 +157,10 @@ export function ChartScreen({ route, navigation }: Props) {
     }
   };
 
-  const handleCandlePress = (candle: { date: string }) => {
+  const handleCandlePress = useCallback((candle: { date: string }) => {
     const insight = moves.find(item => moveDate(item.timestamp, period) === moveDate(candle.date, period));
     if (insight) selectMove(insight);
-  };
+  }, [moves, period, selectMove]);
 
   const marketClosed = period === "MINUTE" && !isKoreanMarketOpen();
   const headerQuote = stocks.find((stock) => stock.symbol === selectedSymbol);
@@ -209,21 +230,22 @@ export function ChartScreen({ route, navigation }: Props) {
             <Text style={styles.warningText}>{marketClosed ? "분봉은 최근 거래일 장중 데이터가 있을 때만 새로 갱신됩니다." : chartError || stocksError ? "실시간 시세 연결에 실패했습니다. 잠시 후 다시 시도해 주세요." : "현재 시세 데이터를 확인할 수 없습니다."}</Text>
           </View>
         ) : null}
+        {chart && !current ? <Text accessibilityLiveRegion="polite">{chart.symbolName ?? chart.symbol} 이전 차트를 표시 중이에요. 선택한 차트를 불러오고 있어요.</Text> : null}
         {chart ? <ChartCard
           candles={displayCandles}
-          period={period}
-          minuteInterval={minuteInterval}
+          period={chart.period === "MINUTE" ? "MINUTE" : chart.period === "W" ? "W" : "D"}
+          minuteInterval={chart.intervalMinutes ?? undefined}
           moveInsights={chart.moveInsights}
-          selectedDate={selected ? moveDate(selected.timestamp, period) : undefined}
-          onCandlePress={handleCandlePress}
+          selectedDate={current && selected ? moveDate(selected.timestamp, period) : undefined}
+          onCandlePress={current ? handleCandlePress : undefined}
         /> : <View style={styles.emptyCard}><Text style={styles.emptyText}>실제 차트 데이터가 없어 차트를 표시할 수 없습니다.</Text></View>}
-        {chart && selected ? <View onLayout={event => { docentY.current = event.nativeEvent.layout.y; }}>
+        {current && chart && selected ? <View onLayout={event => { docentY.current = event.nativeEvent.layout.y; }}>
           <ChartDocentPanel insight={selected} period={period} onNewsPress={newsId => navigation.navigate("NewsDetail", { newsId })}
             hasPrevious={selectedPosition < moves.length - 1} hasNext={selectedPosition > 0}
             onPrevious={() => selectMove(moves[selectedPosition + 1])} onNext={() => selectMove(moves[selectedPosition - 1])} />
         </View> : null}
-        {chart ? <RelatedNewsList key={`${selectedSymbol}:${period}:${selected?.timestamp ?? "all"}`} expandMarket={Boolean(selected)} items={selected ? selected.candidateNews : chart.relatedNews} onPress={handleRelatedNewsPress} /> : null}
-        {chart && chart.moveInsights.length > 0 ? (
+        {current && chart ? <RelatedNewsList key={`${selectedSymbol}:${period}:${selected?.timestamp ?? "all"}`} expandMarket={Boolean(selected)} items={selected ? selected.candidateNews : chart.relatedNews} onPress={handleRelatedNewsPress} /> : null}
+        {current && chart && chart.moveInsights.length > 0 ? (
           <View style={styles.insightCard}>
             <Text style={styles.insightTitle}>급등락 시점과 관련 뉴스</Text>
             {moves.map((insight, index) => (

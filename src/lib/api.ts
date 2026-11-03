@@ -506,6 +506,16 @@ function normalizeChartData(raw: ChartDataRaw, symbol: string): ChartData {
   };
 }
 
+export async function getChartCandles(symbol: string, period: "D" | "W" | "MINUTE" = "D", interval = 5, signal?: AbortSignal): Promise<ChartData> {
+  const { data } = await api.get<ChartDataRaw>(`/charts/${symbol}/candles`, { params: { period, ...(period === "MINUTE" ? { interval } : {}) }, signal, timeout: 60_000 });
+  return normalizeChartData(data, symbol);
+}
+
+export async function getChartInsights(symbol: string, period: "D" | "W" | "MINUTE" = "D", interval = 5, signal?: AbortSignal): Promise<ChartData> {
+  const { data } = await api.get<ChartDataRaw>(`/charts/${symbol}/insights`, { params: { period, ...(period === "MINUTE" ? { interval } : {}) }, signal, timeout: 60_000 });
+  return normalizeChartData(data, symbol);
+}
+
 export async function getChartData(symbol: string, period: "D" | "W" | "MINUTE" = "D", interval = 5, signal?: AbortSignal): Promise<ChartData> {
   const { data } = await api.get<ChartDataRaw>(`/charts/${symbol}`, { params: { period, ...(period === "MINUTE" ? { interval } : {}) }, signal, timeout: 60_000 });
   return normalizeChartData(data, symbol);

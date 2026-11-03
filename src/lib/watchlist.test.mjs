@@ -9,7 +9,7 @@ const model={initialChartSymbol,lastWatchlistKey,selectHomeNews,withoutWatchlist
 const list=[{symbol:'000660',name:'SK하이닉스',addedAt:'2026-10-15'},{symbol:'035720',name:'카카오',addedAt:'2026-10-15'}];
 const compile=path=>ts.transpileModule(fs.readFileSync(new URL(path,import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.React,esModuleInterop:true}}).outputText;
 const nodes=n=>Array.isArray(n)?n.flatMap(nodes):n&&typeof n==='object'?[n,...nodes(n.children)]:[];
-const React={createElement:(type,props,...children)=>({type,props:props??{},children})};
+const React={useMemo:f=>f(),createElement:(type,props,...children)=>({type,props:props??{},children})};
 const native=Object.fromEntries(['Text','View','Pressable','TouchableOpacity','ScrollView','SafeAreaView','ActivityIndicator'].map(n=>[n,n]));native.StyleSheet={create:s=>s};
 function component(path,exportsName){const exports={};vm.runInNewContext(compile(path),{exports,React,require:n=>n.endsWith('/theme') ? theme : n==='react'?React:n==='react-native'?native:n==='@expo/vector-icons'?{Ionicons:'Ionicons'}:n.endsWith('/watchlist')?model:n.endsWith('/format')?{formatPercent:String,formatPrice:String}:n.endsWith('/NewsCard')?{NewsCard:'NewsCard'}:{}});return exports[exportsName];}
 

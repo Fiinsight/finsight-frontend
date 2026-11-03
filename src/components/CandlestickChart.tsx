@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { memo, Fragment, useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, { Circle, Line, Polygon, Rect, Text as SvgText } from "react-native-svg";
 import { formatPrice, formatShortDate, formatShortDateTime, formatShortTime } from "../lib/format";
@@ -32,7 +32,7 @@ const MIN_BODY_HEIGHT = 1.5;
 const GRIDLINE_COUNT = 4;
 const MAX_DATE_LABELS = 6;
 
-export function CandlestickChart({
+export const CandlestickChart = memo(function CandlestickChart({
   candles,
   selectedDate,
   height = 240,
@@ -221,7 +221,7 @@ export function CandlestickChart({
       )}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {
