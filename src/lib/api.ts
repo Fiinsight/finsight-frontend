@@ -229,6 +229,7 @@ function normalizeNewsDetail(raw: NewsDetailRaw, fallbackId: number): NewsDetail
     publishedAt: raw.publishedAt ?? "",
     summary: derivedSummary,
     rawContent,
+    fullContentEnabled: raw.fullContentEnabled === true,
     importanceReason: raw.importanceReason ?? "",
     importanceReasons,
     relatedSymbol: raw.relatedSymbol ?? "",

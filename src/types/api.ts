@@ -54,6 +54,7 @@ export interface NewsDetailRaw {
   url?: string;
   source?: string;
   rawContent?: string;
+  fullContentEnabled?: boolean;
   content?: string;
   originalContent?: string;
   importanceReason?: string;
@@ -90,6 +91,7 @@ export interface NewsDetail {
   publishedAt: string;
   summary: string;
   rawContent: string;
+  fullContentEnabled?: boolean;
   importanceReason: string;
   importanceReasons?: Record<ReadingLevel, string>;
   relatedSymbol: string;

@@ -98,7 +98,7 @@ export function NewsDetailScreen({ route, navigation }: Props) {
   const detail: NewsDetail = data;
   const hasContent = !!detail.rawContent.trim();
   const importanceReason = detail.importanceReasons?.[readingLevel]?.trim() || detail.importanceReason;
-  const rawExcerpt = sourceExcerpt(detail.rawContent);
+  const rawExcerpt = detail.fullContentEnabled ? detail.rawContent : sourceExcerpt(detail.rawContent);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -113,7 +113,7 @@ export function NewsDetailScreen({ route, navigation }: Props) {
 
         {hasContent ? (bodyTab === "raw" ? <View style={styles.bodyCard}>
           <Pressable style={styles.touchTarget} accessibilityRole="switch" accessibilityState={{ checked: showTerms }} accessibilityLabel="용어 밑줄 표시" onPress={() => setShowTerms(!showTerms)}><Text style={styles.backText}>용어 밑줄 {showTerms ? "켜짐" : "꺼짐"}</Text></Pressable>
-          <Text>기사 일부를 발췌했어요. 전문은 출처 사이트에서 확인하세요.</Text>
+          {detail.fullContentEnabled ? null : <Text>기사 일부를 발췌했어요. 전문은 출처 사이트에서 확인하세요.</Text>}
           <ArticleBody text={rawExcerpt} terms={showTerms ? detail.keyTerms : []} onTermPress={setSelectedTerm} />
           {detail.url ? <Pressable accessibilityRole="link" accessibilityLabel="원문 전체 보기" style={styles.touchTarget} onPress={() => void Linking.openURL(detail.url)}><Text style={styles.backText}>원문 전체 보기 →</Text></Pressable> : null}
         </View> : <View onLayout={event => { quizLayout.current.panel = event.nativeEvent.layout.y; scrollToQuiz(); }}><LearningPanel key={`${newsId}-${readingLevel}-${route.params.quizTerm ?? ""}`} newsId={newsId} level={readingLevel} quizTerm={route.params.quizTerm} onTermPress={setSelectedTerm}
