@@ -5,7 +5,7 @@ import vm from 'node:vm';
 import ts from 'typescript';
 import * as history from './historyRecords.ts';
 const compile=file=>ts.transpileModule(readFileSync(new URL(file,import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.React,esModuleInterop:true}}).outputText;
-const React={createElement:(type,props,...children)=>typeof type==='function'?type(props):({type,props,children}),useEffect(){}};
+const React={createElement:(type,props,...children)=>typeof type==='function'?type(props):({type,props,children}),useEffect(){},useState:v=>[v,()=>{}]};
 const nodes=n=>Array.isArray(n)?n.flatMap(nodes):n&&typeof n==='object'?[n,...nodes(n.children)]:[];
 const texts=tree=>tree.filter(n=>n.type==='Text').map(n=>n.children.flat().join(''));
 const reasons=[{title:'기사 근거',detail:'기사에서는 비용 증가를 알렸어요.'},{title:'판단 근거',detail:'남긴 근거의 비교 시점을 확인해보세요.'},{title:'실제 시장',detail:'카카오 종가는 -1.76% 움직였어요.'}];
@@ -60,7 +60,7 @@ test('comparison chart has judgement line, result dot and a shaded interval',()=
  assert.equal(tree.filter(n=>n.type==='Line').length,1);assert.equal(tree.filter(n=>n.type==='Circle').length,1);assert(tree.find(n=>n.type==='Rect').props.width>0);assert(texts(tree).includes('결과 -1.76%'));
 });
 test('history row displays arrival badge only while unread',()=>{
- const exports={};vm.runInNewContext(compile('../screens/history/HistoryScreen/HistoryItem.tsx'),{exports,React,require:name=>name==='react-native'?{View:'View',Text:'Text',TouchableOpacity:'TouchableOpacity',StyleSheet:{create:s=>s}}:name.endsWith('/historyRecords')?history:{toRelativeTimeKorean:()=>''}});
+ const exports={};vm.runInNewContext(compile('../screens/history/HistoryScreen/HistoryItem.tsx'),{exports,React,require:name=>name==='react'?React:name==='react-native'?{View:'View',Text:'Text',Pressable:'Pressable',TouchableOpacity:'TouchableOpacity',StyleSheet:{create:s=>s}}:name.endsWith('/historyRecords')?history:{toRelativeTimeKorean:()=>''}});
  assert(texts(nodes(exports.HistoryItem({item:base,unread:true,onPress(){}}))).includes('결과 도착'));
  assert(!texts(nodes(exports.HistoryItem({item:base,unread:false,onPress(){}}))).includes('결과 도착'));
 });
@@ -180,4 +180,10 @@ test('feedback provenance distinguishes recorded AI, rules, and unknown legacy m
   assert(texts(render({...base,feedbackMode:'LLM'}).tree).includes('AI가 기사와 판단 근거를 바탕으로 설명했어요'));
   assert(texts(render({...base,feedbackMode:'RULE'}).tree).includes('기사와 가격을 바탕으로 규칙에 따라 설명해요'));
   assert(texts(render(base).tree).includes('이 기록의 설명 생성 방식은 확인되지 않았어요'));
+});
+
+test('history feedback defaults to two lines and review explanation starts collapsed',()=>{
+ const exports={},hooks={...React,useState:v=>[v,()=>{}]};vm.runInNewContext(compile('../screens/history/HistoryScreen/HistoryItem.tsx'),{exports,React,require:name=>name==='react'?hooks:name==='react-native'?{View:'View',Text:'Text',Pressable:'Pressable',StyleSheet:{create:s=>s}}:name.endsWith('/historyRecords')?history:{toRelativeTimeKorean:()=>''}});
+ const tree=nodes(exports.HistoryItem({item:base,onPress(){}}));assert(tree.some(n=>n.type==='Text'&&n.props.numberOfLines===2&&n.children.includes(base.feedbackText)));
+ const review=nodes(exports.HistoryItem({item:{...base,actualDirection:'UNKNOWN'},compactReview:true,onPress(){}}));assert(!texts(review).includes(base.feedbackText));assert(review.some(n=>n.props?.accessibilityState?.expanded===false));
 });

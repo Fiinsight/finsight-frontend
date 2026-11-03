@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useCallback, useState } from "react";
@@ -31,9 +32,11 @@ export function AttendanceCard({ selectedDate, onSelectDate, compact = false }: 
   const checkedIn = isAttendanceComplete(readingLog, todayKey);
 
   if (compact) return <View style={styles.compact}>
-    <Text style={styles.compactText}>{unavailable ? "출석 기록 연결을 확인해 주세요" : `계정 기준 · 이번 주 ${completed}/7 · 오늘 ${todayReadCount}/3`}</Text>
-    <Pressable accessibilityRole="button" accessibilityLabel="기록 날짜 필터 펼치기" onPress={() => setExpanded(!expanded)}><Text style={styles.compactLink}>{expanded ? "접기" : "날짜 선택"}</Text></Pressable>
-    {expanded ? week.map(day => <Pressable key={day.key} disabled={day.future || !onSelectDate} accessibilityRole="button" accessibilityLabel={`${day.key} ${day.label}요일 기록 필터`} onPress={() => onSelectDate?.(day.key)}><Text style={styles.compactLink}>{day.label}{selectedDate === day.key ? " ✓" : ""}</Text></Pressable>) : null}
+    <View style={styles.compactHeader}>
+      <Text style={styles.compactText}>{unavailable ? "출석 기록을 확인하지 못했어요" : `이번 주 출석 ${week.map(day => isAttendanceComplete(readingLog, day.key) ? "●" : "○").join("")}`}</Text>
+      <Pressable accessibilityRole="button" accessibilityLabel="기록 날짜 필터 펼치기" accessibilityState={{expanded}} style={styles.calendarButton} onPress={() => setExpanded(!expanded)}><Ionicons name="calendar-outline" size={20} color="#475467" /></Pressable>
+    </View>
+    {expanded ? <View style={styles.dateChoices}>{week.map(day => <Pressable key={day.key} disabled={day.future || !onSelectDate} accessibilityRole="button" accessibilityLabel={`${day.key} ${day.label}요일 기록 필터`} accessibilityState={{selected:selectedDate===day.key,disabled:day.future || !onSelectDate}} onPress={() => onSelectDate?.(day.key)} style={[styles.dateChoice,day.future&&styles.futureDay]}><Text style={styles.compactLink}>{day.label}{selectedDate === day.key ? " ✓" : ""}</Text></Pressable>)}</View> : null}
   </View>;
   return (
     <LinearGradient colors={["#0D1B4C", "#1746B8", "#2A72E8"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.card}>
@@ -72,7 +75,11 @@ export function AttendanceCard({ selectedDate, onSelectDate, compact = false }: 
 }
 
 const styles = StyleSheet.create({
-  compact: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 12, padding: 12, borderRadius: 12, backgroundColor: "#EEF4FF" },
+  compactHeader: {flexDirection:"row",alignItems:"center",justifyContent:"space-between",gap:8,width:"100%"},
+  calendarButton: {width:44,height:44,alignItems:"center",justifyContent:"center"},
+  dateChoices: {flexDirection:"row",width:"100%"},
+  dateChoice: {flex:1,minHeight:44,alignItems:"center"},
+  compact: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 12, paddingVertical: 0, borderRadius: 12, backgroundColor: "transparent" },
   compactText: { fontSize: 14, color: "#344054", flex: 1 },
   compactLink: { fontSize: 13, color: "#175CD3", paddingVertical: 12, minWidth: 44, textAlign: "center" },
   card: { borderRadius: 24, padding: 20, paddingHorizontal: 12, overflow: "hidden", shadowColor: "#0D1B4C", shadowOpacity: 0.2, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 5 },

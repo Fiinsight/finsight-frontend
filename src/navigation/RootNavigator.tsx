@@ -20,7 +20,7 @@ const tabIcon: Record<keyof RootTabParamList, keyof typeof Ionicons.glyphMap> = 
   HomeTab: "home",
   ChartTab: "bar-chart",
   HistoryTab: "time",
-  LearnTab: "book",
+  LearnTab: "library",
   ProfileTab: "person"
 };
 
@@ -28,7 +28,7 @@ const inactiveTabIcon: Partial<Record<keyof RootTabParamList, keyof typeof Ionic
   HomeTab: "home-outline",
   ChartTab: "bar-chart-outline",
   HistoryTab: "time-outline",
-  LearnTab: "book-outline",
+  LearnTab: "library-outline",
   ProfileTab: "person-outline"
 };
 

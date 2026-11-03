@@ -60,6 +60,7 @@ test('learning focus callbacks run without invoking hooks inside an effect', () 
   const hook = (value) => { assert.equal(inEffect, false, 'hook called inside focus callback'); return value; };
   const react = { createElement: () => null, useState: (value) => hook([value, () => {}]), useRef: value => hook({current:value}), useCallback: (fn) => hook(fn) };
   const screen = compile('../screens/learn/LearnScreen/index.tsx', { React: react, require: (name) => {
+    if (name.endsWith('/learningChecklist')) return compile('./learningChecklist.ts', {});
     if (name.endsWith('/theme')) return theme;
     if (name === 'react') return react;
     if (name === 'react-native') return { StyleSheet: { create: (s) => s } };
@@ -84,6 +85,7 @@ test('profile updates reading level only after successful server persistence', a
     return [values[index] ?? initial, (value) => { values[index] = value; }];
   } };
   const screen = compile('../screens/profile/ProfileScreen/index.tsx', { React: react, require: (name) => {
+    if (name.endsWith('/learningChecklist')) return compile('./learningChecklist.ts', {});
     if (name.endsWith('/theme')) return theme;
     if (name === 'react') return react;
     if (name === '@tanstack/react-query') return { useQueryClient: () => ({ invalidateQueries() {} }) };

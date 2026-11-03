@@ -1,3 +1,4 @@
+import { learningChecklist, conceptReviewKey } from "../../../lib/learningChecklist";
 import { termDefinitionPreview } from "../../../lib/termDefinitionPreview";
 import type { ComponentRef } from "react";
 import { colors, radius, spacing, typography } from "../../../theme";
@@ -83,13 +84,28 @@ export function LearnScreen() {
     catch { setPromotionMessage("나중에 설정을 저장하지 못했어요. 다시 시도해주세요."); }
   };
   const client = useQueryClient();
-  const dailyTerms = useQuery({ queryKey: ["daily-learning-terms", ownerId], queryFn: getDailyLearningTerms, enabled: ownerId !== null && isFocused && preferences.painPoint === "terms", retry: 0, staleTime: 60_000 });
+  const dailyTerms = useQuery({ queryKey: ["daily-learning-terms", ownerId], queryFn: getDailyLearningTerms, enabled: ownerId !== null && isFocused, retry: 0, staleTime: 60_000 });
   const promotion = useMutation({ mutationFn: setDefaultReadingLevel, onSuccess: async (_result, level) => {
     setPreferences(await getLearningPreferences());
     setPromotionMessage(`${level === "normal" ? "일반용" : "분석용"}으로 변경했어요.`);
     void client.invalidateQueries({ queryKey: ["learning-progress"] });
   } });
   const goal = progress.data?.goal;
+  const [reviewedDay,setReviewedDay] = useState<string | null>(null);
+  const [reviewStatusReady,setReviewStatusReady] = useState(false);
+  const [reviewMessage,setReviewMessage] = useState<string | null>(null);
+  useFocusEffect(useCallback(() => {
+    let active=true;
+    setReviewStatusReady(false);
+    if (ownerId === null) {setReviewedDay(null); return;}
+    void storageGetItem(conceptReviewKey(ownerId)).then(value=>{if(active){setReviewedDay(value);setReviewStatusReady(true);}}).catch(()=>{if(active){setReviewedDay(null);setReviewMessage("복습 기록을 확인하지 못했어요.");}});
+    return ()=>{active=false;};
+  },[ownerId]));
+  const completeConceptReview = async () => {
+    if(ownerId===null || !selectedReview)return;
+    try { const day=localDateKey(new Date()); await storageSetItem(conceptReviewKey(ownerId),day);setReviewedDay(day);setReviewStatusReady(true);setReviewMessage("오늘의 개념 복습을 마쳤어요.");closeSheet(); }
+    catch {setReviewMessage("복습 완료를 저장하지 못했어요. 다시 시도해주세요.");}
+  };
   const closeSheet = () => { setInfo(null); setSelectedReview(null); };
   const openNextTask = () => {
     if (resumeIds.length) {
@@ -104,9 +120,15 @@ export function LearnScreen() {
       navigation.navigate("HomeTab", { screen: "Home" });
     }
   };
-  const remainingQuizzes = [...new Set(Object.values(readingLog).flat())].filter(id => !progress.data?.completedNewsIds.includes(id)).length;
-  const dailyQuizGoalDone = (progress.data?.today.answeredCount ?? 0) >= 1;
+  const checklist = learningChecklist(readCount, progress.data?.today.answeredCount ?? null, reviewStatusReady ? reviewedDay===localDateKey(new Date()) : null);
+  const firstTask = checklist.find(task => !task.done);
   const tasksLoading = !loaded || progressPending || !progress.data;
+  const openTask = (id: string) => {
+    if(id==="read") navigation.navigate("HomeTab",{screen:"Home"});
+    else if(id==="quiz") openNextTask();
+    else if(reviews.data?.length) setSelectedReview(reviews.data[0]);
+    else setReviewMessage("아직 다시 볼 개념이 없어요. 퀴즈를 풀면 여기에 모여요.");
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -114,29 +136,30 @@ export function LearnScreen() {
         <View style={{gap:4}}><Text accessibilityRole="header" style={{fontSize:22,fontWeight:"800",color:colors.text}}>학습</Text><Text style={styles.auxiliary}>오늘 할 일을 하나씩 이어가요.</Text></View>
 
         <View style={styles.hero}>
-          <View style={styles.goalRow}>
-            <Text accessibilityRole="header" style={styles.sectionTitle}>오늘 할 일</Text>
-            <Text style={styles.taskCount}>{progress.data ? `퀴즈 ${remainingQuizzes}개 남음` : "퀴즈 확인 중"}</Text>
-          </View>
-          <Text style={styles.body}>{dailyQuizGoalDone ? "오늘 퀴즈 목표를 마쳤어요. 이어서 연습해 볼까요?" : "퀴즈 1개로 오늘의 개념을 확인해 보세요."}</Text>
-          <Text style={styles.auxiliary}>{goal ? `${goal.streakDays}일 연속 목표 달성` : "연속 기록 확인 중"} · 최근 읽은 기사 기준 · 기사 읽기 {readCount === null ? "연결 확인 중" : `${Math.min(readCount,3)}/3`}</Text>
-          {progress.data ? <Text style={styles.auxiliary}>{progress.data.today.answeredCount >= 5 ? `오늘 정답률 ${accuracy(progress.data.today.accuracy)}` : `퀴즈 ${Math.max(0,5-progress.data.today.answeredCount)}개 더 풀면 정답률이 보여요`}</Text> : null}
-          {progress.isError ? <Pressable accessibilityRole="button" accessibilityLabel="학습 진행도 다시 시도" style={styles.heroRetry} onPress={() => void progress.refetch()}><Text style={styles.link}>진행도를 불러오지 못했어요 · 다시 시도</Text></Pressable> : null}
-          <Pressable accessibilityRole="button" accessibilityLabel={tasksLoading ? "오늘 할 일 확인 중" : "퀴즈 풀기"} disabled={tasksLoading} accessibilityState={{disabled:tasksLoading}} onPress={openNextTask} style={[styles.primaryButton,tasksLoading&&styles.disabledButton]}>
-            <Text style={styles.primaryButtonText}>{tasksLoading ? "오늘 할 일 확인 중" : "퀴즈 풀기"}</Text><Text style={styles.primaryButtonText} aria-hidden>→</Text>
-          </Pressable>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>오늘 할 일</Text>
+          {checklist.map(task=><View key={task.id} style={styles.taskRow}>
+            <Text style={task.done ? styles.taskDone : styles.taskMark} accessibilityLabel={task.done ? "완료" : "미완료"}>{task.done ? "✓" : "☐"}</Text>
+            <View style={styles.taskCopy}><Text style={[styles.body,task.done&&styles.completedLabel]}>{task.label}</Text><Text style={styles.auxiliary}>{task.count===null ? "확인 중" : `${Math.min(task.count,task.goal)}/${task.goal}`}</Text></View>
+            {firstTask?.id===task.id ? <Pressable accessibilityRole="button" accessibilityLabel={tasksLoading ? "오늘 할 일 확인 중" : task.action} disabled={tasksLoading || (task.id==="review"&&!reviewStatusReady)} onPress={()=>openTask(task.id)} style={styles.taskButton}><Text style={styles.taskButtonText}>{task.action}</Text></Pressable>:null}
+          </View>)}
+          {!firstTask ? <Text style={styles.body}>오늘 할 일을 모두 마쳤어요</Text> : null}
+          {(goal?.streakDays ?? 0)>0 ? <Text style={styles.auxiliary}>{goal!.streakDays}일 연속</Text>:null}
+          {progress.data && progress.data.today.answeredCount>=5 ? <Text style={styles.auxiliary}>오늘 정답률 {accuracy(progress.data.today.accuracy)}</Text>:null}
+          {progress.isError ? <Pressable accessibilityRole="button" accessibilityLabel="학습 진행도 다시 시도" style={styles.heroRetry} onPress={()=>void progress.refetch()}><Text style={styles.link}>진행도를 불러오지 못했어요 · 다시 시도</Text></Pressable>:null}
+          {reviewMessage ? <Text accessibilityRole="alert" style={styles.auxiliary}>{reviewMessage}</Text>:null}
         </View>
 
-        {preferences.painPoint === "terms" ? <View style={styles.section}>
-          <Text accessibilityRole="header" style={styles.sectionTitle}>오늘의 용어 3개</Text>
-          {ownerId === null ? <Text style={styles.auxiliary}>로그인하면 오늘의 용어를 확인할 수 있어요.</Text> : dailyTerms.isPending ? <View style={[styles.skeleton, styles.termSkeleton]} /> : dailyTerms.isError ? <Pressable accessibilityRole="button" accessibilityLabel="오늘의 용어 다시 시도" onPress={() => void dailyTerms.refetch()}><Text style={styles.link}>다시 시도</Text></Pressable> : dailyTerms.data?.length ? <View style={styles.dailyTermList}>
-            {dailyTerms.data.map((item,index) => <Pressable key={item.term} style={[styles.dailyTermItem,index===dailyTerms.data!.length-1 && styles.lastRow]} accessibilityRole="button" accessibilityLabel={`${item.term} 뜻 보기${item.reason === "지난번에 틀린 개념" || item.reason === "익히는 중인 개념" ? ` · ${item.reason}` : ""}`} accessibilityState={{expanded:!!expandedTerms[item.term]}} onPress={() => setExpandedTerms({...expandedTerms,[item.term]:!expandedTerms[item.term]})}>
-              <View style={styles.termHeading}><Text style={styles.termText}>{item.term}</Text>{item.reason === "지난번에 틀린 개념" || item.reason === "익히는 중인 개념" ? <Text style={styles.goalBadge}>{item.reason}</Text>:null}</View>
-              <Text style={styles.body} numberOfLines={expandedTerms[item.term] ? undefined : 2} ellipsizeMode="clip">{expandedTerms[item.term] ? item.definition : termDefinitionPreview(item.definition)}</Text>
-              <Text style={styles.link}>{expandedTerms[item.term] ? "정의 접기" : "정의 펼치기"}</Text>
+        {ownerId !== null && (dailyTerms.isLoading || dailyTerms.isError || (dailyTerms.data?.length ?? 0)>0) ? <View style={styles.section}>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>오늘의 용어{dailyTerms.data?.length ? ` ${dailyTerms.data.length}개` : ""}</Text>
+          {dailyTerms.isLoading ? <View style={[styles.skeleton,styles.termSkeleton]} />:dailyTerms.isError ? <Pressable accessibilityRole="button" accessibilityLabel="오늘의 용어 다시 시도" onPress={()=>void dailyTerms.refetch()}><Text style={styles.link}>다시 시도</Text></Pressable>:<View style={styles.dailyTermList}>
+            {dailyTerms.data?.map(item=><Pressable key={item.term} style={styles.dailyTermItem} accessibilityRole="button" accessibilityLabel={`${item.term} 뜻 보기`} accessibilityState={{expanded:!!expandedTerms[item.term]}} onPress={()=>setExpandedTerms({...expandedTerms,[item.term]:!expandedTerms[item.term]})}>
+              <View style={styles.termHeading}><Text style={styles.termText}>{item.term}</Text>{item.reason==="지난번에 틀린 개념" || item.reason==="익히는 중인 개념" ? <Text style={styles.goalBadge}>{item.reason}</Text>:null}</View>
+              <Text style={styles.body} numberOfLines={expandedTerms[item.term]?undefined:2} ellipsizeMode="clip">{expandedTerms[item.term]?item.definition:termDefinitionPreview(item.definition,28)}</Text>
+              <Text style={styles.link}>{expandedTerms[item.term]?"정의 접기":"정의 펼치기"}</Text>
             </Pressable>)}
-          </View> : <Text style={styles.auxiliary}>오늘 기사에서 새로 볼 개념을 찾지 못했어요.</Text>}
-        </View> : null}
+          </View>}
+        </View>:null}
+
         <PainPointCard painPoint={preferences.painPoint} ownerId={ownerId} focused={isFocused}
           onArticle={newsId => navigation.navigate("NewsDetail", { newsId, readMode: "level", readingLevel: preferences.level })}
           onHistory={initialTab => navigation.navigate("HistoryTab", { screen: "History", params: { initialTab } })} />
@@ -185,7 +208,7 @@ export function LearnScreen() {
           <Text accessibilityRole="header" style={styles.sectionTitle}>내 개념 숙련도</Text>
           {progressPending ? <View style={[styles.skeleton, { height: 180 }]} accessibilityLabel="개념 숙련도 불러오는 중" />
             : progress.isError ? <Pressable accessibilityRole="button" accessibilityLabel="개념 숙련도 다시 시도" style={styles.retryButton} onPress={() => void progress.refetch()}><Text style={styles.link}>다시 시도</Text></Pressable>
-            : progress.data?.mastery ? <>
+            : progress.data?.mastery && (progress.data.mastery.strongest.length || progress.data.mastery.learning?.length) ? <>
               <Text style={styles.auxiliary}>{progress.data.mastery.totalAttempts ? `최근 퀴즈 ${progress.data.mastery.totalAttempts}회 기준 추정` : "퀴즈를 풀면 개념별 숙련도를 추정해드려요."}</Text>
               {[{ title: "잘 아는 개념", rows: progress.data.mastery.strongest }, { title: `익히는 중 ${progress.data.mastery.learningCount ?? 0}개`, rows: progress.data.mastery.learning ?? [] }].map(group => <View key={group.title} style={styles.section}>
                 <Text style={styles.articleTitle}>{group.title}</Text>
@@ -199,7 +222,7 @@ export function LearnScreen() {
                 })}
               </View>)}
             </> : <Text style={styles.auxiliary}>퀴즈를 풀면 개념별 숙련도를 추정해드려요.</Text>}
-          <Text style={styles.auxiliary}>80% 이상·3번 이상 풀면 잘 아는 개념이에요</Text>
+          {(progress.data?.mastery?.strongest.length ?? 0)>0 ? <Text style={styles.auxiliary}>서버의 개념 숙련도 기준으로 표시해요.</Text>:null}
         </View>
 
         {promotionReady === ownerId && ownerId !== null && progress.data?.levelSuggestion && promotionVisible(snoozes, progress.data.levelSuggestion) ? <View style={styles.section}>
@@ -233,6 +256,7 @@ export function LearnScreen() {
             <Text style={styles.body}>{selectedReview?.definition ?? info?.description}</Text>
             {info?.reason ? <Text style={styles.auxiliary}>{info.reason}</Text> : null}
             {info?.newsId ? <><Text style={styles.auxiliary} numberOfLines={2}>{info.newsTitle}</Text><Pressable accessibilityRole="button" accessibilityLabel={`${info.title} 오늘 기사에서 읽기`} style={styles.sheetAction} onPress={() => { const newsId = info.newsId!; closeSheet(); navigation.navigate("NewsDetail", { newsId, readMode: "level", readingLevel: preferences.level }); }}><Text style={styles.sheetActionText}>이 용어가 나온 오늘 기사 읽기</Text></Pressable></> : null}
+            {selectedReview ? <Pressable accessibilityRole="button" accessibilityLabel="개념 복습 완료" style={styles.sheetAction} onPress={()=>void completeConceptReview()}><Text style={styles.sheetActionText}>복습 완료</Text></Pressable>:null}
             {selectedReview ? <><Text style={styles.auxiliary} numberOfLines={2}>{selectedReview.title}</Text><Pressable accessibilityRole="button" accessibilityLabel={`${selectedReview.term} 이 개념이 나온 기사 다시 풀기`} style={styles.sheetAction} onPress={() => { const item = selectedReview; closeSheet(); navigation.navigate("NewsDetail", { newsId: item.newsId, readMode: "level", readingLevel: item.level, openQuiz: true, quizTerm: item.term }); }}><Text style={styles.sheetActionText}>이 개념이 나온 기사 다시 풀기</Text></Pressable></> : null}
           </View>
         </View>
@@ -242,6 +266,13 @@ export function LearnScreen() {
 }
 
 const styles = StyleSheet.create({
+  taskRow: {flexDirection:"row",alignItems:"center",gap:10,paddingVertical:10,borderBottomWidth:0.5,borderBottomColor:colors.border},
+  taskCopy: {flex:1,gap:3},
+  taskMark: {fontSize:22,color:colors.text},
+  taskDone: {fontSize:22,color:colors.muted},
+  completedLabel: {color:colors.muted,textDecorationLine:"line-through"},
+  taskButton: {minHeight:44,paddingHorizontal:12,borderRadius:8,backgroundColor:colors.primary,justifyContent:"center"},
+  taskButtonText: {fontSize:15,color:colors.surface,fontWeight:"700"},
   taskCount: {color:colors.primary,fontSize:15,fontWeight:typography.weight.semibold,textAlign:"right"},
   goalBadge: {color:colors.muted,fontSize:15,paddingHorizontal:6,paddingVertical:3,borderRadius:4},
   dailyTermList: {gap:12},
