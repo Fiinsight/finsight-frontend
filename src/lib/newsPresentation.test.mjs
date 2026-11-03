@@ -10,6 +10,7 @@ test('cards strip level labels and ticker codes from every level without damagin
  }
  assert.equal(newsCardSummary('가'.repeat(300)).length,150);
  assert.equal(cleanNewsCardText('[마켓뷰] 코스피 향방'), '[마켓뷰] 코스피 향방');
+ assert.equal(cleanNewsCardText('래블업[0147B0] (0147B0) [market]'),'래블업 [market]');
  const card=fs.readFileSync(new URL('../components/NewsCard.tsx',import.meta.url),'utf8');
  assert.match(card,/styles.summary\} numberOfLines=\{2\}/);assert.match(card,/maxHeight:42/);
 });

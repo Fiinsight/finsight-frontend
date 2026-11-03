@@ -1,7 +1,7 @@
 // Cards are compact previews; detailed normal reading keeps its evidence labels.
 export function cleanNewsCardText(text: string | null | undefined): string {
   return (text ?? "").replace(/\[(?:사실|전망|분석)\]/g, "")
-    .replace(/\[\s*\d{6}\s*\]|\(\s*\d{6}\s*\)/g, "")
+    .replace(/\[\s*(?=[A-Za-z0-9]*\d)[A-Za-z0-9]{6}\s*\]|\(\s*(?=[A-Za-z0-9]*\d)[A-Za-z0-9]{6}\s*\)/g, "")
     .replace(/\s+/g, " ").trim();
 }
 export function newsCardSummary(text: string | null | undefined): string {
