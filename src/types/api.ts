@@ -66,6 +66,7 @@ export interface NewsDetailRaw {
   symbolName?: string;
   sentimentHint?: Sentiment;
   keyTerms?: string[];
+  keyTermsByLevel?: Partial<Record<ReadingLevel,string[]>>;
   beginnerContent?: string;
   normalContent?: string;
   analystContent?: string;
@@ -98,6 +99,7 @@ export interface NewsDetail {
   relatedSymbolName: string;
   sentimentHint: Sentiment;
   keyTerms: string[];
+  keyTermsByLevel?: Partial<Record<ReadingLevel,string[]>>;
   levels: Record<ReadingLevel, string>;
   url: string;
   source: string;

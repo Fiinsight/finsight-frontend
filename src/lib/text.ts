@@ -11,12 +11,24 @@ export function splitAroundTerms(text: string, terms: string[]): { text: string;
     return [{ text, isTerm: false }];
   }
 
-  const uniqueTerms = Array.from(new Set(terms)).sort((a, b) => b.length - a.length);
-  const pattern = new RegExp(`(${uniqueTerms.map(escapeRegExp).join("|")})`, "g");
-  const parts = text.split(pattern);
-  const termSet = new Set(uniqueTerms);
-
-  return parts.map((part) => ({ text: part, isTerm: termSet.has(part) }));
+  const uniqueTerms = Array.from(new Set(terms.map(term=>term.trim()).filter(Boolean))).sort((a, b) => b.length - a.length);
+  if (!uniqueTerms.length) return [{text,isTerm:false}];
+  const pattern = new RegExp(uniqueTerms.map(escapeRegExp).join("|"), "gi");
+  const particles = new Set(["은","는","이","가","을","를","의","와","과","에","로","도","만","으로","에서","에게","까지","부터","보다","처럼","에도","에는","에선","으로는","에서는","이며","이고","이다","입니다"]);
+  const seen = new Set<string>();
+  const result: {text:string;isTerm:boolean}[] = [];
+  let cursor = 0;
+  for (const match of text.matchAll(pattern)) {
+    const start = match.index, end = start + match[0].length;
+    const before = text[start - 1] ?? "";
+    const after = text.slice(end).match(/^[가-힣A-Za-z0-9]+/)?.[0];
+    const key = match[0].toLowerCase();
+    if (/[가-힣A-Za-z0-9]/.test(before) || (after && !particles.has(after)) || seen.has(key)) continue;
+    if (start > cursor) result.push({text:text.slice(cursor,start),isTerm:false});
+    result.push({text:match[0],isTerm:true});seen.add(key);cursor=end;
+  }
+  if (cursor < text.length) result.push({text:text.slice(cursor),isTerm:false});
+  return result.length ? result : [{text,isTerm:false}];
 }
 
 export function splitParagraphs(text: string): string[] {

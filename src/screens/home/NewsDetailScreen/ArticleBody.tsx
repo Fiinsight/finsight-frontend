@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { articleParagraph } from "../../../lib/newsPresentation";
 import { splitAroundTerms, splitParagraphs } from "../../../lib/text";
 
@@ -16,9 +16,9 @@ function TermizedParagraph({ text, terms, onTermPress }: ArticleBodyProps) {
     <Text style={styles.paragraph}>
       {segments.map((segment, index) =>
         segment.isTerm ? (
-          <Text key={index} style={styles.termSpan} onPress={() => onTermPress(segment.text)}>
-            {segment.text}
-          </Text>
+          <Pressable key={index} accessibilityRole="button" accessibilityLabel={`${segment.text} 용어 설명`} hitSlop={8} style={({pressed}) => [styles.termTarget, pressed && styles.termPressed]} onPress={() => onTermPress(segment.text)}>
+            <Text style={styles.termSpan}>{segment.text}</Text>
+          </Pressable>
         ) : (
           <Text key={index}>{segment.text}</Text>
         )
@@ -55,9 +55,10 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 24
   },
+  termPressed: {backgroundColor:"#BFD4FF",opacity:0.75},
+  termTarget: {minHeight:28,minWidth:36,justifyContent:"center",backgroundColor:"#E8F0FF",paddingHorizontal:4,paddingVertical:2,borderRadius:4,...(Platform.OS === "web" ? {cursor: "pointer" as const} : {})},
   termSpan: {
     color: "#175CD3",
-    fontWeight: "700",
-    textDecorationLine: "underline"
+    fontWeight: "700"
   }
 });

@@ -209,7 +209,7 @@ function normalizeNewsDetail(raw: NewsDetailRaw, fallbackId: number): NewsDetail
   };
 
   const keyTerms =
-    raw.keyTerms && raw.keyTerms.length > 0
+    Array.isArray(raw.keyTerms)
       ? raw.keyTerms
       : KEY_TERM_DICTIONARY.filter((term) => rawContent.includes(term) || levels.normal.includes(term));
 
@@ -236,6 +236,7 @@ function normalizeNewsDetail(raw: NewsDetailRaw, fallbackId: number): NewsDetail
     relatedSymbolName: raw.relatedSymbolName ?? raw.symbolName ?? raw.relatedSymbol ?? "",
     sentimentHint: raw.sentimentHint ?? "NEUTRAL",
     keyTerms,
+    keyTermsByLevel: raw.keyTermsByLevel,
     levels,
     url: raw.url ?? "",
     source: raw.source ?? ""
