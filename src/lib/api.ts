@@ -3,6 +3,7 @@ import { scheduleJudgementReminder } from "./judgementNotifications";
 import { getDefaultLearningPreferences, goalTypeFor, type GoalType, type LearningPainPoint } from "./learningPreferences";
 import { getJudgementViewLog, getReadingLog } from "./readingProgress";
 import axios from "axios";
+import { installSafeGetRetry } from "./getRetry";
 import { judgementResult, previousRange, kstDate, type RecordRange } from "./historyRecords";
 import Constants from "expo-constants";
 import { getExpoGoProjectConfig } from "expo";
@@ -87,6 +88,7 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
+installSafeGetRetry(api);
 api.interceptors.response.use((response) => response, (error) => {
   notifyAuthFailure(error.response?.status, error.config?.headers?.get?.("Authorization"));
   return Promise.reject(error);

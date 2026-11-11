@@ -1,3 +1,4 @@
+import { installSafeGetRetry } from './getRetry.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
@@ -90,7 +91,7 @@ test('market fallback numbers stay hidden and line prices never become fabricate
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: {
     module: ts.ModuleKind.CommonJS, esModuleInterop: true
   } }).outputText, { exports, process: { env: {} }, require: (name) =>
-    name === 'axios' ? { create: () => api } : name === 'expo-constants' ? {} : name === 'expo' ? { getExpoGoProjectConfig: () => ({}) }
+    name === './getRetry' ? { installSafeGetRetry } : name === 'axios' ? { create: () => api } : name === 'expo-constants' ? {} : name === 'expo' ? { getExpoGoProjectConfig: () => ({}) }
       : name === './format' ? { formatPercent: (n) => `${n}%` } : {} });
   payload = { kospi: { currentValue: 2650, changePercent: 0, fallback: true },
     usdKrwRate: { value: 1300, changePercent: 1, fallback: false } };

@@ -1,3 +1,4 @@
+import { installSafeGetRetry } from './getRetry.ts';
 import * as theme from '../theme/index.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -74,7 +75,7 @@ test('seen receipt emits immediately for its owner and unsubscribe stops updates
 test('saved judgement ACK survives notification scheduling failure',async()=>{
  const exports={};let request;
  const http={post:async(path,payload)=>{request=payload;return {data:{judgementId:12,newsId:10,choice:'UP',expectedResultDate:'2026-10-14',expectedResultAt:'2026-10-14T06:40:00Z'}};},interceptors:{request:{use(){}},response:{use(){}}}};
- vm.runInNewContext(compile('./api.ts'),{exports,process:{env:{}},require:name=>name.endsWith('/theme') ? theme : name==='axios'?{create:()=>http}:name==='expo'?{getExpoGoProjectConfig:()=>({})}:name==='./auth'?{loadAuthSession:async()=>({userId:8})}:name==='./judgementNotifications'?{scheduleJudgementReminder:async()=>{throw new Error('OS unavailable');}}:name==='./historyRecords'?history:{}});
+ vm.runInNewContext(compile('./api.ts'),{exports,process:{env:{}},require:name=>name.endsWith('/theme') ? theme : name==='./getRetry'?{installSafeGetRetry}:name==='axios'?{create:()=>http}:name==='expo'?{getExpoGoProjectConfig:()=>({})}:name==='./auth'?{loadAuthSession:async()=>({userId:8})}:name==='./judgementNotifications'?{scheduleJudgementReminder:async()=>{throw new Error('OS unavailable');}}:name==='./historyRecords'?history:{}});
  const ack=await exports.submitJudgement({newsId:10,choice:'UP'});assert.equal(request.newsId,10);assert.equal(ack.judgementId,12);assert.equal(ack.expectedResultDate,'2026-10-14');assert.match(ack.notificationWarning,/판단은 저장됐지만/);
 });
 test('denied notification permission leaves the setting off and the serial queue usable',async()=>{
