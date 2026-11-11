@@ -128,3 +128,13 @@ test('neutral-neutral banner ignores legacy PARTIAL verdict text',()=>{
  const item={...record,choice:'NEUTRAL',actualDirection:'NEUTRAL',actualChangePercent:.2,verdict:'PARTIAL',headline:'방향은 맞았지만 변동이 작았어요'};
  assert(!helpersApi.resultBannerMessage(item).includes('변동이 작았어요'));
 });
+
+test('existing judgement reads one news endpoint and normalizes nullable results',async()=>{
+ const calls=[];let value=null;const signal=new AbortController().signal;
+ const http={interceptors:{request:{use(){}},response:{use(){}}},get:async(path,options)=>{calls.push([path,options.signal]);return {data:value};}};
+ const exports={};vm.runInNewContext(compile('./api.ts'),{exports,process:{env:{}},require:name=>name==='./getRetry'?{installSafeGetRetry}:name==='axios'?{create:()=>http}:name==='expo'?{getExpoGoProjectConfig:()=>({})}:name==='./historyRecords'?history:{}});
+ assert.equal(await exports.getJudgementForNews(42,signal),null);
+ value={id:7,newsId:42,choice:'UP',reasonText:'근거',actualDirection:null};
+ const item=await exports.getJudgementForNews(42,signal);assert.equal(item.id,7);assert.equal(item.newsId,42);assert.equal(item.actualDirection,null);
+ assert(calls.every(([path,sent])=>path==='/judgements/by-news/42'&&sent===signal));
+});

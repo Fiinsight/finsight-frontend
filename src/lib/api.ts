@@ -327,6 +327,11 @@ export async function getJudgementDetail(id: number, signal?: AbortSignal): Prom
   return normalizeHistoryItem(data, id);
 }
 
+export async function getJudgementForNews(newsId: number, signal?: AbortSignal): Promise<JudgementHistoryItem | null> {
+  const { data } = await api.get<JudgementHistoryItemRaw | null>(`/judgements/by-news/${newsId}`, { signal });
+  return data ? normalizeHistoryItem(data, newsId) : null;
+}
+
 export async function getJudgementHistory(signal?: AbortSignal): Promise<JudgementHistoryItem[]> {
   const { data } = await api.get<JudgementHistoryItemRaw[]>("/judgements/history", { signal });
   return data.map(normalizeHistoryItem);

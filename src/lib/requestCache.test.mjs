@@ -21,9 +21,9 @@ test('judgement remount reuses preferences and invalidation reloads them', async
   }}).outputText, { exports, React: hooks, require: name =>
     name === 'react' ? hooks : name === 'react-native' ? { Platform: { OS: 'web' }, StyleSheet: { create: s => s } }
     : name === '@tanstack/react-query' ? { useQueryClient: () => client,
-      useQuery: ({ queryKey }) => ({ data: queryKey[0] === 'judgement-history' ? [] : undefined }), useMutation: () => ({}) }
+      useQuery: ({ queryKey }) => ({ data: queryKey[0] === 'judgement-existing' ? null : undefined }), useMutation: () => ({}) }
     : name.endsWith('/useAppStore') ? { useAppStore: select => select(store) }
-    : name.endsWith('/api') ? { getLearningPreferences: async () => { calls++; return { painPoint: 'terms', level: 'normal' }; } } : {} });
+    : name.endsWith('/auth') ? { loadAuthSession: async () => ({ userId: 1 }) } : name.endsWith('/api') ? { getLearningPreferences: async () => { calls++; return { painPoint: 'terms', level: 'normal' }; } } : {} });
   const render = () => exports.JudgementScreen({ route: { params: { newsId: 42 } }, navigation: {} });
   try {
     render(); render();

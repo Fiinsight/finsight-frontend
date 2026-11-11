@@ -8,7 +8,8 @@ import { KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, T
 import { BottomActionBar } from "../../../components/BottomActionBar";
 import { ScreenTopBar } from "../../../components/ScreenTopBar";
 import axios from "axios";
-import { getLearningPreferences, getJudgementHistory, getNewsDetail, submitJudgement } from "../../../lib/api";
+import { loadAuthSession } from "../../../lib/auth";
+import { getLearningPreferences, getJudgementForNews, getNewsDetail, submitJudgement } from "../../../lib/api";
 import type { NewsFlowParamList } from "../../../navigation/types";
 import { useAppStore } from "../../../store/useAppStore";
 import type { JudgementChoice } from "../../../types/api";
@@ -22,8 +23,14 @@ export function JudgementScreen({ route, navigation }: Props) {
   const { newsId } = route.params;
   const queryClient = useQueryClient();
   const draft = useAppStore((state) => state.judgementDraftByNewsId[newsId]);
-  const history = useQuery({queryKey: ["judgement-history", "existing"], queryFn: ({ signal }) => getJudgementHistory(signal), retry: 0, staleTime: 0});
-  const existing = history.data?.find((item) => item.newsId === newsId);
+  const [ownerId, setOwnerId] = useState<number | null>(null);
+  useEffect(() => {
+    let active = true;
+    void loadAuthSession().then(session => { if (active) setOwnerId(session?.userId ?? null); });
+    return () => { active = false; };
+  }, []);
+  const history = useQuery({queryKey: ["judgement-existing", ownerId, newsId], queryFn: ({ signal }) => getJudgementForNews(newsId, signal), retry: 0, staleTime: 0, enabled: ownerId !== null});
+  const existing = history.data;
   const confirmed = Boolean(existing?.actualDirection);
   const choice = confirmed ? existing?.choice : draft?.choice ?? existing?.choice;
   const reason = (confirmed ? existing?.reasons.join("\n") : draft?.reason ?? existing?.reasons.join("\n")) ?? "";
@@ -66,6 +73,7 @@ export function JudgementScreen({ route, navigation }: Props) {
     try {
       const ack = await mutation.mutateAsync();
       await queryClient.invalidateQueries({ queryKey: ["judgement-history"] });
+      await queryClient.invalidateQueries({ queryKey: ["judgement-existing", ownerId, newsId] });
       void queryClient.invalidateQueries({ queryKey: ["learning-progress"] });
       void queryClient.invalidateQueries({ queryKey: ["learning-recommendations"] });
       clearJudgementDraft(newsId);
