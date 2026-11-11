@@ -31,7 +31,7 @@ export function FeedbackScreen({ route, navigation }: Props) {
   const resultDate=resultDateLabel(ack?.expectedResultDate);
   const finish = () => navigation.getParent()?.dispatch(CommonActions.reset({ index: 0, routes: [{ name: "HomeTab", state: { index: 0, routes: [{ name: "Home" }] } }] }));
 
-  if (!ack) return <SafeAreaView style={styles.safeArea}><Text>{record.isLoading && validId ? "기록을 불러오는 중이에요" : "기록을 찾을 수 없어요"}</Text><Pressable onPress={() => navigation.getParent()?.navigate("HistoryTab", { screen: "History" })}><Text>기록 탭으로</Text></Pressable></SafeAreaView>;
+  if (!ack) return <SafeAreaView style={styles.safeArea}><ScreenTopBar title="판단 완료" onBack={finish} /><Text>{record.isLoading && validId ? "기록을 불러오는 중이에요" : "기록을 찾을 수 없어요"}</Text><Pressable onPress={() => navigation.getParent()?.navigate("HistoryTab", { screen: "History" })}><Text>기록 탭으로</Text></Pressable></SafeAreaView>;
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScreenTopBar title="판단 완료" onBack={finish} />

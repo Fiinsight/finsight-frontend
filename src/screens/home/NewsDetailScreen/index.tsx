@@ -1,5 +1,5 @@
 import {RequestWaitNotice} from "../../../components/RequestWaitNotice";
-import { sourceExcerpt } from "../../../lib/text";
+import { cleanArticleText, sourceExcerpt } from "../../../lib/text";
 import type { ComponentRef } from "react";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
@@ -96,9 +96,10 @@ export function NewsDetailScreen({ route, navigation }: Props) {
   }
 
   const detail: NewsDetail = data;
-  const hasContent = !!detail.rawContent.trim();
+  const cleanedRaw = cleanArticleText(detail.rawContent);
+  const hasContent = !!cleanedRaw.trim();
   const importanceReason = detail.importanceReasons?.[readingLevel]?.trim() || detail.importanceReason;
-  const rawExcerpt = sourceExcerpt(detail.rawContent);
+  const rawExcerpt = detail.fullContentEnabled ? cleanedRaw : sourceExcerpt(cleanedRaw);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -112,9 +113,9 @@ export function NewsDetailScreen({ route, navigation }: Props) {
         {hasContent && bodyTab === "level" ? <LevelTabs value={readingLevel} onChange={(level: ReadingLevel) => { setReadingLevel(newsId,level); navigation.setParams({readingLevel:level}); }} /> : null}
 
         {hasContent ? (bodyTab === "raw" ? <View style={styles.bodyCard}>
-          <Pressable style={styles.touchTarget} accessibilityRole="switch" accessibilityState={{ checked: showTerms }} accessibilityLabel="용어 밑줄 표시" onPress={() => setShowTerms(!showTerms)}><Text style={styles.backText}>용어 밑줄 {showTerms ? "켜짐" : "꺼짐"}</Text></Pressable>
-          <Text>기사 일부를 발췌했어요. 전문은 출처 사이트에서 확인하세요.</Text>
-          <ArticleBody text={rawExcerpt} terms={showTerms ? detail.keyTerms : []} onTermPress={setSelectedTerm} />
+          <Pressable style={styles.touchTarget} accessibilityRole="switch" accessibilityState={{ checked: showTerms }} accessibilityLabel="용어 하이라이트 표시" onPress={() => setShowTerms(!showTerms)}><Text style={styles.backText}>용어 하이라이트 {showTerms ? "켜짐" : "꺼짐"}</Text></Pressable>
+          {detail.fullContentEnabled ? null : <Text>기사 일부를 발췌했어요. 전문은 출처 사이트에서 확인하세요.</Text>}
+          <ArticleBody text={rawExcerpt} terms={showTerms ? detail.keyTermsByLevel?.[readingLevel] ?? detail.keyTerms : []} onTermPress={setSelectedTerm} />
           {detail.url ? <Pressable accessibilityRole="link" accessibilityLabel="원문 전체 보기" style={styles.touchTarget} onPress={() => void Linking.openURL(detail.url)}><Text style={styles.backText}>원문 전체 보기 →</Text></Pressable> : null}
         </View> : <View onLayout={event => { quizLayout.current.panel = event.nativeEvent.layout.y; scrollToQuiz(); }}><LearningPanel key={`${newsId}-${readingLevel}-${route.params.quizTerm ?? ""}`} newsId={newsId} level={readingLevel} quizTerm={route.params.quizTerm} onTermPress={setSelectedTerm}
           onQuizLayout={y => { quizLayout.current.quiz = y; scrollToQuiz(); }}

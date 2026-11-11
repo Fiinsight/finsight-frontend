@@ -26,6 +26,7 @@ export function JudgementDetailScreen({ route, navigation }: Props) {
     refetchInterval: query => focused && !query.state.data?.actualDirection ? 60_000 : false });
   const item = detailQuery.data?.id === id ? detailQuery.data : initial?.id === id ? initial : undefined;
   if (!valid || detailQuery.isError || !item) return <SafeAreaView style={styles.safeArea}>
+    <ScreenTopBar title="판단 기록" onBack={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate("History")} />
     <Text>{valid && detailQuery.isLoading ? "기록을 불러오는 중이에요" : "기록을 찾을 수 없어요"}</Text>
     <TouchableOpacity accessibilityRole="button" onPress={() => navigation.navigate("History")}><Text>기록 탭으로</Text></TouchableOpacity>
   </SafeAreaView>;
@@ -92,9 +93,9 @@ function JudgementDetailContent({item,navigation}:{item:import("../../types/api"
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <ScreenTopBar title="판단 기록" onBack={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate("History")} />
       <ScrollView contentContainerStyle={styles.container}>
         {result.example ? <Text style={styles.muted}>예시 · 실제 적중 통계에서 제외해요</Text> : null}
-      <ScreenTopBar title="판단 기록" onBack={() => navigation.goBack()} />
 
         <Text style={styles.eyebrow}>판단 기록 상세</Text>
         <Text style={styles.title}>{item.newsTitle}</Text>

@@ -1,4 +1,4 @@
-import { sourceExcerpt } from './text.ts';
+import { cleanArticleText, sourceExcerpt } from './text.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import fs from 'node:fs';
@@ -16,7 +16,7 @@ function render(level, reasons, mode = 'level', selected = [], reviewOnly = fals
   vm.runInNewContext(ts.transpileModule(fs.readFileSync(new URL('../screens/home/NewsDetailScreen/index.tsx', import.meta.url), 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.React, esModuleInterop: true }
   }).outputText, { exports, React: react, require(name) {
-    if (name.endsWith('/text')) return {sourceExcerpt};
+    if (name.endsWith('/text')) return {cleanArticleText,sourceExcerpt};
     if (name === 'react') return react;
     if (name === 'react-native') return { SafeAreaView: 'SafeAreaView', ScrollView: 'ScrollView', Text: 'Text', View: 'View', Pressable: 'Pressable', StyleSheet: { create: x => x } };
     if (name === '@react-navigation/native') return { useIsFocused: () => true };
@@ -63,7 +63,7 @@ function detailTabHarness(params = {}) {
     if(name==='@tanstack/react-query')return {useQuery:()=>({data:detail}),useQueryClient:()=>({invalidateQueries(){}})};
     if(name.endsWith('/api'))return {getLearningPreferences:()=>new Promise(resolve=>pending.push(resolve))};
     if(name.endsWith('/useAppStore'))return {useAppStore:selector=>selector({readingLevelByNewsId:{},setReadingLevel:(...args)=>saved.push(args)})};
-    if(name.endsWith('/text'))return {sourceExcerpt};
+    if(name.endsWith('/text'))return {cleanArticleText,sourceExcerpt};
     const component=name.split('/').at(-1);return {[component]:component};
   }});
   const render=()=>{slot=0;effects.length=0;return nodes(exports.NewsDetailScreen({route,navigation:{setParams:value=>Object.assign(route.params,value),getParent:()=>({navigate(){}})}}));};
@@ -88,7 +88,7 @@ test('restored tabs preserve route reading level, explicit navigation and source
  assert.equal(tree.find(n=>n.type==='LearningPanel').props.quizTerm,'금리');
  levels.props.onChange('beginner');tree=screen.render();assert.equal(tree.find(n=>n.type==='LevelTabs').props.value,'beginner');assert.deepEqual(screen.saved,[[1,'beginner']]);
  const rawTab=tree.find(n=>n.props?.accessibilityRole==='tab'&&nodes(n).some(c=>c.type==='Text'&&c.children.includes('원문')));rawTab.props.onPress();tree=screen.render();
- const article=tree.find(n=>n.type==='ArticleBody');assert(article.props.text.length<=300);assert(!article.props.text.includes('넷째 문장'));
+ const article=tree.find(n=>n.type==='ArticleBody');assert(article.props.text.length<=1200);assert(article.props.text.includes('넷째 문장'));assert(!article.props.text.endsWith('…'));
  assert.equal(tree.filter(n=>n.type==='SourceLinkRow').length,2);
  const heading=tree.findIndex(n=>n.type==='Text'&&n.children.includes(screen.detail.title));assert.equal(tree[heading+1].type,'SourceLinkRow');
  tree.find(n=>n.props?.accessibilityLabel==='원문 전체 보기').props.onPress();assert.deepEqual(screen.opened,[screen.detail.url]);

@@ -1,6 +1,6 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import type { MoveInsight } from "../../../types/api";
-const relations = { DIRECT: "직접 관련 뉴스", MARKET: "시장 전체 영향", NONE: "관련 뉴스 없음" };
+const relations = { DIRECT: "종목 직접 관련", SECTOR: "업종 관련", MARKET: "시장 전체 흐름", NONE: "관련 뉴스 없음" };
 interface Props {
   insight: MoveInsight;
   period: string;
@@ -13,7 +13,7 @@ interface Props {
 export function ChartDocentPanel({ insight, period, onNewsPress, onPrevious, onNext, hasPrevious, hasNext }: Props) {
   const docent = insight.docent;
   const date = period === "MINUTE" ? insight.timestamp.replace("T", " ").slice(0, 16) : `${insight.timestamp.slice(0, 10)}${period === "W" ? " 주간" : ""}`;
-  const relation = docent?.relation ?? (insight.newsId != null ? (insight.candidateNews[0]?.relationType === "MARKET" ? "MARKET" : "DIRECT") : "NONE");
+  const relation = docent?.relation ?? (insight.newsId != null ? (insight.candidateNews[0]?.relationType === "MARKET" ? "MARKET" : insight.candidateNews[0]?.relationType === "SECTOR" ? "SECTOR" : "DIRECT") : "NONE");
   return <View style={styles.panel} accessibilityLabel="선택한 급등락 지점의 차트 도슨트">
     <View style={styles.header}>
       <Text style={styles.date}>{date}</Text>

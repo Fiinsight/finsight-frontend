@@ -54,6 +54,7 @@ export interface NewsDetailRaw {
   url?: string;
   source?: string;
   rawContent?: string;
+  fullContentEnabled?: boolean;
   content?: string;
   originalContent?: string;
   importanceReason?: string;
@@ -65,6 +66,7 @@ export interface NewsDetailRaw {
   symbolName?: string;
   sentimentHint?: Sentiment;
   keyTerms?: string[];
+  keyTermsByLevel?: Partial<Record<ReadingLevel,string[]>>;
   beginnerContent?: string;
   normalContent?: string;
   analystContent?: string;
@@ -90,12 +92,14 @@ export interface NewsDetail {
   publishedAt: string;
   summary: string;
   rawContent: string;
+  fullContentEnabled?: boolean;
   importanceReason: string;
   importanceReasons?: Record<ReadingLevel, string>;
   relatedSymbol: string;
   relatedSymbolName: string;
   sentimentHint: Sentiment;
   keyTerms: string[];
+  keyTermsByLevel?: Partial<Record<ReadingLevel,string[]>>;
   levels: Record<ReadingLevel, string>;
   url: string;
   source: string;
@@ -300,7 +304,7 @@ export interface ChartPoint {
 }
 
 export interface ChartRelatedNewsRaw {
-  relationType?: "DIRECT" | "MARKET" | "REFERENCE";
+  relationType?: "DIRECT" | "SECTOR" | "MARKET" | "REFERENCE";
   id?: number;
   newsId?: number;
   title?: string;
@@ -311,7 +315,7 @@ export interface ChartRelatedNewsRaw {
 }
 
 export interface ChartRelatedNews {
-  relationType?: "DIRECT" | "MARKET" | "REFERENCE";
+  relationType?: "DIRECT" | "SECTOR" | "MARKET" | "REFERENCE";
   id: number | null;
   title: string;
   source: string;
@@ -396,7 +400,7 @@ export interface MoveInsight {
 }
 
 export interface ChartDocent {
-  relation: "DIRECT" | "MARKET" | "NONE";
+  relation: "DIRECT" | "SECTOR" | "MARKET" | "NONE";
   possibleReason: string;
   marketImpact: string;
   mode: "RULE" | "LLM";
