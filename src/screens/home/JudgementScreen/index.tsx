@@ -112,7 +112,7 @@ export function JudgementScreen({ route, navigation }: Props) {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {symbol ? <BottomActionBar label={existing && !confirmed ? "판단 수정하기" : "제출하기"} onPress={handleSubmit} disabled={!choice || !data || confirmed || history.isLoading || history.isError} loading={mutation.isPending} /> : null}
+      {symbol ? <BottomActionBar label={existing && !confirmed ? "판단 수정하기" : "제출하기"} onPress={handleSubmit} disabled={ownerId === null || !choice || !data || confirmed || history.isLoading || history.isError} loading={mutation.isPending} /> : null}
     </SafeAreaView>
   );
 }
