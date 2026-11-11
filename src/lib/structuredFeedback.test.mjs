@@ -1,3 +1,4 @@
+import { installSafeGetRetry } from './getRetry.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync,writeFileSync,mkdirSync} from 'node:fs';
@@ -41,7 +42,7 @@ test('legacy null renders paragraph, waiting shows only user reason, no-reason c
 });
 test('API maps feedback reasons separately from the user reason and preserves legacy null',async()=>{
  let payload= {judgementId:10,...base,reasons};const http={get:async()=>({data:payload}),interceptors:{request:{use(){}},response:{use(){}}}},exports={};
- vm.runInNewContext(compile('./api.ts'),{exports,process:{env:{}},require:name=>name==='axios'?{create:()=>http}:name==='expo'?{getExpoGoProjectConfig:()=>({})}:name==='./historyRecords'?history:{}});
+ vm.runInNewContext(compile('./api.ts'),{exports,process:{env:{}},require:name=>name==='./getRetry'?{installSafeGetRetry}:name==='axios'?{create:()=>http}:name==='expo'?{getExpoGoProjectConfig:()=>({})}:name==='./historyRecords'?history:{}});
  const item=await exports.getJudgementDetail(10);assert.equal(item.feedbackReasons.length,3);assert.equal(item.reasons[0],base.reasonText);assert.equal(item.verdict,'CORRECT');
  payload={judgementId:10,choice:'UP',reasonText:'내 근거',feedbackText:'이전 문단',reasons:null};const old=await exports.getJudgementDetail(10);assert.equal(old.feedbackReasons,null);assert.equal(old.reasons[0],'내 근거');assert.equal(old.feedbackText,'이전 문단');
 });

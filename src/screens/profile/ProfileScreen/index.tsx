@@ -49,7 +49,7 @@ export function ProfileScreen({ session, onLogout }: { session: AuthSession; onL
   }, [settingsOpen]);
   async function saveSettings(answers: OnboardingAnswer[]) {
     setSaving(true); setMessage("");
-    try { await saveLearningSettings(answers); void client.invalidateQueries({ queryKey: ["learning-progress"] }); const prefs = await getLearningPreferences(); setLevel(prefs.level); setSettingsOpen(false); setMessage("학습 설정을 저장했어요."); }
+    try { await saveLearningSettings(answers); void client.invalidateQueries({ queryKey: ["learning-progress"] }); void client.invalidateQueries({ queryKey: ["learning-preferences"] }); const prefs = await getLearningPreferences(); setLevel(prefs.level); setSettingsOpen(false); setMessage("학습 설정을 저장했어요."); }
     catch { setMessage("학습 설정을 저장하지 못했어요. 다시 시도해 주세요."); }
     finally { setSaving(false); }
   }
@@ -71,6 +71,7 @@ export function ProfileScreen({ session, onLogout }: { session: AuthSession; onL
     setSaving(true); setMessage("");
     try {
       await setDefaultReadingLevel(next);
+      void client.invalidateQueries({ queryKey: ["learning-preferences"] });
       void client.invalidateQueries({ queryKey: ["learning-progress"] });
       setLevel(next); setEditing(false); setMessage("이 계정의 기본 읽기 수준을 저장했어요.");
     } catch { setMessage("수준을 저장하지 못했습니다. 기존 설정을 유지합니다 · 다시 시도해 주세요."); }

@@ -33,7 +33,12 @@ export function JudgementScreen({ route, navigation }: Props) {
   const readingLevel = useAppStore((state) => state.readingLevelByNewsId[newsId]);
   const [profileLevel,setProfileLevel] = useState("beginner");
   const [recommendEvidence, setRecommendEvidence] = useState(false);
-  useEffect(() => { void getLearningPreferences().then(value => { setRecommendEvidence(value.painPoint === "evidence"); setProfileLevel(value.level); }); }, []);
+  useEffect(() => {
+    let active = true;
+    void queryClient.fetchQuery({ queryKey: ["learning-preferences"], queryFn: getLearningPreferences, staleTime: 60_000, retry: 0 })
+      .then(value => { if (active) { setRecommendEvidence(value.painPoint === "evidence"); setProfileLevel(value.level); } });
+    return () => { active = false; };
+  }, [queryClient]);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const { data, isError, isLoading, refetch } = useQuery({

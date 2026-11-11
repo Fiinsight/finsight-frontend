@@ -87,6 +87,7 @@ export function LearnScreen() {
   const client = useQueryClient();
   const dailyTerms = useQuery({ queryKey: ["daily-learning-terms", ownerId], queryFn: getDailyLearningTerms, enabled: ownerId !== null && isFocused, retry: 0, staleTime: 60_000 });
   const promotion = useMutation({ mutationFn: setDefaultReadingLevel, onSuccess: async (_result, level) => {
+    void client.invalidateQueries({ queryKey: ["learning-preferences"] });
     setPreferences(await getLearningPreferences());
     setPromotionMessage(`${level === "normal" ? "일반용" : "분석용"}으로 변경했어요.`);
     void client.invalidateQueries({ queryKey: ["learning-progress"] });

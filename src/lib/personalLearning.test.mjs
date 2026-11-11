@@ -1,3 +1,4 @@
+import { installSafeGetRetry } from './getRetry.ts';
 import { reshuffleQuizOptions } from './quizOptions.ts';
 import * as theme from '../theme/index.ts';
 import assert from 'node:assert/strict';
@@ -114,7 +115,7 @@ test('recommendation request forwards only this device owner recent reading IDs'
   const history=compile('./historyRecords.ts',{});
   const http={get:async(path,options)=>{requested={path,options};return {data:{items:[],basis:'RULE_RECENT'}};},interceptors:{request:{use(){}},response:{use(){}}}};
   const FixedDate=class extends Date {constructor(...args){super(...(args.length?args:[time]));}static now(){return time;}};
-  const api=compile('./api.ts',{Date:FixedDate,process:{env:{}},require:name=>name.endsWith('/theme') ? theme : name==='axios'?{create:()=>http}:name==='expo'?{getExpoGoProjectConfig:()=>({})}:name==='./historyRecords'?history:name==='./auth'?{loadAuthSession:async()=>({userId:42})}:name==='./readingProgress'?{getReadingLog:async owner=>{reader=owner;return {'2026-09-12':[100],'2026-09-13':[101,102],'2026-10-13':[102,103],'2026-10-14':[999]};}}:{}});
+  const api=compile('./api.ts',{Date:FixedDate,process:{env:{}},require:name=>name.endsWith('/theme') ? theme : name==='./getRetry'?{installSafeGetRetry}:name==='axios'?{create:()=>http}:name==='expo'?{getExpoGoProjectConfig:()=>({})}:name==='./historyRecords'?history:name==='./auth'?{loadAuthSession:async()=>({userId:42})}:name==='./readingProgress'?{getReadingLog:async owner=>{reader=owner;return {'2026-09-12':[100],'2026-09-13':[101,102],'2026-10-13':[102,103],'2026-10-14':[999]};}}:{}});
   await api.getLearningRecommendations();
   assert.equal(reader,42);assert.equal(requested.path,'/learning/recommendations');
   assert.equal(requested.options.params.readNewsIds,'101,102,103');

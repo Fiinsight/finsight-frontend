@@ -10,7 +10,7 @@ type Props = { painPoint: LearningPainPoint; ownerId: number | null; focused: bo
 export function PainPointCard({ painPoint, ownerId, focused, onArticle, onHistory }: Props) {
   const [selected, setSelected] = useState<{ id: number; sentence: string } | null>(null);
   const needsArticle = painPoint === 'overload' || painPoint === 'evidence';
-  const briefing = useQuery({ queryKey: ['learning-focus-news', ownerId], queryFn: getTodayBriefing, enabled: needsArticle && ownerId !== null && focused, retry: 0, staleTime: 60_000 });
+  const briefing = useQuery({ queryKey: ['today-briefing'], queryFn: getTodayBriefing, enabled: needsArticle && ownerId !== null && focused, retry: 0, staleTime: 60_000 });
   const article = briefing.data?.[0];
   const detail = useQuery({ queryKey: ['news-detail', article?.id], queryFn: () => getNewsDetail(article!.id), enabled: needsArticle && !!article && focused, retry: 0, staleTime: 60_000 });
   if (painPoint === 'terms') return null;
