@@ -6,7 +6,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { addWatchlist, getApiErrorMessage, getChartCandles, getChartInsights, getPopularStocks, getWatchlist, removeWatchlist, searchStocks } from "../../../lib/api";
+import { addWatchlist, getApiErrorMessage, getChartCandles, getChartInsights, getLearningPreferences, getPopularStocks, getWatchlist, removeWatchlist, searchStocks } from "../../../lib/api";
 import { loadAuthSession } from "../../../lib/auth";
 import { storageGetItem, storageSetItem } from "../../../lib/storage";
 import { initialChartSymbol, lastWatchlistKey } from "../../../lib/watchlist";
@@ -15,7 +15,7 @@ import type { ChartRelatedNews, MoveInsight, WatchlistItem } from "../../../type
 import { WatchlistChips } from "./WatchlistChips";
 import { ChartCard } from "./ChartCard";
 import { ChartDocentPanel } from "./ChartDocentPanel";
-import { strongestMove, movesByDate, moveDate } from "../../../lib/chartDocent";
+import { strongestMove, movesByDate, moveDate, chartLearningParams } from "../../../lib/chartDocent";
 import { RelatedNewsList } from "./RelatedNewsList";
 import { PopularStockChips } from "./PopularStockChips";
 import { StockHeader } from "./StockHeader";
@@ -118,10 +118,12 @@ export function ChartScreen({ route, navigation }: Props) {
   });
 
   const current = data?.symbol === selectedSymbol && data.period === period && (period !== "MINUTE" || data.intervalMinutes === minuteInterval);
+  const preferences=useQuery({queryKey:["learning-preferences",ownerId],queryFn:getLearningPreferences,enabled:ownerId!==null,retry:0,staleTime:60_000});
+  const readingLevel=preferences.data?.level;
   const insights = useQuery({
-    queryKey: ["chart-insights", selectedSymbol, period, period === "MINUTE" ? minuteInterval : 0],
-    queryFn: ({ signal }) => getChartInsights(selectedSymbol, period, minuteInterval, signal),
-    enabled: Boolean(current && !data?.fallback),
+    queryKey: ["chart-insights", selectedSymbol, period, period === "MINUTE" ? minuteInterval : 0, readingLevel],
+    queryFn: ({ signal }) => getChartInsights(selectedSymbol, period, minuteInterval, signal, readingLevel),
+    enabled: Boolean(!entering && current && !data?.fallback && (ownerId===null || !preferences.isPending)),
     retry: 0,
     staleTime: 60_000,
     refetchOnWindowFocus: false
@@ -244,7 +246,7 @@ export function ChartScreen({ route, navigation }: Props) {
             hasPrevious={selectedPosition < moves.length - 1} hasNext={selectedPosition > 0}
             onPrevious={() => selectMove(moves[selectedPosition + 1])} onNext={() => selectMove(moves[selectedPosition - 1])} />
         </View> : null}
-        {current && chart ? <RelatedNewsList key={`${selectedSymbol}:${period}:${selected?.timestamp ?? "all"}`} expandMarket={Boolean(selected)} loading={insights.isFetching} error={insights.isError} onLearn={() => navigation.getParent()?.navigate("LearnTab")} items={selected ? selected.candidateNews : chart.relatedNews} onPress={handleRelatedNewsPress} /> : null}
+        {current && chart ? <RelatedNewsList key={`${selectedSymbol}:${period}:${selected?.timestamp ?? "all"}`} expandMarket={Boolean(selected)} loading={insights.isFetching} error={insights.isError} onLearn={() => navigation.getParent()?.navigate("LearnTab", chartLearningParams(selected,readingLevel))} items={selected ? selected.candidateNews : chart.relatedNews} onPress={handleRelatedNewsPress} /> : null}
         {current && chart && chart.moveInsights.length > 0 ? (
           <View style={styles.insightCard}>
             <Text style={styles.insightTitle}>급등락 시점과 관련 뉴스</Text>
