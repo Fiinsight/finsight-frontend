@@ -2,7 +2,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { JudgementResultsProvider, useJudgementResults } from "../components/JudgementResultsProvider";
 import { HistoryResultDot } from "../components/JudgementResultBanner";
 import type { ReactNode } from "react";
-import { View } from "react-native";
+import { useWindowDimensions, View } from "react-native";
 import { useIsFocused } from "@react-navigation/native";
 import { PlatformPressable } from "@react-navigation/elements";
 import { Ionicons } from "@expo/vector-icons";
@@ -44,6 +44,8 @@ export function RootNavigator(props: { session: AuthSession; onLogout: () => voi
 function RootTabs({ session, onLogout }: { session: AuthSession; onLogout: () => void }) {
   const { unseen }=useJudgementResults();
   const insets = useSafeAreaInsets();
+  const { fontScale } = useWindowDimensions();
+  const bottomPadding = Math.max(insets.bottom, 8);
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -53,8 +55,9 @@ function RootTabs({ session, onLogout }: { session: AuthSession; onLogout: () =>
         tabBarActiveTintColor: "#202124",
         tabBarInactiveTintColor: "#667085",
         tabBarStyle: {
-          height: 56 + insets.bottom,
-          paddingBottom: Math.max(insets.bottom, 8),
+          // Reserve the icon, button padding and full label line above the safe area.
+          height: 48 + 16 * Math.max(fontScale, 1) + bottomPadding,
+          paddingBottom: bottomPadding,
           paddingTop: 8,
           backgroundColor: "#FFFFFF",
           borderTopColor: "#E5E7EB",
@@ -64,6 +67,8 @@ function RootTabs({ session, onLogout }: { session: AuthSession; onLogout: () =>
         },
         tabBarLabelStyle: {
           fontSize: 11,
+          lineHeight: 16,
+          flexShrink: 0,
           fontWeight: "500"
         },
         tabBarIcon: ({ color, focused, size }) => {
